@@ -24,10 +24,14 @@ npx prisma generate --schema=backend/prisma/schema.prisma
 echo "✅ Prisma client generated"
 echo ""
 
-# ── 3. Prisma: push схеми (ВИЛУЧЕНО) ────────────────────────────────────────
+# ── 3. Database: Автоматичне створення таблиць ──────────────────────────────
 echo "🗄️  [3/5] Database setup..."
-echo "⚠️  Skipping db push — Prisma CLI requires local SQLite files."
-echo "    Tables should be created manually in Turso dashboard via SQL."
+if [ -n "$TURSO_DATABASE_URL" ] && [ -n "$TURSO_AUTH_TOKEN" ]; then
+  echo "🚀 Running schema push to Turso..."
+  node push-db.js "$TURSO_DATABASE_URL" "$TURSO_AUTH_TOKEN"
+else
+  echo "⚠️  TURSO_DATABASE_URL або TURSO_AUTH_TOKEN не вказані в налаштуваннях Netlify!"
+fi
 echo ""
 
 # ── 4. Admin: статичний білд → frontend/public/admin/ ───────────────────────
