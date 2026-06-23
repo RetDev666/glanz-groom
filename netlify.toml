@@ -3,8 +3,8 @@
   publish = "frontend/.next"
   functions = "netlify/functions"
 
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
+# @netlify/plugin-nextjs встановлено через Netlify Dashboard (не з netlify.toml)
+# https://app.netlify.com/plugins/@netlify/plugin-nextjs/install
 
 [build.environment]
   NEXT_PUBLIC_API_URL = "https://YOUR-SITE.netlify.app/api"

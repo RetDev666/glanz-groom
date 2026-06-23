@@ -49,6 +49,7 @@ echo ""
 
 # ── 5. Frontend: Next.js білд ───────────────────────────────────────────────
 echo "🌐 [5/5] Building frontend..."
+npm --prefix frontend install
 cd frontend
 npm run build
 echo "✅ Frontend built"
