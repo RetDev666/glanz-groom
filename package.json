@@ -1,0 +1,32 @@
+{
+  "name": "glanz-groom-crm",
+  "version": "1.0.0",
+  "description": "Root package for deployment orchestration",
+  "scripts": {
+    "setup": "npm --prefix backend install && npm --prefix frontend install && npm --prefix admin install",
+    "build:backend": "npm --prefix backend run build",
+    "build:frontend": "npm --prefix frontend run build",
+    "build:admin": "npm --prefix admin run build",
+    "build": "npm run build:backend && npm run build:frontend && npm run build:admin",
+    "db:push": "npm --prefix backend run db:push",
+    "start": "pm2 start ecosystem.config.js"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.6.0",
+    "@prisma/adapter-libsql": "^5.7.1",
+    "@prisma/client": "^5.7.1",
+    "bcryptjs": "^2.4.3",
+    "cloudinary": "^2.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.1.1",
+    "nodemailer": "^6.9.7",
+    "serverless-http": "^3.2.0",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "prisma": "^5.7.1"
+  }
+}

@@ -1,0 +1,60 @@
+# Приклад конфігурації Nginx для хостингу Glanz & Groom CRM
+# Замініть YOUR_DOMAIN.com на ваш реальний домен.
+
+# 1. Клієнтський сайт (Frontend)
+server {
+    listen 80;
+    server_name YOUR_DOMAIN.com www.YOUR_DOMAIN.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:3002;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+
+# 2. Адмін-панель (Admin CRM)
+server {
+    listen 80;
+    server_name admin.YOUR_DOMAIN.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:3003;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+
+# 3. Бекенд API
+server {
+    listen 80;
+    server_name api.YOUR_DOMAIN.com;
+
+    # Основні API запити
+    location / {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    # Роздача статичних файлів (завантажених фотографій порід та грумерів)
+    # Для кращої продуктивності Nginx може роздавати їх напряму, оминаючи Node.js:
+    location /uploads/ {
+        # Вкажіть абсолютний шлях до папки backend на вашому сервері
+        alias /var/www/glanz-groom/backend/uploads/;
+        # Або можна залишити через proxy_pass:
+        # proxy_pass http://127.0.0.1:3001/uploads/;
+        
+        expires 30d;
+        add_header Cache-Control "public, max-age=2592000";
+    }
+}
