@@ -16,15 +16,9 @@ async function main() {
   console.log("Reading init_db.sql...");
   const sql = fs.readFileSync('init_db.sql', 'utf8');
   
-  // Also add the admin user and groomers
   const seedSql = `
     INSERT INTO "User" (email, password, name, role, updatedAt)
     VALUES ('admin@glanzgroom.ua', '$2a$10$NI4n1w.WyZDhgST6v1aCC.THsfx.W1Pek72jy7D1NH9bAZypXfuoy', 'Admin', 'admin', CURRENT_TIMESTAMP);
-
-    INSERT INTO "Groomer" (name, role, color, createdAt) VALUES 
-    ('Олена Р.', 'Старший грумер', '#ae2f34', CURRENT_TIMESTAMP),
-    ('Марк Д.', 'Купальник & Підготовка', '#785900', CURRENT_TIMESTAMP),
-    ('Сара К.', 'Стиліст', '#506073', CURRENT_TIMESTAMP);
   `;
 
   const statements = (sql + '\n' + seedSql)
