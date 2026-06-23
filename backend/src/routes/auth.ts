@@ -26,7 +26,7 @@ router.post('/login', async (req: Request, res: Response) => {
 
     const token = jwt.sign(
       { userId: user.id, role: user.role },
-      process.env.JWT_SECRET!,
+      process.env.JWT_SECRET || 'fallback_secret_key_for_development_only',
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' } as jwt.SignOptions
     );
 
@@ -34,8 +34,9 @@ router.post('/login', async (req: Request, res: Response) => {
       token,
       user: { id: user.id, name: user.name, email: user.email, role: user.role },
     });
-  } catch (err) {
-    res.status(500).json({ error: 'Internal server error' });
+  } catch (err: any) {
+    console.error("Login Error:", err);
+    res.status(500).json({ error: 'Internal server error', details: err?.message || String(err) });
   }
 });
 
