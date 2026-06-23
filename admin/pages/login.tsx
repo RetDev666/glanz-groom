@@ -6,7 +6,7 @@ import { useAdminLang } from '../hooks/useAdminLang';
 export default function LoginPage() {
   const router = useRouter();
   const { t, cycleLang, nextLabel } = useAdminLang();
-  const [email, setEmail] = useState('admin@glanzgroom.ua');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -107,9 +107,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="text-center font-sans text-label-sm text-on-surface-variant mt-6">
-          {t.login.testLogin} <strong>admin@glanzgroom.ua</strong> / <strong>admin123</strong>
-        </p>
+
       </div>
     </div>
   );
