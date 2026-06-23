@@ -4,6 +4,10 @@
   publish = ".next"
   functions = "../netlify/functions"
 
+[functions]
+  node_bundler = "esbuild"
+  external_node_modules = ["@libsql/client", "@libsql/linux-x64-gnu"]
+
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
