@@ -1,13 +1,14 @@
 [build]
-  command = "bash scripts/netlify-build.sh"
-  publish = "frontend/.next"
-  functions = "netlify/functions"
+  base = "frontend"
+  command = "bash ../scripts/netlify-build.sh"
+  publish = ".next"
+  functions = "../netlify/functions"
 
-# @netlify/plugin-nextjs встановлено через Netlify Dashboard (не з netlify.toml)
-# https://app.netlify.com/plugins/@netlify/plugin-nextjs/install
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
 
 [build.environment]
-  NEXT_PUBLIC_API_URL = "https://YOUR-SITE.netlify.app/api"
+  NEXT_PUBLIC_API_URL = "https://zippy-dieffenbachia-cb13e3.netlify.app/api"
 
 # Всі запити на /api/* перенаправляються до Netlify Function
 [[redirects]]
