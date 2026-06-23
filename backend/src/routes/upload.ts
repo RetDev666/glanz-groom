@@ -33,7 +33,11 @@ if (useCloudinary) {
   const PET_UPLOAD_DIR = path.join(__dirname, '../../uploads/pets');
   const GROOMER_UPLOAD_DIR = path.join(__dirname, '../../uploads/groomers');
   [PET_UPLOAD_DIR, GROOMER_UPLOAD_DIR].forEach(dir => {
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    try {
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    } catch (e) {
+      console.warn(`Could not create directory ${dir} (expected in read-only serverless environment if Cloudinary is not configured)`);
+    }
   });
 
   const makeStorage = (dest: string) => multer.diskStorage({
