@@ -8,7 +8,9 @@
   package = "@netlify/plugin-nextjs"
 
 [build.environment]
-  NEXT_PUBLIC_API_URL = "https://zippy-dieffenbachia-cb13e3.netlify.app/api"
+  NEXT_PUBLIC_API_URL = "https://glanz-groom.netlify.app/api"
+  ADMIN_URL = "https://glanz-groom.netlify.app/admin"
+  FRONTEND_URL = "https://glanz-groom.netlify.app"
 
 # Всі запити на /api/* перенаправляються до Netlify Function
 [[redirects]]
