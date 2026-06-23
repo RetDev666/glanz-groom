@@ -15,9 +15,9 @@ router.get('/', async (req, res) => {
       return acc;
     }, {} as Record<string, string>);
     res.json(settingsObj);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Settings GET error:', error);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: 'Server error', details: error?.message || String(error) });
   }
 });
 
@@ -38,9 +38,9 @@ router.post('/', requireAuth, async (req, res) => {
     await prisma.$transaction(updates);
     
     res.json({ message: 'Settings saved successfully' });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Settings POST error:', error);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: 'Server error', details: error?.message || String(error) });
   }
 });
 
