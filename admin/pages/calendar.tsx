@@ -144,9 +144,142 @@ function AppointmentDetailModal({
         </div>
       </div>
     </div>
-  );
 }
 
+function NewAppointmentModal({
+  groomers, onClose, onSave, t
+}: {
+  groomers: Record<string, unknown>[];
+  onClose: () => void;
+  onSave: () => void;
+  t: ReturnType<typeof useAdminLang>['t'];
+}) {
+  const [form, setForm] = useState({
+    date: new Date().toISOString().slice(0, 16),
+    groomerId: String(groomers[0]?.id || ''),
+    clientFirstName: '',
+    clientLastName: '',
+    clientPhone: '',
+    clientEmail: '',
+    petName: '',
+    petSize: 'm',
+    serviceIds: [] as number[],
+  });
+  const [services, setServices] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem('admin_token');
+    fetch(`${API}/services/all`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(d => setServices(Array.isArray(d) ? d.filter((s:any) => s.isActive) : []));
+  }, []);
+
+  const toggleService = (id: number) => {
+    setForm(prev => ({
+      ...prev,
+      serviceIds: prev.serviceIds.includes(id) 
+        ? prev.serviceIds.filter(x => x !== id) 
+        : [...prev.serviceIds, id]
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.clientPhone || !form.petName || !form.date || form.serviceIds.length === 0) {
+      return alert('Будь ласка, заповніть всі обов\'язкові поля (Телефон, Ім\'я улюбленця, Послуги)');
+    }
+    
+    setLoading(true);
+    const payload = {
+      ...form,
+      clientEmail: form.clientEmail || `${Date.now()}@no-email.local`,
+      date: new Date(form.date).toISOString(),
+      groomerId: Number(form.groomerId) || Number(groomers[0]?.id) || 0,
+    };
+
+    const res = await fetch(`${API}/appointments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    setLoading(false);
+    
+    if (res.ok) {
+      onSave();
+      onClose();
+    } else {
+      const data = await res.json();
+      alert(data.error || 'Помилка при створенні');
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-surface-container-lowest rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto border border-outline-variant" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-6 border-b border-outline-variant">
+          <h3 className="font-display text-headline-sm text-on-surface">Новий запис</h3>
+          <button onClick={onClose} className="p-2 rounded-full hover:bg-surface-container-high text-on-surface-variant transition-colors">
+            <span className="material-symbols-outlined">close</span>
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block font-sans text-label-sm text-on-surface-variant mb-1">{t.calendar.dateTimeLabel}</label>
+              <input type="datetime-local" required value={form.date} onChange={e => setForm({...form, date: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none" />
+            </div>
+            <div>
+              <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Groomer</label>
+              <select value={form.groomerId} onChange={e => setForm({...form, groomerId: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none">
+                {groomers.map((g: any) => <option key={g.id} value={g.id}>{g.name}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Ім'я клієнта</label>
+              <input type="text" value={form.clientFirstName} onChange={e => setForm({...form, clientFirstName: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none" placeholder="Ім'я" />
+            </div>
+            <div>
+              <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Телефон *</label>
+              <input type="tel" required value={form.clientPhone} onChange={e => setForm({...form, clientPhone: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none" placeholder="+380..." />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Улюбленець *</label>
+              <input type="text" required value={form.petName} onChange={e => setForm({...form, petName: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none" placeholder="Кличка" />
+            </div>
+            <div>
+              <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Розмір</label>
+              <select value={form.petSize} onChange={e => setForm({...form, petSize: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none">
+                <option value="xs">XS</option><option value="s">S</option><option value="m">M</option><option value="l">L</option><option value="xl">XL</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className="block font-sans text-label-sm text-on-surface-variant mb-2">Послуги *</label>
+            <div className="max-h-40 overflow-y-auto space-y-1 bg-surface-container-low p-2 rounded-xl border border-outline-variant">
+              {services.map(s => (
+                <label key={s.id} className="flex items-center gap-2 cursor-pointer p-1 hover:bg-surface-container rounded">
+                  <input type="checkbox" checked={form.serviceIds.includes(s.id)} onChange={() => toggleService(s.id)} className="w-4 h-4 rounded text-primary border-outline-variant" />
+                  <span className="text-sm font-sans">{s.nameUk || s.name}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+          <div className="pt-4 flex gap-3 border-t border-outline-variant">
+            <button type="button" onClick={onClose} className="flex-1 py-2 rounded-full border border-outline hover:bg-surface-container transition-colors">Скасувати</button>
+            <button type="submit" disabled={loading} className="flex-1 py-2 rounded-full bg-primary text-on-primary hover:opacity-90 transition-opacity">
+              {loading ? 'Збереження...' : 'Зберегти'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
 export default function CalendarPage() {
   const { t } = useAdminLang();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -154,7 +287,12 @@ export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<'week' | 'day'>('day');
   const [selectedApt, setSelectedApt] = useState<Appointment | null>(null);
+  const [showNewApt, setShowNewApt] = useState(false);
 
+  const fetchAppointments = () => {
+    setCurrentDate(new Date(currentDate));
+  };
+  
   const getWeekStart = (date: Date) => {
     const d = new Date(date);
     const day = d.getDay() || 7; 
@@ -233,6 +371,7 @@ export default function CalendarPage() {
   return (
     <AdminLayout title={t.calendar.title}>
       {selectedApt && <AppointmentDetailModal apt={selectedApt} groomers={groomers} t={t} onClose={() => setSelectedApt(null)} onSave={handleUpdateAppointment} />}
+      {showNewApt && <NewAppointmentModal groomers={groomers} t={t} onClose={() => setShowNewApt(false)} onSave={() => setCurrentDate(new Date(currentDate))} />}
 
       <header className="sticky top-0 bg-surface border-b border-outline-variant flex justify-between items-center px-6 h-16 shrink-0 z-40">
         <div className="flex items-center gap-4">
@@ -250,6 +389,13 @@ export default function CalendarPage() {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowNewApt(true)}
+            className="bg-primary text-on-primary font-sans text-label-lg px-4 py-1.5 rounded-full hover:opacity-90 transition-opacity flex items-center gap-1 shadow-sm"
+          >
+            <span className="material-symbols-outlined text-[18px]">add</span>
+            Новий запис
+          </button>
           <button
             onClick={() => setCurrentDate(new Date())}
             className="border border-outline font-sans text-label-lg px-4 py-1.5 rounded-full hover:bg-surface-container-low transition-colors"

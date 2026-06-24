@@ -22,10 +22,7 @@ const PORT = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors({
-  origin: [
-    process.env.FRONTEND_URL || 'http://localhost:3000',
-    process.env.ADMIN_URL || 'http://localhost:3002',
-  ],
+  origin: true,
   credentials: true,
 }));
 app.use(express.json());
