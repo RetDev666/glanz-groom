@@ -231,7 +231,11 @@ export default function AppointmentsPage() {
     }
   }, [filterDate, filterStatus]);
 
-  useEffect(() => { fetchAppointments(); }, [fetchAppointments]);
+  useEffect(() => { 
+    fetchAppointments(); 
+    window.addEventListener('new-appointment', fetchAppointments);
+    return () => window.removeEventListener('new-appointment', fetchAppointments);
+  }, [fetchAppointments]);
 
   const updateStatus = async (id: number, status: string) => {
     const token = localStorage.getItem('admin_token');

@@ -332,13 +332,20 @@ export default function CalendarPage() {
       queryDate = `startDate=${start.toISOString().split('T')[0]}&endDate=${end.toISOString().split('T')[0]}`;
     }
 
-    Promise.all([
-      fetch(`${API}/appointments?${queryDate}`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).catch(() => []),
-      fetch(`${API}/groomers/all`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).catch(() => []),
-    ]).then(([apts, grs]) => {
-      setAppointments(Array.isArray(apts) ? apts : []);
-      setGroomers(Array.isArray(grs) ? grs : []);
-    });
+    const fetchData = () => {
+      Promise.all([
+        fetch(`${API}/appointments?${queryDate}`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).catch(() => []),
+        fetch(`${API}/groomers/all`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).catch(() => []),
+      ]).then(([apts, grs]) => {
+        setAppointments(Array.isArray(apts) ? apts : []);
+        setGroomers(Array.isArray(grs) ? grs : []);
+      });
+    };
+
+    fetchData();
+
+    window.addEventListener('new-appointment', fetchData);
+    return () => window.removeEventListener('new-appointment', fetchData);
   }, [currentDate, view]);
 
   const handleUpdateAppointment = async (id: number, data: any) => {

@@ -20,24 +20,32 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const token = localStorage.getItem('admin_token');
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/appointments`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(r => r.json())
-      .then(data => {
-        const arr = Array.isArray(data) ? data : [];
-        const upcoming = arr.filter(a => new Date(String(a.date)) >= new Date(new Date().setHours(0,0,0,0)));
-        setAppointments(upcoming);
-        setStats({
-          total: upcoming.length,
-          pending: upcoming.filter(a => a.status === 'pending').length,
-          confirmed: upcoming.filter(a => a.status === 'confirmed').length,
-          completed: upcoming.filter(a => a.status === 'completed').length,
-          revenue: upcoming.filter(a => a.status === 'completed' || a.status === 'confirmed').reduce((sum, a) => sum + Number(a.totalPrice || 0), 0),
-        });
-        setLoading(false);
+    
+    const fetchData = () => {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/appointments`, {
+        headers: { Authorization: `Bearer ${token}` },
       })
-      .catch(() => setLoading(false));
+        .then(r => r.json())
+        .then(data => {
+          const arr = Array.isArray(data) ? data : [];
+          const upcoming = arr.filter(a => new Date(String(a.date)) >= new Date(new Date().setHours(0,0,0,0)));
+          setAppointments(upcoming);
+          setStats({
+            total: upcoming.length,
+            pending: upcoming.filter(a => a.status === 'pending').length,
+            confirmed: upcoming.filter(a => a.status === 'confirmed').length,
+            completed: upcoming.filter(a => a.status === 'completed').length,
+            revenue: upcoming.filter(a => a.status === 'completed' || a.status === 'confirmed').reduce((sum, a) => sum + Number(a.totalPrice || 0), 0),
+          });
+          setLoading(false);
+        })
+        .catch(() => setLoading(false));
+    };
+
+    fetchData();
+
+    window.addEventListener('new-appointment', fetchData);
+    return () => window.removeEventListener('new-appointment', fetchData);
   }, []);
 
   const updateStatus = async (id: number, status: string) => {

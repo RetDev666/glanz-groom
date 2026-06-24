@@ -67,6 +67,19 @@ router.get('/availability', async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/appointments/latest — returns the latest appointment ID for polling
+router.get('/latest', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const latest = await prisma.appointment.findFirst({
+      orderBy: { id: 'desc' },
+      select: { id: true }
+    });
+    res.json(latest || { id: 0 });
+  } catch (err) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // GET /api/appointments/:id
 router.get('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
