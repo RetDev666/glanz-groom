@@ -141,12 +141,36 @@ const SIZE_DURATION_KEY: Record<string, keyof Service> = {
 
 const AVAILABLE_TIMES = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'];
 
-export default function BookPage() {
+export async function getServerSideProps({ res }: any) {
+  res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+  try {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://glanz-groom.netlify.app/api';
+    const [servicesRes, groomersRes, settingsRes] = await Promise.all([
+      fetch(`${apiUrl}/services`),
+      fetch(`${apiUrl}/groomers`),
+      fetch(`${apiUrl}/settings`)
+    ]);
+    const services = await servicesRes.json();
+    const groomers = await groomersRes.json();
+    const settings = await settingsRes.json();
+    return {
+      props: {
+        initialServices: Array.isArray(services) ? services.filter((s: any) => s.isActive) : [],
+        initialGroomers: Array.isArray(groomers) ? groomers.filter((g: any) => g.isActive) : [],
+        initialSettings: settings || {}
+      }
+    };
+  } catch (e) {
+    return { props: { initialServices: [], initialGroomers: [], initialSettings: {} } };
+  }
+}
+
+export default function BookPage({ initialServices, initialGroomers, initialSettings }: { initialServices: Service[], initialGroomers: Groomer[], initialSettings: Record<string, string> }) {
   const router = useRouter();
   const { t, locale } = useTranslation();
   const [step, setStep] = useState(0);
-  const [services, setServices] = useState<Service[]>([]);
-  const [groomers, setGroomers] = useState<Groomer[]>([]);
+  const [services, setServices] = useState<Service[]>(initialServices || []);
+  const [groomers, setGroomers] = useState<Groomer[]>(initialGroomers || []);
   const [breedsConfig, setBreedsConfig] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -177,17 +201,13 @@ export default function BookPage() {
     acceptTerms: false,
   });
 
-  // Fetch data and handle query params
+  // Handle initialization and query params
   useEffect(() => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-    Promise.all([
-      fetch(`${apiUrl}/services`).then(r => r.json()).catch(() => []),
-      fetch(`${apiUrl}/groomers`).then(r => r.json()).catch(() => []),
-      fetch(`${apiUrl}/settings`).then(r => r.json()).catch(() => ({})),
-    ]).then(([svc, gr, sets]) => {
-      const loadedServices = Array.isArray(svc) ? svc : [];
-      setServices(loadedServices);
-      setGroomers(Array.isArray(gr) ? gr : []);
+    if (initialServices) setServices(initialServices);
+    if (initialGroomers) setGroomers(initialGroomers);
+    
+    if (initialSettings) {
+      const sets = initialSettings;
       const parseBreeds = (val: string | undefined): string[] => {
         if (!val) return [];
         try {
@@ -206,26 +226,28 @@ export default function BookPage() {
         l: parseBreeds(sets.breeds_l),
         xl: parseBreeds(sets.breeds_xl)
       });
+    }
 
-      // Parse query params after loading services so we can map names to IDs
-      if (router.query.size) {
-        const s = router.query.size as string;
-        if (['xs', 's', 'm', 'l', 'xl'].includes(s)) {
-          setBooking(b => ({ ...b, petSize: s as any }));
-        }
+    const loadedServices = initialServices || [];
+    
+    // Parse query params after loading services so we can map names to IDs
+    if (router.query.size) {
+      const s = router.query.size as string;
+      if (['xs', 's', 'm', 'l', 'xl'].includes(s)) {
+        setBooking(b => ({ ...b, petSize: s as any }));
       }
-      if (router.query.services) {
-        const urlServiceNames = (router.query.services as string).split(',');
-        const matchingIds = loadedServices
-          .filter(s => urlServiceNames.includes(s.name) || urlServiceNames.includes(s.nameUk) || urlServiceNames.includes(s.nameEn || ''))
-          .map(s => s.id);
-        
-        if (matchingIds.length > 0) {
-          setBooking(b => ({ ...b, selectedServices: matchingIds }));
-        }
+    }
+    if (router.query.services) {
+      const urlServiceNames = (router.query.services as string).split(',');
+      const matchingIds = loadedServices
+        .filter(s => urlServiceNames.includes(s.name) || urlServiceNames.includes(s.nameUk) || urlServiceNames.includes(s.nameEn || ''))
+        .map(s => s.id);
+      
+      if (matchingIds.length > 0) {
+        setBooking(b => ({ ...b, selectedServices: matchingIds }));
       }
-    });
-  }, [router.query.size, router.query.services]);
+    }
+  }, [router.query.size, router.query.services, initialServices, initialGroomers, initialSettings]);
 
   // Fetch busy slots when date changes
   useEffect(() => {

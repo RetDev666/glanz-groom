@@ -12,23 +12,38 @@ interface Groomer {
   isActive: boolean;
 }
 
-export default function AboutPage() {
+export async function getServerSideProps({ res }: any) {
+  res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+  try {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://glanz-groom.netlify.app/api';
+    const [groomersRes, settingsRes] = await Promise.all([
+      fetch(`${apiUrl}/groomers`),
+      fetch(`${apiUrl}/settings`)
+    ]);
+    const groomers = await groomersRes.json();
+    const settings = await settingsRes.json();
+    return {
+      props: {
+        initialGroomers: Array.isArray(groomers) ? groomers : [],
+        initialSettings: settings || {}
+      }
+    };
+  } catch (e) {
+    return { props: { initialGroomers: [], initialSettings: {} } };
+  }
+}
+
+export default function AboutPage({ initialGroomers, initialSettings }: { initialGroomers: Groomer[], initialSettings: Record<string, string> }) {
   const { t } = useTranslation();
   const [formData, setFormData] = useState({ name: '', email: '', subject: '', message: '' });
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [groomers, setGroomers] = useState<Groomer[]>([]);
-  const [settings, setSettings] = useState<Record<string, string>>({});
+  const [groomers, setGroomers] = useState<Groomer[]>(initialGroomers || []);
+  const [settings, setSettings] = useState<Record<string, string>>(initialSettings || {});
 
   useEffect(() => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-    Promise.all([
-      fetch(`${apiUrl}/groomers`).then(r => r.json()).catch(() => []),
-      fetch(`${apiUrl}/settings`).then(r => r.json()).catch(() => ({}))
-    ]).then(([groomersData, settingsData]) => {
-      setGroomers(Array.isArray(groomersData) ? groomersData : []);
-      setSettings(settingsData || {});
-    });
-  }, []);
+    if (initialGroomers) setGroomers(initialGroomers);
+    if (initialSettings) setSettings(initialSettings);
+  }, [initialGroomers, initialSettings]);
 
   // Fallback static team if API returns nothing
   const fallbackTeam = [

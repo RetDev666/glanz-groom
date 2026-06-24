@@ -4,22 +4,30 @@ import { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { useTranslation } from '@/hooks/useTranslation';
 
-export default function OffersPage() {
+export async function getServerSideProps({ res }: any) {
+  res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+  try {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://glanz-groom.netlify.app/api';
+    const resOffer = await fetch(`${apiUrl}/offers`);
+    const offers = await resOffer.json();
+    return {
+      props: {
+        initialOffers: Array.isArray(offers) ? offers.filter(o => o.isActive) : []
+      }
+    };
+  } catch (e) {
+    return { props: { initialOffers: [] } };
+  }
+}
+
+export default function OffersPage({ initialOffers }: { initialOffers: any[] }) {
   const { t } = useTranslation();
 
-  const [offers, setOffers] = useState<any[]>([]);
+  const [offers, setOffers] = useState<any[]>(initialOffers || []);
 
   useEffect(() => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-    fetch(`${apiUrl}/offers`)
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          setOffers(data.filter(o => o.isActive));
-        }
-      })
-      .catch(console.error);
-  }, []);
+    if (initialOffers) setOffers(initialOffers);
+  }, [initialOffers]);
 
   return (
     <Layout>

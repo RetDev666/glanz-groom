@@ -112,52 +112,63 @@ const categoriesData = [
   }
 ];
 
-export default function ServicesPage() {
+export async function getServerSideProps({ res }: any) {
+  res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+  try {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://glanz-groom.netlify.app/api';
+    const [servicesRes, settingsRes] = await Promise.all([
+      fetch(`${apiUrl}/services`),
+      fetch(`${apiUrl}/settings`)
+    ]);
+    const services = await servicesRes.json();
+    const settings = await settingsRes.json();
+    return {
+      props: {
+        initialServices: Array.isArray(services) ? services.filter((s: any) => s.isActive) : [],
+        initialSettings: settings || {}
+      }
+    };
+  } catch (e) {
+    return { props: { initialServices: [], initialSettings: {} } };
+  }
+}
+
+export default function ServicesPage({ initialServices, initialSettings }: { initialServices: any[], initialSettings: any }) {
   const { t, locale } = useTranslation();
   const [activeTab, setActiveTab] = useState('m');
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
-  const [dbServices, setDbServices] = useState<any[]>([]);
+  const [dbServices, setDbServices] = useState<any[]>(initialServices || []);
   const [dbBreeds, setDbBreeds] = useState<Record<string, {name: string, img: string}[]>>({});
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/services`)
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          setDbServices(data.filter(s => s.isActive));
-        }
-      })
-      .catch(console.error);
-
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/settings`)
-      .then(r => r.json())
-      .then(data => {
-        const parsed: Record<string, {name: string, img: string}[]> = { xs: [], s: [], m: [], l: [], xl: [] };
-        const defaults: Record<string, {name: string, img: string}[]> = {
-          'xs': [{ name: 'Chihuahua', img: '/breeds/chihuahua.png' }],
-          's': [{ name: 'Pomeranian', img: '/breeds/pomeranian.png' }, { name: 'Yorkie', img: '/breeds/yorkie.png' }],
-          'm': [{ name: 'Frenchie', img: '/breeds/frenchie.png' }, { name: 'Beagle', img: '/breeds/beagle.png' }],
-          'l': [{ name: 'Cocker', img: '/breeds/cocker.png' }],
-          'xl': [{ name: 'Retriever', img: '/breeds/golden.png' }, { name: 'Husky', img: '/breeds/husky.png' }, { name: 'GSD', img: '/breeds/gsd.png' }],
-        };
-        (['xs', 's', 'm', 'l', 'xl'] as const).forEach(sz => {
-          const val = data[`breeds_${sz}`];
-          if (val) {
-            try {
-              const arr = JSON.parse(val);
-              if (Array.isArray(arr) && arr.length > 0) parsed[sz] = arr;
-              else parsed[sz] = defaults[sz];
-            } catch {
-              parsed[sz] = val.split(',').map((n: string) => ({ name: n.trim(), img: '' }));
-            }
-          } else {
-            parsed[sz] = defaults[sz];
+    // If we have initial settings from SSR, parse them
+    if (initialSettings) {
+      const data = initialSettings;
+      const parsed: Record<string, {name: string, img: string}[]> = { xs: [], s: [], m: [], l: [], xl: [] };
+      const defaults: Record<string, {name: string, img: string}[]> = {
+        'xs': [{ name: 'Chihuahua', img: '/breeds/chihuahua.png' }],
+        's': [{ name: 'Pomeranian', img: '/breeds/pomeranian.png' }, { name: 'Yorkie', img: '/breeds/yorkie.png' }],
+        'm': [{ name: 'Frenchie', img: '/breeds/frenchie.png' }, { name: 'Beagle', img: '/breeds/beagle.png' }],
+        'l': [{ name: 'Cocker', img: '/breeds/cocker.png' }],
+        'xl': [{ name: 'Retriever', img: '/breeds/golden.png' }, { name: 'Husky', img: '/breeds/husky.png' }, { name: 'GSD', img: '/breeds/gsd.png' }],
+      };
+      (['xs', 's', 'm', 'l', 'xl'] as const).forEach(sz => {
+        const val = data[`breeds_${sz}`];
+        if (val) {
+          try {
+            const arr = JSON.parse(val);
+            if (Array.isArray(arr) && arr.length > 0) parsed[sz] = arr;
+            else parsed[sz] = defaults[sz];
+          } catch {
+            parsed[sz] = val.split(',').map((n: string) => ({ name: n.trim(), img: '' }));
           }
-        });
-        setDbBreeds(parsed);
-      })
-      .catch(console.error);
-  }, []);
+        } else {
+          parsed[sz] = defaults[sz];
+        }
+      });
+      setDbBreeds(parsed);
+    }
+  }, [initialSettings]);
 
   const generateTabServices = (sizeKey: string) => {
     if (dbServices.length === 0) {
@@ -169,6 +180,7 @@ export default function ServicesPage() {
       id: s.id.toString(),
       name: isUk ? s.nameUk : s.name,
       nameEn: s.name,
+      description: s.description || '',
       duration: String(s[`duration${sizeKey.charAt(0).toUpperCase() + sizeKey.slice(1)}` as keyof typeof s]),
       price: `${s[`price${sizeKey.charAt(0).toUpperCase() + sizeKey.slice(1)}` as keyof typeof s]}€`,
     }));
@@ -176,6 +188,7 @@ export default function ServicesPage() {
       id: s.id.toString(),
       name: isUk ? s.nameUk : s.name,
       nameEn: s.name,
+      description: s.description || '',
       duration: String(s[`duration${sizeKey.charAt(0).toUpperCase() + sizeKey.slice(1)}` as keyof typeof s]),
       price: `${s[`price${sizeKey.charAt(0).toUpperCase() + sizeKey.slice(1)}` as keyof typeof s]}€`,
     }));
@@ -317,6 +330,11 @@ export default function ServicesPage() {
                       <div className="flex justify-between items-start mb-6 relative z-10">
                         <div>
                           <h4 className="font-display font-bold text-gray-900 text-xl leading-tight mb-2">{displayName}</h4>
+                          {svc.description && (
+                            <p className="font-sans text-sm text-gray-500 leading-relaxed max-w-sm">
+                              {svc.description}
+                            </p>
+                          )}
                         </div>
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors duration-300 ${
                           isSelected ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-400 group-hover:bg-red-50 group-hover:text-red-400'
