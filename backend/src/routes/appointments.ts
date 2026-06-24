@@ -156,6 +156,14 @@ router.post('/', async (req: Request, res: Response) => {
       include: { client: true, pet: true, groomer: true, services: { include: { service: true } } },
     });
 
+    if (notes) {
+      await prisma.client.update({
+        where: { id: client.id },
+        data: { notes }
+      });
+      appointment.client.notes = notes;
+    }
+
     res.status(201).json(appointment);
   } catch (err) {
     console.error(err);
@@ -207,6 +215,15 @@ router.patch('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
       data,
       include: { client: true, pet: true, groomer: true, services: { include: { service: true } } },
     });
+
+    if (notes !== undefined) {
+      await prisma.client.update({
+        where: { id: updated.clientId },
+        data: { notes }
+      });
+      updated.client.notes = notes;
+    }
+
     res.json(updated);
   } catch {
     res.status(404).json({ error: 'Appointment not found' });

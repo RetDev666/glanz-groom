@@ -27,6 +27,7 @@ function AppointmentDetailModal({
   const [status, setStatus] = useState(String(apt.status || 'pending'));
   const [groomerId, setGroomerId] = useState(String(apt.groomerId || ''));
   const [date, setDate] = useState(new Date(String(apt.date)).toISOString().slice(0, 16));
+  const [notes, setNotes] = useState(String((apt.client as any)?.notes || apt.notes || ''));
   const [loading, setLoading] = useState(false);
 
   const client = apt.client as Record<string, unknown>;
@@ -40,6 +41,7 @@ function AppointmentDetailModal({
       status,
       groomerId: Number(groomerId),
       date: new Date(date).toISOString(),
+      notes,
     });
     setLoading(false);
     setIsEditing(false);
@@ -102,6 +104,10 @@ function AppointmentDetailModal({
                 <label className="block font-sans text-label-sm text-on-surface-variant mb-1">{t.calendar.dateTimeLabel}</label>
                 <input type="datetime-local" value={date} onChange={e => setDate(e.target.value)} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 text-sm outline-none" />
               </div>
+              <div>
+                <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Коментар / Нотатки (для картки клієнта)</label>
+                <textarea value={notes} onChange={e => setNotes(e.target.value)} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 text-sm outline-none" rows={3} placeholder="Додайте нотатки про клієнта або улюбленця..."></textarea>
+              </div>
             </div>
           )}
 
@@ -141,6 +147,13 @@ function AppointmentDetailModal({
               <span className="font-display font-bold text-primary">{String(apt.totalPrice)}€</span>
             </div>
           </div>
+
+          {!isEditing && Boolean(notes) && (
+            <div className="bg-surface-container-low rounded-2xl p-4 space-y-2 border border-outline-variant">
+              <p className="font-sans text-label-sm text-on-surface-variant uppercase tracking-widest">Коментар</p>
+              <p className="font-sans text-body-md text-on-surface whitespace-pre-wrap">{notes}</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -163,6 +176,7 @@ function NewAppointmentModal({
     clientEmail: '',
     petName: '',
     petSize: 'm',
+    notes: '',
     serviceIds: [] as number[],
   });
   const [services, setServices] = useState<any[]>([]);
@@ -268,6 +282,10 @@ function NewAppointmentModal({
                 </label>
               ))}
             </div>
+          </div>
+          <div>
+            <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Коментар / Нотатки (для картки клієнта)</label>
+            <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 text-sm outline-none" rows={2} placeholder="Додайте нотатки про клієнта або улюбленця..."></textarea>
           </div>
           <div className="pt-4 flex gap-3 border-t border-outline-variant">
             <button type="button" onClick={onClose} className="flex-1 py-2 rounded-full border border-outline hover:bg-surface-container transition-colors">Скасувати</button>
