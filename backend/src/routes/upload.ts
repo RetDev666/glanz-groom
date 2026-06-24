@@ -18,6 +18,7 @@ const useCloudinary = !!(
 // Локальний fallback (лише для розробки)
 let uploadPet: multer.Multer;
 let uploadGroomer: multer.Multer;
+let uploadOffer: multer.Multer;
 
 if (useCloudinary) {
   // Production: зберігаємо в пам'яті, потім відправляємо в Cloudinary
@@ -28,11 +29,13 @@ if (useCloudinary) {
   };
   uploadPet = multer({ storage: memStorage, fileFilter, limits: { fileSize: 5 * 1024 * 1024, files: 1 } });
   uploadGroomer = multer({ storage: memStorage, fileFilter, limits: { fileSize: 5 * 1024 * 1024, files: 1 } });
+  uploadOffer = multer({ storage: memStorage, fileFilter, limits: { fileSize: 5 * 1024 * 1024, files: 1 } });
 } else {
   // Локальна розробка: зберігаємо на диск
   const PET_UPLOAD_DIR = path.join(__dirname, '../../uploads/pets');
   const GROOMER_UPLOAD_DIR = path.join(__dirname, '../../uploads/groomers');
-  [PET_UPLOAD_DIR, GROOMER_UPLOAD_DIR].forEach(dir => {
+  const OFFER_UPLOAD_DIR = path.join(__dirname, '../../uploads/offers');
+  [PET_UPLOAD_DIR, GROOMER_UPLOAD_DIR, OFFER_UPLOAD_DIR].forEach(dir => {
     try {
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     } catch (e) {
@@ -53,6 +56,7 @@ if (useCloudinary) {
   };
   uploadPet = multer({ storage: makeStorage(PET_UPLOAD_DIR), fileFilter, limits: { fileSize: 5 * 1024 * 1024, files: 1 } });
   uploadGroomer = multer({ storage: makeStorage(GROOMER_UPLOAD_DIR), fileFilter, limits: { fileSize: 5 * 1024 * 1024, files: 1 } });
+  uploadOffer = multer({ storage: makeStorage(OFFER_UPLOAD_DIR), fileFilter, limits: { fileSize: 5 * 1024 * 1024, files: 1 } });
 }
 
 // ─── Хелпер: завантаження буферу в Cloudinary ───────────────────────────────
@@ -95,6 +99,23 @@ router.post('/groomer-photo', requireAuth, uploadGroomer.single('photo'), async 
       fileUrl = await uploadToCloudinary(req.file.buffer, 'groomers');
     } else {
       fileUrl = `${req.protocol}://${req.get('host')}/uploads/groomers/${req.file.filename}`;
+    }
+    res.json({ url: fileUrl, size: req.file.size, mimetype: req.file.mimetype });
+  } catch (err) {
+    res.status(500).json({ error: 'Fehler beim Hochladen des Fotos' });
+  }
+});
+
+// ─── POST /api/upload/offer-photo (admin only) ───────────────────────────────
+router.post('/offer-photo', requireAuth, uploadOffer.single('photo'), async (req: Request, res: Response) => {
+  if (!req.file) return res.status(400).json({ error: 'Datei nicht hochgeladen' });
+
+  try {
+    let fileUrl: string;
+    if (useCloudinary && req.file.buffer) {
+      fileUrl = await uploadToCloudinary(req.file.buffer, 'offers');
+    } else {
+      fileUrl = `${req.protocol}://${req.get('host')}/uploads/offers/${req.file.filename}`;
     }
     res.json({ url: fileUrl, size: req.file.size, mimetype: req.file.mimetype });
   } catch (err) {

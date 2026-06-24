@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import AdminLayout from '@/components/AdminLayout';
 import { useAdminLang } from '../hooks/useAdminLang';
 
@@ -21,6 +21,9 @@ export default function OffersAdminPage() {
   const [loading, setLoading] = useState(true);
   const [editingOffer, setEditingOffer] = useState<Partial<Offer> | null>(null);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchOffers();
@@ -43,6 +46,7 @@ export default function OffersAdminPage() {
   const handleSave = async () => {
     if (!editingOffer) return;
     setSaving(true);
+    setSaveError(null);
     const token = localStorage.getItem('admin_token');
     const method = editingOffer.id ? 'PUT' : 'POST';
     const url = editingOffer.id ? `${API}/offers/${editingOffer.id}` : `${API}/offers`;
@@ -56,11 +60,16 @@ export default function OffersAdminPage() {
         },
         body: JSON.stringify(editingOffer)
       });
+
       if (res.ok) {
         setEditingOffer(null);
         fetchOffers();
+      } else {
+        const errData = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+        setSaveError(errData.error || `Помилка ${res.status}`);
       }
-    } catch (err) {
+    } catch (err: any) {
+      setSaveError(err.message || 'Помилка з\'єднання з сервером');
       console.error(err);
     } finally {
       setSaving(false);
@@ -78,6 +87,33 @@ export default function OffersAdminPage() {
       if (res.ok) fetchOffers();
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handlePhotoUpload = async (file: File) => {
+    setUploadingPhoto(true);
+    const token = localStorage.getItem('admin_token');
+    const formData = new FormData();
+    formData.append('photo', file);
+
+    try {
+      const res = await fetch(`${API}/upload/offer-photo`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setField('imageUrl', data.url);
+      } else {
+        const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+        alert(err.error || 'Помилка завантаження фото');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Помилка з\'єднання');
+    } finally {
+      setUploadingPhoto(false);
     }
   };
 
@@ -173,16 +209,21 @@ export default function OffersAdminPage() {
             </div>
 
             <div className="p-6 space-y-4">
+              {/* Title */}
               <div>
                 <label className="block font-sans text-label-sm text-on-surface-variant mb-1">{t.offers.titleLabel}</label>
                 <input type="text" value={editingOffer.title || ''} onChange={e => setField('title', e.target.value)}
                   className="w-full bg-surface border border-outline rounded-xl px-4 py-2.5 focus:border-primary focus:ring-1 outline-none font-sans" />
               </div>
+
+              {/* Description */}
               <div>
                 <label className="block font-sans text-label-sm text-on-surface-variant mb-1">{t.offers.descLabel}</label>
                 <textarea value={editingOffer.desc || ''} onChange={e => setField('desc', e.target.value)}
                   className="w-full bg-surface border border-outline rounded-xl px-4 py-2.5 focus:border-primary focus:ring-1 outline-none font-sans" rows={3} />
               </div>
+
+              {/* Value & Badge */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block font-sans text-label-sm text-on-surface-variant mb-1">{t.offers.valueLabel}</label>
@@ -195,11 +236,58 @@ export default function OffersAdminPage() {
                     className="w-full bg-surface border border-outline rounded-xl px-4 py-2.5 focus:border-primary focus:ring-1 outline-none font-sans uppercase" />
                 </div>
               </div>
+
+              {/* Photo upload */}
               <div>
-                <label className="block font-sans text-label-sm text-on-surface-variant mb-1">{t.offers.imageLabel}</label>
-                <input type="text" value={editingOffer.imageUrl || ''} onChange={e => setField('imageUrl', e.target.value)}
-                  className="w-full bg-surface border border-outline rounded-xl px-4 py-2.5 focus:border-primary focus:ring-1 outline-none font-sans" />
+                <label className="block font-sans text-label-sm text-on-surface-variant mb-2">{t.offers.imageLabel}</label>
+
+                {/* Preview */}
+                {editingOffer.imageUrl && (
+                  <div className="relative mb-3 rounded-2xl overflow-hidden h-40 bg-surface-container">
+                    <img src={editingOffer.imageUrl} alt="preview" className="w-full h-full object-cover" />
+                    <button
+                      onClick={() => setField('imageUrl', '')}
+                      className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1 hover:bg-black/80 transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">close</span>
+                    </button>
+                  </div>
+                )}
+
+                {/* Upload button */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={e => {
+                    const file = e.target.files?.[0];
+                    if (file) handlePhotoUpload(file);
+                    e.target.value = '';
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingPhoto}
+                  className="w-full border-2 border-dashed border-outline rounded-xl py-3 px-4 flex items-center justify-center gap-2 font-sans text-label-md text-on-surface-variant hover:border-primary hover:text-primary transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {uploadingPhoto ? (
+                    <>
+                      <span className="material-symbols-outlined animate-spin text-[20px]">progress_activity</span>
+                      {t.uploading}
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-[20px]">cloud_upload</span>
+                      {editingOffer.imageUrl ? t.offers.photoChange : t.offers.photoUpload}
+                    </>
+                  )}
+                </button>
+                <p className="mt-1 font-sans text-xs text-on-surface-variant">{t.offers.photoTypes}</p>
               </div>
+
+              {/* isActive */}
               <div className="flex items-center gap-3 pt-2">
                 <input type="checkbox" id="isActive" checked={editingOffer.isActive !== false} onChange={e => setField('isActive', e.target.checked)}
                   className="w-5 h-5 accent-primary rounded cursor-pointer" />
@@ -208,6 +296,15 @@ export default function OffersAdminPage() {
                 </label>
               </div>
 
+              {/* Save error */}
+              {saveError && (
+                <div className="bg-error/10 border border-error/30 rounded-xl px-4 py-3 flex items-start gap-2">
+                  <span className="material-symbols-outlined text-error text-[18px] mt-0.5">error</span>
+                  <p className="font-sans text-sm text-error">{saveError}</p>
+                </div>
+              )}
+
+              {/* Buttons */}
               <div className="flex gap-3 pt-6">
                 <button onClick={() => setEditingOffer(null)} className="flex-1 border border-outline font-sans text-label-lg py-3 rounded-full hover:bg-surface-container-low transition-colors">
                   {t.cancel}

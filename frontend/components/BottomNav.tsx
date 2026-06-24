@@ -11,7 +11,6 @@ export default function BottomNav() {
     { href: '/', label: t.nav.home, icon: 'home' },
     { href: '/services', label: t.nav.services, icon: 'content_cut' },
     { href: '/book', label: t.nav.book, icon: 'calendar_month' },
-    { href: '/tips', label: t.nav.tips, icon: 'lightbulb' },
     { href: '/about', label: t.nav.about, icon: 'info' },
   ];
 
