@@ -157,6 +157,7 @@ function AppointmentDetailModal({
         </div>
       </div>
     </div>
+  );
 }
 
 function NewAppointmentModal({
