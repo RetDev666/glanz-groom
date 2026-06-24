@@ -22,21 +22,24 @@ router.get('/', async (req, res) => {
 router.post('/', requireAuth, async (req, res) => {
   try {
     const { title, desc, value, cta, imageUrl, badge, isActive } = req.body;
+    if (!title || !value) {
+      return res.status(400).json({ error: 'Title and value are required' });
+    }
     const newOffer = await prisma.offer.create({
       data: {
-        title,
-        desc,
-        value,
-        cta: cta || "Termin anfragen",
-        imageUrl,
-        badge,
-        isActive: isActive !== undefined ? isActive : true
+        title: String(title),
+        desc: desc ? String(desc) : '',
+        value: String(value),
+        cta: cta ? String(cta) : 'Termin anfragen',
+        imageUrl: imageUrl || null,
+        badge: badge || null,
+        isActive: isActive !== undefined ? Boolean(isActive) : true
       }
     });
     res.status(201).json(newOffer);
-  } catch (error) {
-    console.error('Offers POST error:', error);
-    res.status(500).json({ error: 'Server error' });
+  } catch (error: any) {
+    console.error('Offers POST error:', error?.message || error);
+    res.status(500).json({ error: error?.message || 'Server error' });
   }
 });
 
@@ -44,24 +47,27 @@ router.post('/', requireAuth, async (req, res) => {
 router.put('/:id', requireAuth, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
     const { title, desc, value, cta, imageUrl, badge, isActive } = req.body;
-    
+    if (!title || !value) {
+      return res.status(400).json({ error: 'Title and value are required' });
+    }
     const updatedOffer = await prisma.offer.update({
       where: { id },
       data: {
-        title,
-        desc,
-        value,
-        cta,
-        imageUrl,
-        badge,
-        isActive
+        title: String(title),
+        desc: desc ? String(desc) : '',
+        value: String(value),
+        cta: cta ? String(cta) : 'Termin anfragen',
+        imageUrl: imageUrl || null,
+        badge: badge || null,
+        isActive: isActive !== undefined ? Boolean(isActive) : true
       }
     });
     res.json(updatedOffer);
-  } catch (error) {
-    console.error('Offers PUT error:', error);
-    res.status(500).json({ error: 'Server error' });
+  } catch (error: any) {
+    console.error('Offers PUT error:', error?.message || error);
+    res.status(500).json({ error: error?.message || 'Server error' });
   }
 });
 
