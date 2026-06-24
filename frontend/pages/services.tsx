@@ -170,7 +170,7 @@ export default function ServicesPage({ initialServices, initialSettings }: { ini
     }
   }, [initialSettings]);
 
-  const generateTabServices = (sizeKey: string) => {
+  const generateTabServices = (sizeKey: string): any => {
     if (dbServices.length === 0) {
       return categoriesData.find(c => c.id === sizeKey) || categoriesData[2];
     }
