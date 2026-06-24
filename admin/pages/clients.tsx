@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/router';
 import AdminLayout from '@/components/AdminLayout';
 import { useAdminLang } from '../hooks/useAdminLang';
 
@@ -14,6 +15,7 @@ const STATUS_COLORS: Record<string, string> = {
 type Client = Record<string, unknown>;
 
 function ClientDetailModal({ clientId, onClose }: { clientId: number; onClose: () => void }) {
+  const router = useRouter();
   const { t } = useAdminLang();
   const [client, setClient] = useState<Record<string, unknown> | null>(null);
 
@@ -90,7 +92,11 @@ function ClientDetailModal({ clientId, onClose }: { clientId: number; onClose: (
                   const groomer = apt.groomer as Record<string, unknown>;
                   const services = apt.services as { service: Record<string, unknown> }[];
                   return (
-                    <div key={i} className="bg-surface-container-low rounded-2xl p-4 border border-outline-variant">
+                    <div 
+                      key={i} 
+                      onClick={() => router.push(`/calendar?date=${String(apt.date).split('T')[0]}`)}
+                      className="bg-surface-container-low hover:bg-surface-container rounded-2xl p-4 border border-outline-variant cursor-pointer transition-colors"
+                    >
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -112,6 +118,13 @@ function ClientDetailModal({ clientId, onClose }: { clientId: number; onClose: (
                             ))}
                           </div>
                           <p className="font-sans text-label-sm text-on-surface-variant mt-1">Groomer: {String(groomer?.name || '—')}</p>
+                          {Boolean(apt.notes) && (
+                            <div className="mt-2 p-2 bg-amber-50/50 border border-amber-100 rounded-lg">
+                              <p className="font-sans text-label-sm text-amber-900 line-clamp-3">
+                                <span className="font-semibold">Коментар:</span> {String(apt.notes)}
+                              </p>
+                            </div>
+                          )}
                         </div>
                         <div className="text-right shrink-0">
                           <p className="font-display font-bold text-primary">{String(apt.totalPrice)}€</p>

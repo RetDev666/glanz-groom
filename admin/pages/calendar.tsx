@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/router';
 import AdminLayout from '@/components/AdminLayout';
 import { useAdminLang } from '../hooks/useAdminLang';
 
@@ -303,7 +304,15 @@ export default function CalendarPage() {
   const { t } = useAdminLang();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [groomers, setGroomers] = useState<Record<string, unknown>[]>([]);
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const router = useRouter();
+  const [currentDate, setCurrentDate] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const qDate = params.get('date');
+      if (qDate) return new Date(qDate);
+    }
+    return new Date();
+  });
   const [view, setView] = useState<'week' | 'day'>('day');
   const [selectedApt, setSelectedApt] = useState<Appointment | null>(null);
   const [showNewApt, setShowNewApt] = useState(false);
