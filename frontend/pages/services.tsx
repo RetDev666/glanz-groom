@@ -289,7 +289,7 @@ export default function ServicesPage({ initialServices, initialSettings }: { ini
           <div className="flex flex-col items-center mb-16">
             <p className="font-sans text-xs text-gray-400 uppercase tracking-widest mb-6 font-semibold">{t.services.forWhom}</p>
             <div className="flex justify-center gap-6">
-              {activeData.breeds.map(b => (
+              {activeData.breeds.map((b: any) => (
                 <div key={b.name} className="flex flex-col items-center gap-3 group cursor-default">
                   <div className="w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden shadow-md ring-4 ring-white group-hover:ring-red-50 transition-all duration-300 group-hover:-translate-y-2">
                     <img src={b.img} alt={b.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
@@ -311,7 +311,7 @@ export default function ServicesPage({ initialServices, initialSettings }: { ini
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {activeData.mainServices.map(svc => {
+                {activeData.mainServices.map((svc: any) => {
                   const isSelected = selectedServices.includes(svc.name);
                   const displayName = locale === 'en' ? (svc as any).nameEn : svc.name;
                   const displayDuration = locale === 'en' ? `${svc.duration} min` : `${svc.duration} Min`;
@@ -371,7 +371,7 @@ export default function ServicesPage({ initialServices, initialSettings }: { ini
               </div>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {activeData.addServices.map(svc => {
+                {activeData.addServices.map((svc: any) => {
                   const isSelected = selectedServices.includes(svc.name);
                   const displayName = locale === 'en' ? (svc as any).nameEn : svc.name;
                   const displayDuration = locale === 'en' ? `${svc.duration} min` : `${svc.duration} Min`;
