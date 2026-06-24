@@ -1,0 +1,24 @@
+[build]
+  base = "frontend"
+  command = "bash ../scripts/netlify-build.sh"
+  publish = ".next"
+  functions = "../netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+  external_node_modules = ["@libsql/client", "@libsql/linux-x64-gnu"]
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[build.environment]
+  NEXT_PUBLIC_API_URL = "https://glanz-groom.netlify.app/api"
+  ADMIN_URL = "https://glanz-groom.netlify.app/admin"
+  FRONTEND_URL = "https://glanz-groom.netlify.app"
+
+# Всі запити на /api/* перенаправляються до Netlify Function
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+  force = true
