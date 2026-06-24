@@ -135,3 +135,15 @@ CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 -- CreateIndex
 CREATE UNIQUE INDEX "Client_email_key" ON "Client"("email");
 
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "GoogleReview" (
+    "id"          TEXT NOT NULL PRIMARY KEY,
+    "authorName"  TEXT NOT NULL,
+    "authorPhoto" TEXT,
+    "rating"      INTEGER NOT NULL,
+    "text"        TEXT NOT NULL,
+    "time"        DATETIME NOT NULL,
+    "isVisible"   BOOLEAN NOT NULL DEFAULT true,
+    "syncedAt"    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+

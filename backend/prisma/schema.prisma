@@ -136,3 +136,14 @@ model Offer {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+model GoogleReview {
+  id          String   @id  // Google review ID
+  authorName  String
+  authorPhoto String?
+  rating      Int
+  text        String
+  time        DateTime
+  isVisible   Boolean  @default(true)
+  syncedAt    DateTime @default(now())
+}

@@ -13,6 +13,7 @@ import contactRouter from './routes/contact';
 import uploadRoutes from './routes/upload';
 import settingsRoutes from './routes/settings';
 import offersRoutes from './routes/offers';
+import reviewsRoutes from './routes/reviews';
 
 dotenv.config();
 
@@ -44,6 +45,7 @@ app.use('/api/contact', contactRouter);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/offers', offersRoutes);
+app.use('/api/reviews', reviewsRoutes);
 
 // Health check
 app.get('/api/health', (_, res) => {

@@ -2,6 +2,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useState, useEffect } from 'react';
 
 export default function HomePage() {
   const { t } = useTranslation();
@@ -12,11 +13,35 @@ export default function HomePage() {
     { icon: 'favorite', color: 'bg-primary-fixed text-on-primary-fixed', title: t.home.processSteps[3].title, desc: t.home.processSteps[3].desc },
   ];
 
-  const reviews = [
-    { text: t.home.reviews[1].text, author: t.home.reviews[1].author },
-    { text: t.home.reviews[2].text, author: t.home.reviews[2].author },
-    { text: t.home.reviews[3].text, author: t.home.reviews[3].author },
-  ];
+  // ─── Real Google Reviews ────────────────────────────────────────────────────
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
+
+  useEffect(() => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api';
+    fetch(`${apiUrl}/reviews`)
+      .then(r => r.ok ? r.json() : [])
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setReviews(data);
+        } else {
+          // Fallback: locale статичні відгуки
+          setReviews([
+            { id: '1', authorName: t.home.reviews[1].author, text: t.home.reviews[1].text, rating: 5, authorPhoto: '/review-1.jpg' },
+            { id: '2', authorName: t.home.reviews[2].author, text: t.home.reviews[2].text, rating: 5, authorPhoto: '/review-2.jpg' },
+            { id: '3', authorName: t.home.reviews[3].author, text: t.home.reviews[3].text, rating: 5, authorPhoto: '/review-3.jpg' },
+          ]);
+        }
+      })
+      .catch(() => {
+        setReviews([
+          { id: '1', authorName: t.home.reviews[1].author, text: t.home.reviews[1].text, rating: 5, authorPhoto: '/review-1.jpg' },
+          { id: '2', authorName: t.home.reviews[2].author, text: t.home.reviews[2].text, rating: 5, authorPhoto: '/review-2.jpg' },
+          { id: '3', authorName: t.home.reviews[3].author, text: t.home.reviews[3].text, rating: 5, authorPhoto: '/review-3.jpg' },
+        ]);
+      })
+      .finally(() => setReviewsLoading(false));
+  }, []);
 
   const stats = [
     { value: '500+', label: t.home.stats.clients },
@@ -127,22 +152,55 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto">
           <h2 className="font-display text-headline-lg text-on-surface mb-lg text-center">{t.home.reviewsTitle}</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {reviews.map((r, i) => (
-              <div key={i} className="bg-surface-container rounded-2xl p-6 border border-surface-variant shadow-sm hover:shadow-md transition-shadow flex flex-col">
-                <div className="flex items-center gap-4 mb-4">
-                  <img src={`/review-${i + 1}.jpg`} alt={r.author} className="w-12 h-12 rounded-full object-cover shadow-sm" />
-                  <div>
-                    <p className="font-sans text-label-md text-on-surface font-semibold">{r.author}</p>
-                    <div className="flex text-secondary-fixed-dim text-sm mt-0.5">
-                      {'★★★★★'.split('').map((star, j) => (
-                        <span key={j}>{star}</span>
-                      ))}
+            {reviewsLoading ? (
+              // Skeleton
+              [1,2,3].map(i => (
+                <div key={i} className="bg-surface-container rounded-2xl p-6 border border-surface-variant shadow-sm animate-pulse">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-12 h-12 rounded-full bg-surface-variant" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-3 bg-surface-variant rounded w-2/3" />
+                      <div className="h-3 bg-surface-variant rounded w-1/3" />
                     </div>
                   </div>
+                  <div className="space-y-2">
+                    <div className="h-3 bg-surface-variant rounded" />
+                    <div className="h-3 bg-surface-variant rounded w-5/6" />
+                    <div className="h-3 bg-surface-variant rounded w-4/6" />
+                  </div>
                 </div>
-                <p className="font-sans text-body-md text-on-surface-variant italic leading-relaxed">«{r.text.replace(/«|»|"/g, '')}»</p>
-              </div>
-            ))}
+              ))
+            ) : (
+              reviews.map((r, i) => (
+                <div key={r.id || i} className="bg-surface-container rounded-2xl p-6 border border-surface-variant shadow-sm hover:shadow-md transition-shadow flex flex-col">
+                  <div className="flex items-center gap-4 mb-4">
+                    {r.authorPhoto ? (
+                      <img
+                        src={r.authorPhoto}
+                        alt={r.authorName}
+                        className="w-12 h-12 rounded-full object-cover shadow-sm"
+                        onError={(e: any) => { e.target.style.display='none'; e.target.nextSibling.style.display='flex'; }}
+                      />
+                    ) : null}
+                    <div
+                      className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-on-primary font-bold text-lg flex-shrink-0"
+                      style={{ display: r.authorPhoto ? 'none' : 'flex' }}
+                    >
+                      {(r.authorName || '?')[0].toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="font-sans text-label-md text-on-surface font-semibold">{r.authorName}</p>
+                      <div className="flex text-yellow-500 text-sm mt-0.5">
+                        {'★'.repeat(r.rating || 5)}{'☆'.repeat(5 - (r.rating || 5))}
+                      </div>
+                    </div>
+                  </div>
+                  <p className="font-sans text-body-md text-on-surface-variant italic leading-relaxed">
+                    «{(r.text || '').replace(/«|»|"/g, '').trim()}»
+                  </p>
+                </div>
+              ))
+            )}
           </div>
           <div className="text-center mt-10">
             <a
