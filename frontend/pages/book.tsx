@@ -65,21 +65,20 @@ function MiniCalendar({ value, onChange }: { value: string; onChange: (date: str
           const date = new Date(viewYear, viewMonth, day);
           date.setHours(0,0,0,0);
           const isPast = date < today;
-          const isWeekend = date.getDay() === 0 || date.getDay() === 6;
           const isToday = date.getTime() === today.getTime();
           const isSelected = selectedDate && date.getTime() === selectedDate.getTime();
           const dateStr = `${viewYear}-${String(viewMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
           return (
             <button
               key={day}
-              disabled={isPast || isWeekend}
+              disabled={isPast}
               onClick={() => onChange(dateStr)}
               className={`aspect-square w-full flex items-center justify-center rounded-xl text-sm font-sans transition-all ${
                 isSelected
                   ? 'bg-primary text-on-primary font-bold shadow-sm scale-105'
                   : isToday
                   ? 'border-2 border-primary text-primary font-bold'
-                  : isPast || isWeekend
+                  : isPast
                   ? 'text-on-surface-variant/30 cursor-not-allowed'
                   : 'hover:bg-primary/10 text-on-surface'
               }`}
@@ -721,7 +720,7 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
 
         {/* ── STEP 2: Time ── */}
         {step === 2 && (
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-6 pb-32">
             <div className="text-center">
               <h2 className="font-display text-headline-lg text-on-surface">{t.book.step2.title}</h2>
               <p className="font-sans text-body-md text-on-surface-variant">{t.book.step2.desc}</p>

@@ -5,7 +5,7 @@ import { useAdminLang } from '../hooks/useAdminLang';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { t, cycleLang, nextLabel } = useAdminLang();
+  const { t } = useAdminLang();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -43,13 +43,7 @@ export default function LoginPage() {
         <link rel="icon" href="/logo.png" />
       </Head>
 
-      {/* Language switcher */}
-      <button
-        onClick={cycleLang}
-        className="fixed top-4 right-4 font-sans text-sm font-bold bg-white/20 hover:bg-white/30 text-white px-3 py-1.5 rounded-full transition-colors backdrop-blur-sm"
-      >
-        {nextLabel}
-      </button>
+      {/* Language switcher removed */}
 
       <div className="bg-surface-container-lowest rounded-3xl shadow-2xl p-8 md:p-12 w-full max-w-md">
         {/* Logo */}

@@ -102,19 +102,24 @@ router.get('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
 // POST /api/appointments — public endpoint for booking
 router.post('/', async (req: Request, res: Response) => {
   const { clientFirstName, clientLastName, clientEmail, clientPhone,
-    petName, petBreed, petSize, serviceIds, groomerId, date, notes, petPhotoUrl } = req.body;
+    petName, petBreed, petSize, serviceIds, groomerId, date, notes, petPhotoUrl, duration, totalPrice } = req.body;
 
-  if (!clientEmail || !clientPhone || !petName || !serviceIds?.length || !date) {
+  if (!clientPhone || !petName || !serviceIds?.length || !date) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
   try {
+    const finalEmail = clientEmail || `no-email-${Date.now()}@local`;
+    
     // Find or create client
-    let client = await prisma.client.findUnique({ where: { email: clientEmail } });
+    let client;
+    if (clientEmail) {
+      client = await prisma.client.findUnique({ where: { email: clientEmail } });
+    }
     if (!client) {
       client = await prisma.client.create({
         data: { firstName: clientFirstName || '', lastName: clientLastName || '',
-          email: clientEmail, phone: clientPhone },
+          email: finalEmail, phone: clientPhone },
       });
     }
 
@@ -123,6 +128,11 @@ router.post('/', async (req: Request, res: Response) => {
     if (!pet) {
       pet = await prisma.pet.create({
         data: { name: petName, breed: petBreed || 'Unknown', size: petSize || 'm', clientId: client.id },
+      });
+    } else if (petBreed && petBreed !== pet.breed) {
+      pet = await prisma.pet.update({
+        where: { id: pet.id },
+        data: { breed: petBreed }
       });
     }
 
@@ -148,8 +158,12 @@ router.post('/', async (req: Request, res: Response) => {
     };
     const priceField = sizeMap[pet.size] || 'priceM';
     const durationField = durationMap[pet.size] || 'durationM';
-    const totalPrice = services.reduce((sum, s) => sum + Number(s[priceField]), 0);
-    const duration = services.reduce((sum, s) => sum + Number(s[durationField]), 0);
+
+    const calculatedPrice = services.reduce((sum, s) => sum + Number(s[priceField]), 0);
+    const calculatedDuration = services.reduce((sum, s) => sum + Number(s[durationField]), 0);
+
+    const finalPrice = totalPrice !== undefined ? Number(totalPrice) : calculatedPrice;
+    const finalDuration = duration !== undefined ? Number(duration) : calculatedDuration;
 
     const appointment = await prisma.appointment.create({
       data: {
@@ -157,8 +171,8 @@ router.post('/', async (req: Request, res: Response) => {
         petId: pet.id,
         groomerId: groomer.id,
         date: new Date(date),
-        duration,
-        totalPrice,
+        duration: finalDuration,
+        totalPrice: finalPrice,
         notes: notes || '',
         petPhotoUrl: petPhotoUrl || null,
         status: 'pending',
@@ -206,12 +220,10 @@ router.patch('/:id/status', requireAuth, async (req: AuthRequest, res: Response)
   }
 });
 
-
-
 // PATCH /api/appointments/:id — full update
 router.patch('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
-  const { status, notes, groomerId, date, totalPrice, duration, petPhotoUrl } = req.body;
+  const { status, notes, groomerId, date, totalPrice, duration, petPhotoUrl, serviceIds } = req.body;
 
   try {
     const data: Record<string, unknown> = {};
@@ -222,6 +234,25 @@ router.patch('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
     if (totalPrice !== undefined) data.totalPrice = Number(totalPrice);
     if (duration !== undefined) data.duration = Number(duration);
     if (petPhotoUrl !== undefined) data.petPhotoUrl = petPhotoUrl;
+
+    if (serviceIds && Array.isArray(serviceIds)) {
+      // Delete old services
+      await prisma.appointmentService.deleteMany({ where: { appointmentId: Number(id) } });
+      
+      // Get sizes and calculate new prices if needed
+      const appointment = await prisma.appointment.findUnique({ where: { id: Number(id) }, include: { pet: true } });
+      if (appointment) {
+        const services = await prisma.service.findMany({ where: { id: { in: serviceIds.map(Number) } } });
+        const sizeMap: Record<string, 'priceXs' | 'priceS' | 'priceM' | 'priceL' | 'priceXl'> = {
+          xs: 'priceXs', s: 'priceS', m: 'priceM', l: 'priceL', xl: 'priceXl',
+        };
+        const priceField = sizeMap[appointment.pet.size] || 'priceM';
+        
+        data.services = {
+          create: services.map(s => ({ serviceId: s.id, price: s[priceField] })),
+        };
+      }
+    }
 
     const updated = await prisma.appointment.update({
       where: { id: Number(id) },
@@ -238,7 +269,8 @@ router.patch('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
     }
 
     res.json(updated);
-  } catch {
+  } catch (err) {
+    console.error(err);
     res.status(404).json({ error: 'Appointment not found' });
   }
 });

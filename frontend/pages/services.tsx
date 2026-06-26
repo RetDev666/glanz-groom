@@ -287,7 +287,9 @@ export default function ServicesPage({ initialServices, initialSettings }: { ini
         <div className="animate-in slide-in-from-bottom-8 fade-in duration-700 pb-40">
           
           <div className="flex flex-col items-center mb-16">
-            <p className="font-sans text-xs text-gray-400 uppercase tracking-widest mb-6 font-semibold">{t.services.forWhom}</p>
+            <p className="font-sans text-xs text-gray-400 uppercase tracking-widest mb-6 font-semibold">
+              {t.services.forWhom} <span className="text-red-500 normal-case ml-2">({activeTab === 'xs' ? 'bis 5 kg' : activeTab === 's' ? '5-10 kg' : activeTab === 'm' ? '10-20 kg' : activeTab === 'l' ? '20-30 kg' : 'ab 30 kg'})</span>
+            </p>
             <div className="flex justify-center gap-6">
               {activeData.breeds.map((b: any) => (
                 <div key={b.name} className="flex flex-col items-center gap-3 group cursor-default">

@@ -18,7 +18,7 @@ const fetchGoogleReviews = async (): Promise<any[]> => {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Google API error: ${res.status}`);
 
-  const data = await res.json();
+  const data: any = await res.json();
   if (data.status !== 'OK') throw new Error(`Google Places status: ${data.status} — ${data.error_message || ''}`);
 
   return data.result?.reviews || [];

@@ -16,12 +16,13 @@ const STATUS_COLORS: Record<string, string> = {
 type Appointment = Record<string, unknown>;
 
 function AppointmentDetailModal({
-  apt, groomers, onClose, onSave, t
+  apt, groomers, onClose, onSave, onDelete, t
 }: {
   apt: Appointment;
   groomers: Record<string, unknown>[];
   onClose: () => void;
   onSave: (id: number, data: any) => Promise<void>;
+  onDelete: (id: number) => Promise<void>;
   t: ReturnType<typeof useAdminLang>['t'];
 }) {
   const [isEditing, setIsEditing] = useState(false);
@@ -29,12 +30,32 @@ function AppointmentDetailModal({
   const [groomerId, setGroomerId] = useState(String(apt.groomerId || ''));
   const [date, setDate] = useState(new Date(String(apt.date)).toISOString().slice(0, 16));
   const [notes, setNotes] = useState(String((apt.client as any)?.notes || apt.notes || ''));
+  const [totalPrice, setTotalPrice] = useState(String(apt.totalPrice || ''));
+  const [duration, setDuration] = useState(String(apt.duration || ''));
+  
+  const initialServices = Array.isArray(apt.services) ? apt.services.map((s: any) => Number(s.serviceId)) : [];
+  const [serviceIds, setServiceIds] = useState<number[]>(initialServices);
+  
   const [loading, setLoading] = useState(false);
+  const [allServices, setAllServices] = useState<any[]>([]);
 
   const client = apt.client as Record<string, unknown>;
   const pet = apt.pet as Record<string, unknown>;
   const groomer = apt.groomer as Record<string, unknown>;
-  const services = apt.services as { service: Record<string, unknown>; price: number }[];
+  const currentServices = apt.services as { service: Record<string, unknown>; price: number; serviceId: number }[];
+
+  useEffect(() => {
+    if (isEditing && allServices.length === 0) {
+      const token = localStorage.getItem('admin_token');
+      fetch(`${process.env.NEXT_PUBLIC_API_URL || '/api'}/services/all`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.json())
+        .then(d => setAllServices(Array.isArray(d) ? d.filter((s:any) => s.isActive) : []));
+    }
+  }, [isEditing]);
+
+  const toggleService = (id: number) => {
+    setServiceIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
 
   const handleSave = async () => {
     setLoading(true);
@@ -43,9 +64,21 @@ function AppointmentDetailModal({
       groomerId: Number(groomerId),
       date: new Date(date).toISOString(),
       notes,
+      totalPrice: Number(totalPrice),
+      duration: Number(duration),
+      serviceIds,
     });
     setLoading(false);
     setIsEditing(false);
+  };
+
+  const handleDelete = async () => {
+    if (confirm(t.appointments.deleteConfirm)) {
+      setLoading(true);
+      await onDelete(Number(apt.id));
+      setLoading(false);
+      onClose();
+    }
   };
 
   return (
@@ -54,7 +87,7 @@ function AppointmentDetailModal({
         className="bg-surface-container-lowest rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto border border-outline-variant"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between p-6 border-b border-outline-variant">
+        <div className="flex items-center justify-between p-6 border-b border-outline-variant sticky top-0 bg-surface-container-lowest z-10">
           <div>
             <h3 className="font-display text-headline-sm text-on-surface">{t.calendar.detailTitle}</h3>
             {!isEditing && (
@@ -105,9 +138,36 @@ function AppointmentDetailModal({
                 <label className="block font-sans text-label-sm text-on-surface-variant mb-1">{t.calendar.dateTimeLabel}</label>
                 <input type="datetime-local" value={date} onChange={e => setDate(e.target.value)} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 text-sm outline-none" />
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Preis (€)</label>
+                  <input type="number" value={totalPrice} onChange={e => setTotalPrice(e.target.value)} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 text-sm outline-none" />
+                </div>
+                <div>
+                  <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Dauer (Min)</label>
+                  <input type="number" value={duration} onChange={e => setDuration(e.target.value)} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 text-sm outline-none" />
+                </div>
+              </div>
               <div>
-                <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Коментар / Нотатки (для картки клієнта)</label>
-                <textarea value={notes} onChange={e => setNotes(e.target.value)} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 text-sm outline-none" rows={3} placeholder="Додайте нотатки про клієнта або улюбленця..."></textarea>
+                <label className="block font-sans text-label-sm text-on-surface-variant mb-2">{t.appointments.servicesLabel}</label>
+                <div className="max-h-40 overflow-y-auto space-y-1 bg-surface p-2 rounded-xl border border-outline">
+                  {allServices.map(s => (
+                    <label key={s.id} className="flex items-center gap-2 cursor-pointer p-1 hover:bg-surface-container rounded">
+                      <input type="checkbox" checked={serviceIds.includes(s.id)} onChange={() => toggleService(s.id)} className="w-4 h-4 rounded text-primary border-outline-variant" />
+                      <span className="text-sm font-sans">{s.nameUk || s.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Kommentar / Notizen (für die Kundenkarte)</label>
+                <textarea value={notes} onChange={e => setNotes(e.target.value)} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 text-sm outline-none" rows={3} placeholder="Fügen Sie Notizen über den Kunden oder das Tier hinzu..."></textarea>
+              </div>
+              <div className="pt-2 border-t border-outline-variant mt-4">
+                <button type="button" onClick={handleDelete} className="w-full py-2 bg-red-100 text-red-700 hover:bg-red-200 rounded-xl font-medium transition-colors flex justify-center items-center gap-2">
+                  <span className="material-symbols-outlined text-[18px]">delete</span>
+                  {t.appointments.deleteTitle}
+                </button>
               </div>
             </div>
           )}
@@ -126,7 +186,7 @@ function AppointmentDetailModal({
           <div className="bg-surface-container-low rounded-2xl p-4 space-y-2">
             <p className="font-sans text-label-sm text-on-surface-variant uppercase tracking-widest">{t.calendar.clientAndPet}</p>
             <p className="font-sans text-label-lg text-on-surface">{String(client?.firstName || '')} {String(client?.lastName || '')} — {String(client?.phone || '')}</p>
-            <p className="font-sans text-label-md text-on-surface-variant">{String(pet?.name || '')} ({String(pet?.breed || '')}, {String(pet?.size || '').toUpperCase()})</p>
+            <p className="font-sans text-label-md text-on-surface-variant">{String(pet?.name || '')} {Boolean(pet?.breed) && `(${String(pet?.breed)})`} - {String(pet?.size || '').toUpperCase()}</p>
           </div>
 
           <div className="bg-surface-container-low rounded-2xl p-4 space-y-2">
@@ -136,7 +196,7 @@ function AppointmentDetailModal({
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${STATUS_COLORS[String(apt.status)] || ''}`}>{String(apt.status)}</span>
             </p>
             <div className="space-y-1 mt-2">
-              {services?.map((s, i) => (
+              {currentServices?.map((s, i) => (
                 <div key={i} className="flex justify-between">
                   <span className="font-sans text-label-sm text-on-surface">{String(s.service?.nameUk || s.service?.name || '')}</span>
                   <span className="font-display font-bold text-primary">{s.price}€</span>
@@ -151,7 +211,7 @@ function AppointmentDetailModal({
 
           {!isEditing && Boolean(notes) && (
             <div className="bg-surface-container-low rounded-2xl p-4 space-y-2 border border-outline-variant">
-              <p className="font-sans text-label-sm text-on-surface-variant uppercase tracking-widest">Коментар</p>
+              <p className="font-sans text-label-sm text-on-surface-variant uppercase tracking-widest">Kommentar</p>
               <p className="font-sans text-body-md text-on-surface whitespace-pre-wrap">{notes}</p>
             </div>
           )}
@@ -177,6 +237,7 @@ function NewAppointmentModal({
     clientPhone: '',
     clientEmail: '',
     petName: '',
+    petBreed: '',
     petSize: 'm',
     notes: '',
     serviceIds: [] as number[],
@@ -203,7 +264,7 @@ function NewAppointmentModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.clientPhone || !form.petName || !form.date || form.serviceIds.length === 0) {
-      return alert('Будь ласка, заповніть всі обов\'язкові поля (Телефон, Ім\'я улюбленця, Послуги)');
+      return alert('Bitte füllen Sie alle Pflichtfelder aus (Telefon, Name des Tieres, Leistungen)');
     }
     
     setLoading(true);
@@ -226,7 +287,7 @@ function NewAppointmentModal({
       onClose();
     } else {
       const data = await res.json();
-      alert(data.error || 'Помилка при створенні');
+      alert(data.error || 'Fehler beim Erstellen');
     }
   };
 
@@ -234,7 +295,7 @@ function NewAppointmentModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-surface-container-lowest rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto border border-outline-variant" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between p-6 border-b border-outline-variant">
-          <h3 className="font-display text-headline-sm text-on-surface">Новий запис</h3>
+          <h3 className="font-display text-headline-sm text-on-surface">{t.sidebar.newAppointment}</h3>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-surface-container-high text-on-surface-variant transition-colors">
             <span className="material-symbols-outlined">close</span>
           </button>
@@ -254,28 +315,45 @@ function NewAppointmentModal({
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Ім'я клієнта</label>
-              <input type="text" value={form.clientFirstName} onChange={e => setForm({...form, clientFirstName: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none" placeholder="Ім'я" />
+              <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Vorname des Kunden</label>
+              <input type="text" value={form.clientFirstName} onChange={e => setForm({...form, clientFirstName: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none" placeholder="Vorname" />
             </div>
             <div>
-              <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Телефон *</label>
-              <input type="tel" required value={form.clientPhone} onChange={e => setForm({...form, clientPhone: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none" placeholder="+380..." />
+              <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Nachname</label>
+              <input type="text" value={form.clientLastName} onChange={e => setForm({...form, clientLastName: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none" placeholder="Nachname" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Улюбленець *</label>
-              <input type="text" required value={form.petName} onChange={e => setForm({...form, petName: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none" placeholder="Кличка" />
+              <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Telefon *</label>
+              <input type="text" required value={form.clientPhone} onChange={e => setForm({...form, clientPhone: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none" placeholder="Telefon" />
             </div>
             <div>
-              <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Розмір</label>
+              <label className="block font-sans text-label-sm text-on-surface-variant mb-1">E-Mail</label>
+              <input type="email" value={form.clientEmail} onChange={e => setForm({...form, clientEmail: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none" placeholder="E-Mail" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Name des Tieres *</label>
+              <input type="text" required value={form.petName} onChange={e => setForm({...form, petName: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none" placeholder="Name" />
+            </div>
+            <div>
+              <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Rasse</label>
+              <input type="text" value={form.petBreed} onChange={e => setForm({...form, petBreed: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none" placeholder="Rasse eingeben" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Größe</label>
               <select value={form.petSize} onChange={e => setForm({...form, petSize: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none">
                 <option value="xs">XS</option><option value="s">S</option><option value="m">M</option><option value="l">L</option><option value="xl">XL</option>
               </select>
             </div>
           </div>
           <div>
-            <label className="block font-sans text-label-sm text-on-surface-variant mb-2">Послуги *</label>
+            <label className="block font-sans text-label-sm text-on-surface-variant mb-2">{t.appointments.servicesLabel} *</label>
             <div className="max-h-40 overflow-y-auto space-y-1 bg-surface-container-low p-2 rounded-xl border border-outline-variant">
               {services.map(s => (
                 <label key={s.id} className="flex items-center gap-2 cursor-pointer p-1 hover:bg-surface-container rounded">
@@ -286,13 +364,13 @@ function NewAppointmentModal({
             </div>
           </div>
           <div>
-            <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Коментар / Нотатки (для картки клієнта)</label>
-            <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 text-sm outline-none" rows={2} placeholder="Додайте нотатки про клієнта або улюбленця..."></textarea>
+            <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Kommentar / Notizen (für die Kundenkarte)</label>
+            <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 text-sm outline-none" rows={2} placeholder="Fügen Sie Notizen über den Kunden oder das Tier hinzu..."></textarea>
           </div>
           <div className="pt-4 flex gap-3 border-t border-outline-variant">
-            <button type="button" onClick={onClose} className="flex-1 py-2 rounded-full border border-outline hover:bg-surface-container transition-colors">Скасувати</button>
-            <button type="submit" disabled={loading} className="flex-1 py-2 rounded-full bg-primary text-on-primary hover:opacity-90 transition-opacity">
-              {loading ? 'Збереження...' : 'Зберегти'}
+            <button type="button" onClick={onClose} className="flex-1 py-2 rounded-full border border-outline hover:bg-surface-container transition-colors">{t.cancel}</button>
+            <button type="submit" disabled={loading} className="flex-1 py-2 rounded-full bg-primary text-on-primary hover:opacity-90 transition-opacity font-medium">
+              {loading ? t.saving : t.save}
             </button>
           </div>
         </form>
@@ -359,10 +437,19 @@ export default function CalendarPage() {
 
   const handleUpdateAppointment = async (id: number, data: any) => {
     const token = localStorage.getItem('admin_token');
-    await fetch(`${API}/appointments/${id}`, {
+    await fetch(`${process.env.NEXT_PUBLIC_API_URL || '/api'}/appointments/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify(data),
+    });
+    setCurrentDate(new Date(currentDate));
+  };
+
+  const handleDeleteAppointment = async (id: number) => {
+    const token = localStorage.getItem('admin_token');
+    await fetch(`${process.env.NEXT_PUBLIC_API_URL || '/api'}/appointments/${id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
     });
     setCurrentDate(new Date(currentDate));
   };
@@ -405,7 +492,7 @@ export default function CalendarPage() {
 
   return (
     <AdminLayout title={t.calendar.title}>
-      {selectedApt && <AppointmentDetailModal apt={selectedApt} groomers={groomers} t={t} onClose={() => setSelectedApt(null)} onSave={handleUpdateAppointment} />}
+      {selectedApt && <AppointmentDetailModal apt={selectedApt} groomers={groomers} t={t} onClose={() => setSelectedApt(null)} onSave={handleUpdateAppointment} onDelete={handleDeleteAppointment} />}
       {showNewApt && <NewAppointmentModal groomers={groomers} t={t} onClose={() => setShowNewApt(false)} onSave={() => setCurrentDate(new Date(currentDate))} />}
 
       <header className="sticky top-0 bg-surface border-b border-outline-variant flex justify-between items-center px-6 h-16 shrink-0 z-40">
@@ -429,7 +516,7 @@ export default function CalendarPage() {
             className="bg-primary text-on-primary font-sans text-label-lg px-4 py-1.5 rounded-full hover:opacity-90 transition-opacity flex items-center gap-1 shadow-sm"
           >
             <span className="material-symbols-outlined text-[18px]">add</span>
-            Новий запис
+            {t.sidebar.newAppointment}
           </button>
           <button
             onClick={() => setCurrentDate(new Date())}
@@ -539,7 +626,11 @@ export default function CalendarPage() {
                                 {pet ? String(pet.name) : '—'}
                               </span>
                               <span className="font-sans text-label-sm bg-white/60 px-1.5 py-0.5 rounded-full shrink-0 text-[10px]">
-                                {new Date(String(apt.date)).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}
+                                {(() => {
+                                  const s = new Date(String(apt.date));
+                                  const e = new Date(s.getTime() + Number(apt.duration) * 60000);
+                                  return `${s.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })} - ${e.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}`;
+                                })()}
                               </span>
                             </div>
                             <span className="font-sans text-label-sm truncate">
@@ -580,7 +671,11 @@ export default function CalendarPage() {
                           >
                             <div className="flex justify-between items-start">
                               <span className="font-sans text-label-sm font-semibold truncate text-[11px]">
-                                {new Date(String(apt.date)).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}
+                                {(() => {
+                                  const s = new Date(String(apt.date));
+                                  const e = new Date(s.getTime() + Number(apt.duration) * 60000);
+                                  return `${s.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })} - ${e.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}`;
+                                })()}
                               </span>
                             </div>
                             <span className="font-sans text-label-md truncate font-bold">

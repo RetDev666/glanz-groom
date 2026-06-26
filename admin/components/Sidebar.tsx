@@ -4,7 +4,7 @@ import { useAdminLang } from '../hooks/useAdminLang';
 
 export default function Sidebar() {
   const router = useRouter();
-  const { t, lang, cycleLang, nextLabel } = useAdminLang();
+  const { t, lang } = useAdminLang();
 
   const navItems = [
     { href: '/', icon: 'dashboard', label: t.sidebar.dashboard },
@@ -73,17 +73,7 @@ export default function Sidebar() {
       {/* Bottom */}
       <div className="px-3 py-4 border-t border-outline-variant">
         <ul className="flex flex-col gap-0.5">
-          {/* Language switcher */}
-          <li>
-            <button
-              onClick={cycleLang}
-              className="flex items-center gap-3 text-on-surface-variant px-4 py-3 rounded-full hover:bg-surface-container-high transition-colors w-full"
-            >
-              <span className="material-symbols-outlined">language</span>
-              <span className="font-sans text-sm flex-1 text-left">{'de en ru'.includes(lang) ? { de: 'Sprache', en: 'Language', ru: 'Язык' }[lang] : 'Language'}</span>
-              <span className="font-sans text-xs font-bold bg-primary text-on-primary px-2 py-0.5 rounded-full">{nextLabel}</span>
-            </button>
-          </li>
+          {/* Language switcher removed */}
           <li>
             <Link href="/settings" className={`flex items-center gap-3 px-4 py-3 rounded-full hover:bg-surface-container-high transition-colors ${router.pathname === '/settings' ? 'text-primary font-semibold' : 'text-on-surface-variant'}`}>
               <span className="material-symbols-outlined">settings</span>
