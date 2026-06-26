@@ -265,6 +265,8 @@ function NewAppointmentModal({
     serviceIds: [] as number[],
   });
   const [services, setServices] = useState<any[]>([]);
+  const [clients, setClients] = useState<any[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -272,6 +274,10 @@ function NewAppointmentModal({
     fetch(`${API}/services/all`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(d => setServices(Array.isArray(d) ? d.filter((s:any) => s.isActive) : []));
+      
+    fetch(`${API}/clients`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(d => setClients(Array.isArray(d) ? d : []));
   }, []);
 
   const toggleService = (id: number) => {
@@ -282,6 +288,29 @@ function NewAppointmentModal({
         : [...prev.serviceIds, id]
     }));
   };
+
+  const handleClientSelect = (client: any) => {
+    const pet = client.pets && client.pets.length > 0 ? client.pets[0] : null;
+    setForm(prev => ({
+      ...prev,
+      clientFirstName: client.firstName || '',
+      clientLastName: client.lastName || '',
+      clientPhone: client.phone || '',
+      clientEmail: client.email || '',
+      petName: pet?.name || '',
+      petBreed: pet?.breed || '',
+      petSize: pet?.size || 'm'
+    }));
+    setShowSuggestions(false);
+  };
+
+  const filteredClients = form.clientFirstName.length > 1 && showSuggestions
+    ? clients.filter(c => 
+        (c.firstName || '').toLowerCase().includes(form.clientFirstName.toLowerCase()) || 
+        (c.lastName || '').toLowerCase().includes(form.clientFirstName.toLowerCase()) ||
+        (c.phone || '').includes(form.clientFirstName)
+      ).slice(0, 5)
+    : [];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -336,9 +365,34 @@ function NewAppointmentModal({
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div>
+            <div className="relative">
               <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Vorname des Kunden</label>
-              <input type="text" value={form.clientFirstName} onChange={e => setForm({...form, clientFirstName: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none" placeholder="Vorname" />
+              <input 
+                type="text" 
+                value={form.clientFirstName} 
+                onChange={e => {
+                  setForm({...form, clientFirstName: e.target.value});
+                  setShowSuggestions(true);
+                }} 
+                onFocus={() => setShowSuggestions(true)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none focus:border-primary" 
+                placeholder="Vorname suchen..." 
+              />
+              {filteredClients.length > 0 && (
+                <ul className="absolute z-10 w-full mt-1 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                  {filteredClients.map(c => (
+                    <li 
+                      key={c.id} 
+                      onClick={() => handleClientSelect(c)}
+                      className="px-4 py-2 hover:bg-surface-container cursor-pointer border-b border-outline-variant last:border-0"
+                    >
+                      <div className="font-sans text-sm text-on-surface font-medium">{c.firstName} {c.lastName}</div>
+                      <div className="font-sans text-xs text-on-surface-variant">{c.phone}</div>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
             <div>
               <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Nachname</label>
