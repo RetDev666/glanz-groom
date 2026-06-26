@@ -404,7 +404,7 @@ export default function ServicesAdminPage() {
                         {items.map((s) => (
                           <tr key={String(s.id)} className="hover:bg-surface-container-low transition-colors">
                             <td className="px-4 py-3 min-w-[180px]">
-                              <p className="font-sans text-label-lg text-on-surface">{String(s.nameUk)}</p>
+                              <p className="font-sans text-label-lg text-on-surface">{String(s.name)}</p>
                               <p className="font-sans text-label-sm text-on-surface-variant italic truncate max-w-[200px]">{String(s.name)}</p>
                             </td>
                             {(['priceXs','priceS','priceM','priceL','priceXl'] as const).map(k => (

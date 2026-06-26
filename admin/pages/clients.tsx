@@ -113,7 +113,7 @@ function ClientDetailModal({ clientId, onClose }: { clientId: number; onClose: (
                           <div className="flex flex-wrap gap-1">
                             {services?.map((s, j) => (
                               <span key={j} className="font-sans text-label-sm bg-surface-container px-2 py-0.5 rounded-full text-on-surface-variant">
-                                {String(s.service?.nameUk || s.service?.name || '')}
+                                {String(s.service?.name || '')}
                               </span>
                             ))}
                           </div>

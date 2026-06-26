@@ -147,7 +147,7 @@ function AppointmentDetailModal({
             <div className="space-y-1">
               {services?.map((s, i) => (
                 <div key={i} className="flex justify-between">
-                  <span className="font-sans text-label-md text-on-surface">{String(s.service?.nameUk || s.service?.name || '')}</span>
+                  <span className="font-sans text-label-md text-on-surface">{String(s.service?.name || '')}</span>
                   <span className="font-display font-bold text-primary">{s.price}€</span>
                 </div>
               ))}
@@ -402,7 +402,7 @@ export default function AppointmentsPage() {
                           <div className="flex flex-wrap gap-1">
                             {services?.slice(0, 2).map((s, i) => (
                               <span key={i} className="font-sans text-label-sm bg-surface-container px-2 py-0.5 rounded-full text-on-surface-variant whitespace-nowrap">
-                                {String((s.service as Record<string, unknown>).nameUk || (s.service as Record<string, unknown>).name)}
+                                {String((s.service as Record<string, unknown>).name)}
                               </span>
                             ))}
                             {services?.length > 2 && (

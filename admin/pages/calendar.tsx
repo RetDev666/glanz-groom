@@ -81,6 +81,13 @@ function AppointmentDetailModal({
     }
   };
 
+  const handleCancel = () => {
+    if (confirm('Möchten Sie diesen Termin wirklich stornieren?')) {
+      onSave(Number(apt.id), { status: 'cancelled' });
+      onClose();
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div
@@ -92,7 +99,7 @@ function AppointmentDetailModal({
             <h3 className="font-display text-headline-sm text-on-surface">{t.calendar.detailTitle}</h3>
             {!isEditing && (
               <p className="font-sans text-label-sm text-on-surface-variant mt-0.5">
-                {new Date(String(apt.date)).toLocaleString('uk-UA', {
+                {new Date(String(apt.date)).toLocaleString('de-DE', {
                   day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
                 })}
               </p>
@@ -154,7 +161,7 @@ function AppointmentDetailModal({
                   {allServices.map(s => (
                     <label key={s.id} className="flex items-center gap-2 cursor-pointer p-1 hover:bg-surface-container rounded">
                       <input type="checkbox" checked={serviceIds.includes(s.id)} onChange={() => toggleService(s.id)} className="w-4 h-4 rounded text-primary border-outline-variant" />
-                      <span className="text-sm font-sans">{s.nameUk || s.name}</span>
+                      <span className="text-sm font-sans">{s.name}</span>
                     </label>
                   ))}
                 </div>
@@ -198,7 +205,7 @@ function AppointmentDetailModal({
             <div className="space-y-1 mt-2">
               {currentServices?.map((s, i) => (
                 <div key={i} className="flex justify-between">
-                  <span className="font-sans text-label-sm text-on-surface">{String(s.service?.nameUk || s.service?.name || '')}</span>
+                  <span className="font-sans text-label-sm text-on-surface">{String(s.service?.name || '')}</span>
                   <span className="font-display font-bold text-primary">{s.price}€</span>
                 </div>
               ))}
@@ -213,6 +220,21 @@ function AppointmentDetailModal({
             <div className="bg-surface-container-low rounded-2xl p-4 space-y-2 border border-outline-variant">
               <p className="font-sans text-label-sm text-on-surface-variant uppercase tracking-widest">Kommentar</p>
               <p className="font-sans text-body-md text-on-surface whitespace-pre-wrap">{notes}</p>
+            </div>
+          )}
+
+          {!isEditing && (
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <button onClick={() => setIsEditing(true)} className="py-2.5 bg-surface-container border border-outline rounded-xl font-medium text-on-surface hover:bg-surface-container-high transition-colors flex justify-center items-center gap-2">
+                <span className="material-symbols-outlined text-[18px]">edit_calendar</span>
+                Verschieben
+              </button>
+              {apt.status !== 'cancelled' && (
+                <button onClick={handleCancel} className="py-2.5 bg-red-50 border border-red-200 text-red-700 hover:bg-red-100 rounded-xl font-medium transition-colors flex justify-center items-center gap-2">
+                  <span className="material-symbols-outlined text-[18px]">cancel</span>
+                  Stornieren
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -358,7 +380,7 @@ function NewAppointmentModal({
               {services.map(s => (
                 <label key={s.id} className="flex items-center gap-2 cursor-pointer p-1 hover:bg-surface-container rounded">
                   <input type="checkbox" checked={form.serviceIds.includes(s.id)} onChange={() => toggleService(s.id)} className="w-4 h-4 rounded text-primary border-outline-variant" />
-                  <span className="text-sm font-sans">{s.nameUk || s.name}</span>
+                  <span className="text-sm font-sans">{s.name}</span>
                 </label>
               ))}
             </div>
@@ -487,6 +509,34 @@ export default function CalendarPage() {
     return ((d.getHours() - 9) + d.getMinutes() / 60) * 80;
   };
 
+  const handleBlockDay = async () => {
+    const groomerId = prompt('Für welchen Groomer? (Geben Sie die ID ein, z.B. 1, 2, 3...)');
+    if (!groomerId) return;
+    
+    const dateStr = currentDate.toISOString().split('T')[0];
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || '/api'}/appointments/admin-create`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('admin_token')}` },
+      body: JSON.stringify({
+        clientFirstName: 'System',
+        clientPhone: '000000000',
+        petName: 'Blockiert',
+        petSize: 'm',
+        serviceIds: [],
+        groomerId: Number(groomerId),
+        date: `${dateStr}T09:00:00`,
+        duration: 540,
+        totalPrice: 0,
+        notes: 'Gesperrter Tag'
+      })
+    });
+    if (res.ok) {
+      setCurrentDate(new Date(currentDate)); // reload
+    } else {
+      alert('Fehler beim Blockieren');
+    }
+  };
+
   const getHeight = (duration: number) => (duration / 60) * 80;
   const getGroomerApts = (groomerId: number) => appointments.filter(a => a.groomerId === groomerId);
 
@@ -503,7 +553,7 @@ export default function CalendarPage() {
               <span className="material-symbols-outlined text-[20px]">chevron_left</span>
             </button>
             <span className="font-sans text-label-lg px-2">
-              {currentDate.toLocaleDateString('uk-UA', { day: 'numeric', month: 'long', year: 'numeric' })}
+              {currentDate.toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' })}
             </span>
             <button onClick={nextDay} className="p-1.5 rounded-full hover:bg-surface-container-highest transition-colors">
               <span className="material-symbols-outlined text-[20px]">chevron_right</span>
@@ -517,6 +567,13 @@ export default function CalendarPage() {
           >
             <span className="material-symbols-outlined text-[18px]">add</span>
             {t.sidebar.newAppointment}
+          </button>
+          <button
+            onClick={handleBlockDay}
+            className="bg-surface-container text-on-surface font-sans text-label-lg px-4 py-1.5 rounded-full hover:bg-surface-container-high border border-outline-variant transition-opacity flex items-center gap-1 shadow-sm"
+          >
+            <span className="material-symbols-outlined text-[18px]">block</span>
+            Tag blockieren
           </button>
           <button
             onClick={() => setCurrentDate(new Date())}
@@ -565,13 +622,14 @@ export default function CalendarPage() {
                 {Array.from({ length: 7 }, (_, i) => {
                   const d = new Date(getWeekStart(currentDate));
                   d.setDate(d.getDate() + i);
+                  const isToday = d.toDateString() === new Date().toDateString();
                   return (
                     <div key={i} className={`p-3 text-center ${i < 6 ? 'border-r border-outline-variant' : ''} flex flex-col items-center gap-1`}>
                       <span className="font-sans text-label-lg text-on-surface">
-                        {d.toLocaleDateString('uk-UA', { weekday: 'short' })}
+                        {d.toLocaleDateString('de-DE', { weekday: 'short' })}
                       </span>
-                      <span className="font-sans text-label-sm text-on-surface-variant">
-                        {d.toLocaleDateString('uk-UA', { day: 'numeric', month: 'numeric' })}
+                      <span className={`text-sm ${isToday ? 'bg-primary text-on-primary w-6 h-6 flex items-center justify-center rounded-full' : 'text-on-surface'}`}>
+                        {d.toLocaleDateString('de-DE', { day: 'numeric', month: 'numeric' })}
                       </span>
                     </div>
                   );
