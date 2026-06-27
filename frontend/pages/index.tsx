@@ -100,12 +100,12 @@ export default function HomePage() {
       </section>
 
       {/* STATS */}
-      <section className="bg-primary py-10 px-6 md:px-12">
+      <section className="bg-[#059669] py-10 px-6 md:px-12">
         <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
           {stats.map(s => (
             <div key={s.value}>
-              <div className="font-display text-3xl md:text-4xl font-extrabold text-on-primary">{s.value}</div>
-              <div className="font-sans text-label-sm text-on-primary/80 mt-1">{s.label}</div>
+              <div className="font-display text-3xl md:text-4xl font-extrabold text-white">{s.value}</div>
+              <div className="font-sans text-label-sm text-white/80 mt-1">{s.label}</div>
             </div>
           ))}
         </div>

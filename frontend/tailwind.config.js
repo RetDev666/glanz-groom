@@ -8,16 +8,16 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Emerald Green Theme
-        primary: '#059669',
+        // Coral / Pinkish Red from cabinets and desk
+        primary: '#f56a6a',
         'on-primary': '#ffffff',
-        'primary-container': '#d1fae5',
-        'on-primary-container': '#064e3b',
-        'primary-fixed': '#6ee7b7',
-        'primary-fixed-dim': '#34d399',
-        'on-primary-fixed': '#022c22',
-        'on-primary-fixed-variant': '#065f46',
-        'inverse-primary': '#6ee7b7',
+        'primary-container': '#ffdad8',
+        'on-primary-container': '#410006',
+        'primary-fixed': '#ffb3b0',
+        'primary-fixed-dim': '#ff8c8c',
+        'on-primary-fixed': '#410006',
+        'on-primary-fixed-variant': '#8c1520',
+        'inverse-primary': '#ffb3b0',
         
         // Teal / Turquoise from the walls
         secondary: '#42b5a9',
@@ -53,7 +53,7 @@ module.exports = {
         'surface-variant': '#e1e3e4',
         'inverse-surface': '#2e3132',
         'inverse-on-surface': '#f0f1f2',
-        'surface-tint': '#059669',
+        'surface-tint': '#f56a6a',
         
         // Outlines
         outline: '#8c706f',
