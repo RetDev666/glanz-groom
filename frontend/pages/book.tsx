@@ -189,15 +189,7 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
   };
 
   const [booking, setBooking] = useState<BookingState>({
-    pets: [{
-      id: '1',
-      petSize: 'm',
-      selectedServices: [],
-      petName: '',
-      petBreed: '',
-      photoFile: null,
-      photoPreview: null,
-    }],
+    pets: [],
     groomerId: null,
     date: '',
     time: '',
@@ -428,7 +420,7 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
   };
 
   const canNext = () => {
-    if (step === 0) return booking.pets.every(p => p.selectedServices.length > 0);
+    if (step === 0) return booking.pets.length > 0 && booking.pets.every(p => p.selectedServices.length > 0);
     if (step === 1) return booking.groomerId !== null;
     if (step === 2) return booking.date && booking.time;
     if (step === 3) return booking.firstName && booking.email && booking.phone && booking.pets.every(p => p.petName) && booking.acceptTerms;
