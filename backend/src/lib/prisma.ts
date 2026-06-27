@@ -2,16 +2,19 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaLibSQL } from '@prisma/adapter-libsql';
 import { createClient } from '@libsql/client';
 
-// Завжди використовуємо Turso у цьому проекті
-const url = process.env.TURSO_DATABASE_URL || 'libsql://dummy-url-to-prevent-crash.turso.io';
-const authToken = process.env.TURSO_AUTH_TOKEN || 'dummy-token';
+let prisma: PrismaClient;
 
-const libsql = createClient({
-  url,
-  authToken,
-});
-
-const adapter = new PrismaLibSQL(libsql);
-const prisma = new PrismaClient({ adapter } as any);
+if (process.env.TURSO_DATABASE_URL) {
+  // Використовуємо Turso, якщо налаштовано
+  const libsql = createClient({
+    url: process.env.TURSO_DATABASE_URL,
+    authToken: process.env.TURSO_AUTH_TOKEN || '',
+  });
+  const adapter = new PrismaLibSQL(libsql);
+  prisma = new PrismaClient({ adapter } as any);
+} else {
+  // Фолбек на локальний SQLite (dev.db)
+  prisma = new PrismaClient();
+}
 
 export default prisma;
