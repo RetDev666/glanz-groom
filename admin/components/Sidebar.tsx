@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useAdminLang } from '../hooks/useAdminLang';
 
-export default function Sidebar() {
+export default function Sidebar({ unreadCount = 0 }: { unreadCount?: number }) {
   const router = useRouter();
   const { t, lang } = useAdminLang();
 
@@ -10,7 +10,7 @@ export default function Sidebar() {
     { href: '/', icon: 'dashboard', label: t.sidebar.dashboard },
     { href: '/calendar', icon: 'calendar_month', label: t.sidebar.calendar },
     { href: '/clients', icon: 'group', label: t.sidebar.clients },
-    { href: '/appointments', icon: 'event_note', label: t.sidebar.appointments },
+    { href: '/appointments', icon: 'event_note', label: t.sidebar.appointments, badge: unreadCount },
     { href: '/services', icon: 'content_cut', label: t.sidebar.services },
     { href: '/groomers', icon: 'badge', label: t.sidebar.groomers },
     { href: '/offers', icon: 'local_offer', label: t.sidebar.offers },
@@ -55,14 +55,21 @@ export default function Sidebar() {
               <li key={item.href}>
                 <Link
                   href={item.href}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-full transition-all ${
+                  className={`flex items-center justify-between px-4 py-3 rounded-full transition-all ${
                     active
                       ? 'bg-secondary-container text-on-secondary-container font-semibold scale-95'
                       : 'text-on-surface-variant hover:bg-surface-container-high'
                   }`}
                 >
-                  <span className={`material-symbols-outlined ${active ? 'fill' : ''}`}>{item.icon}</span>
-                  <span className="font-sans text-sm">{item.label}</span>
+                  <div className="flex items-center gap-3">
+                    <span className={`material-symbols-outlined ${active ? 'fill' : ''}`}>{item.icon}</span>
+                    <span className="font-sans text-sm">{item.label}</span>
+                  </div>
+                  {item.badge && item.badge > 0 ? (
+                    <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center">
+                      {item.badge}
+                    </span>
+                  ) : null}
                 </Link>
               </li>
             );

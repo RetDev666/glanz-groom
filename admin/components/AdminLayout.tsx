@@ -7,6 +7,7 @@ import { useRouter } from 'next/router';
 function useAppointmentPolling() {
   const lastKnownIdRef = useRef<number | null>(null);
   const [newAppt, setNewAppt] = useState<any>(null);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
 
   useEffect(() => {
     const token = localStorage.getItem('admin_token');
@@ -16,11 +17,15 @@ function useAppointmentPolling() {
     
     const checkLatest = async () => {
       try {
-        const res = await fetch(`${API}/appointments/latest`, {
+        const lastViewedId = localStorage.getItem('last_viewed_appointment_id') || '0';
+        const res = await fetch(`${API}/appointments/latest?sinceId=${lastViewedId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {
           const data = await res.json();
+          
+          setUnreadCount(data.newCount || 0);
+
           if (lastKnownIdRef.current === null) {
             lastKnownIdRef.current = data.id;
           } else if (data.id > lastKnownIdRef.current) {
@@ -43,10 +48,17 @@ function useAppointmentPolling() {
 
     checkLatest();
     const interval = setInterval(checkLatest, 10000);
-    return () => clearInterval(interval);
+
+    const clearBadge = () => setUnreadCount(0);
+    window.addEventListener('clear-unread-badge', clearBadge);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('clear-unread-badge', clearBadge);
+    };
   }, []);
 
-  return { newAppt, setNewAppt };
+  return { newAppt, setNewAppt, unreadCount };
 }
 
 interface AdminLayoutProps {
@@ -55,16 +67,12 @@ interface AdminLayoutProps {
 }
 
 export default function AdminLayout({ children, title = 'CRM' }: AdminLayoutProps) {
-  const { newAppt, setNewAppt } = useAppointmentPolling();
+  const { newAppt, setNewAppt, unreadCount } = useAppointmentPolling();
   const router = useRouter();
   
   const handleToastClick = () => {
     if (newAppt && newAppt.date) {
-      // Navigate to calendar and maybe we could pass date query?
-      // Since our calendar doesn't read ?date= yet, let's just go to /calendar
-      // But we can store it in localStorage so calendar can read it?
-      // For now, just navigate to calendar
-      router.push('/calendar');
+      router.push('/appointments');
     }
     setNewAppt(null);
   };
@@ -75,7 +83,7 @@ export default function AdminLayout({ children, title = 'CRM' }: AdminLayoutProp
         <title>{title} — Glanz & Groom CRM</title>
         <link rel="icon" href="/logo.png" />
       </Head>
-      <Sidebar />
+      <Sidebar unreadCount={unreadCount} />
       <main className="flex-1 md:ml-64 flex flex-col h-full bg-background overflow-auto relative">
         {children}
         

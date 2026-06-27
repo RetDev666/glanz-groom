@@ -70,15 +70,24 @@ router.get('/availability', async (req: Request, res: Response) => {
 // GET /api/appointments/latest — returns the latest appointment ID for polling
 router.get('/latest', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
+    const { sinceId } = req.query;
+    
     const latest = await prisma.appointment.findFirst({
       orderBy: { id: 'desc' },
-      select: { 
-        id: true, 
-        date: true,
-        client: { select: { firstName: true, lastName: true } }
-      }
+      include: { client: true }
     });
-    res.json(latest || { id: 0 });
+
+    let newCount = 0;
+    if (sinceId && !isNaN(Number(sinceId))) {
+      newCount = await prisma.appointment.count({
+        where: { id: { gt: Number(sinceId) } }
+      });
+    }
+
+    res.json({
+      ...(latest || { id: 0 }),
+      newCount
+    });
   } catch (err) {
     res.status(500).json({ error: 'Internal server error' });
   }

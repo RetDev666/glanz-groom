@@ -222,8 +222,19 @@ export default function AppointmentsPage() {
       ]);
       const data = await aptsRes.json();
       const grs = await groomersRes.json();
-      setAppointments(Array.isArray(data) ? data : []);
+      
+      const arr = Array.isArray(data) ? data : [];
+      setAppointments(arr);
       setGroomers(Array.isArray(grs) ? grs : []);
+
+      if (arr.length > 0) {
+        const maxId = Math.max(...arr.map((a: any) => a.id));
+        const lastViewed = Number(localStorage.getItem('last_viewed_appointment_id') || 0);
+        if (maxId > lastViewed) {
+          localStorage.setItem('last_viewed_appointment_id', maxId.toString());
+          window.dispatchEvent(new Event('clear-unread-badge'));
+        }
+      }
     } catch {
       setAppointments([]);
     } finally {
