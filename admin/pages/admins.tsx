@@ -1,16 +1,16 @@
 import { useEffect, useState } from 'react';
 import AdminLayout from '@/components/AdminLayout';
+import { useAdminLang } from '../hooks/useAdminLang';
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
 export default function AdminsPage() {
   const [admins, setAdmins] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [newAdmin, setNewAdmin] = useState({ name: '', email: '', password: '' });
   const [creating, setCreating] = useState(false);
   const [userRole, setUserRole] = useState('');
+  const { t } = useAdminLang();
 
   useEffect(() => {
     const userStr = localStorage.getItem('admin_user');
@@ -43,20 +43,18 @@ export default function AdminsPage() {
     if (userRole === 'developer') fetchAdmins();
   }, [userRole]);
 
-  const handleCreate = async () => {
-    if (!name || !email || !password) return;
+  const handleAddAdmin = async () => {
+    if (!newAdmin.name || !newAdmin.email || !newAdmin.password) return;
     setCreating(true);
     const token = localStorage.getItem('admin_token');
     try {
       const res = await fetch(`${API}/admins`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify(newAdmin),
       });
       if (res.ok) {
-        setName('');
-        setEmail('');
-        setPassword('');
+        setNewAdmin({ name: '', email: '', password: '' });
         fetchAdmins();
       } else {
         const data = await res.json();
@@ -69,7 +67,7 @@ export default function AdminsPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Ви впевнені, що хочете видалити цього адміністратора?')) return;
+    if (!confirm(t.admins.deleteConfirm)) return;
     const token = localStorage.getItem('admin_token');
     try {
       const res = await fetch(`${API}/admins/${id}`, {
@@ -82,89 +80,93 @@ export default function AdminsPage() {
         const data = await res.json();
         alert(data.error);
       }
-    } catch (e) {
-      alert('Error deleting admin');
+    } catch (err) {
+      console.error(err);
     }
   };
 
   if (userRole !== 'developer') return <AdminLayout><div className="p-6">Access denied</div></AdminLayout>;
 
   return (
-    <AdminLayout title="Адміністратори">
-      <div className="p-6 max-w-4xl mx-auto space-y-6">
+    <AdminLayout title={t.admins.title}>
+      <div className="max-w-5xl mx-auto space-y-8 p-6">
         <div className="flex items-center justify-between">
-          <h2 className="font-display text-2xl font-bold text-on-surface">Керування адміністраторами</h2>
+          <h2 className="font-display text-2xl font-bold text-on-surface">{t.admins.manageTitle}</h2>
         </div>
 
-        <div className="bg-surface-container-lowest rounded-3xl p-6 border border-outline-variant shadow-sm space-y-4">
-          <h3 className="font-sans font-semibold text-lg text-on-surface">Додати нового адміністратора</h3>
-          <div className="flex flex-col md:flex-row gap-4">
-            <input 
-              type="text" 
-              placeholder="Ім'я" 
-              value={name} 
-              onChange={e => setName(e.target.value)} 
-              className="flex-1 bg-surface border border-outline rounded-xl px-4 py-2"
-            />
-            <input 
-              type="email" 
-              placeholder="Email" 
-              value={email} 
-              onChange={e => setEmail(e.target.value)} 
-              className="flex-1 bg-surface border border-outline rounded-xl px-4 py-2"
-            />
-            <input 
-              type="password" 
-              placeholder="Пароль" 
-              value={password} 
-              onChange={e => setPassword(e.target.value)} 
-              className="flex-1 bg-surface border border-outline rounded-xl px-4 py-2"
-            />
-            <button 
-              onClick={handleCreate} 
-              disabled={creating || !name || !email || !password}
-              className="bg-primary text-on-primary px-6 py-2 rounded-xl font-semibold disabled:opacity-50"
-            >
-              Створити
+        <div className="bg-surface p-6 rounded-3xl border border-outline-variant shadow-sm space-y-4">
+          <h3 className="font-sans font-semibold text-lg text-on-surface">{t.admins.addTitle}</h3>
+          <div className="flex flex-wrap gap-4 items-end">
+            <div className="flex-1 min-w-[200px]">
+              <input 
+                type="text" 
+                placeholder={t.admins.namePlaceholder} 
+                value={newAdmin.name} 
+                onChange={e => setNewAdmin({...newAdmin, name: e.target.value})}
+                className="w-full bg-surface border border-outline rounded-xl px-4 py-2"
+              />
+            </div>
+            <div className="flex-1 min-w-[200px]">
+              <input 
+                type="email" 
+                placeholder={t.admins.emailPlaceholder} 
+                value={newAdmin.email} 
+                onChange={e => setNewAdmin({...newAdmin, email: e.target.value})}
+                className="w-full bg-surface border border-outline rounded-xl px-4 py-2"
+              />
+            </div>
+            <div className="flex-1 min-w-[200px]">
+              <input 
+                type="password" 
+                placeholder={t.admins.passwordPlaceholder} 
+                value={newAdmin.password} 
+                onChange={e => setNewAdmin({...newAdmin, password: e.target.value})}
+                className="w-full bg-surface border border-outline rounded-xl px-4 py-2"
+              />
+            </div>
+            <button onClick={handleAddAdmin} className="bg-primary text-on-primary px-6 py-2 rounded-xl font-semibold hover:bg-primary/90 transition-colors">
+              {t.admins.createBtn}
             </button>
           </div>
         </div>
 
-        <div className="bg-surface-container-lowest rounded-3xl border border-outline-variant overflow-hidden">
-          <table className="w-full text-left font-sans">
+        <div className="bg-surface rounded-3xl border border-outline-variant shadow-sm overflow-hidden">
+          <table className="w-full text-left border-collapse">
             <thead className="bg-surface-container-low border-b border-outline-variant">
               <tr>
-                <th className="px-6 py-4 font-semibold text-on-surface-variant">Ім'я</th>
-                <th className="px-6 py-4 font-semibold text-on-surface-variant">Email</th>
-                <th className="px-6 py-4 font-semibold text-on-surface-variant">Роль</th>
-                <th className="px-6 py-4 font-semibold text-on-surface-variant text-right">Дії</th>
+                <th className="px-6 py-4 font-semibold text-on-surface-variant">{t.admins.tableHeaders[0]}</th>
+                <th className="px-6 py-4 font-semibold text-on-surface-variant">{t.admins.tableHeaders[1]}</th>
+                <th className="px-6 py-4 font-semibold text-on-surface-variant">{t.admins.tableHeaders[2]}</th>
+                <th className="px-6 py-4 font-semibold text-on-surface-variant text-right">{t.admins.tableHeaders[3]}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-outline-variant">
+            <tbody>
               {loading ? (
-                <tr><td colSpan={4} className="p-6 text-center text-on-surface-variant">Завантаження...</td></tr>
-              ) : admins.map(a => (
-                <tr key={a.id} className="hover:bg-surface-container-low/50">
-                  <td className="px-6 py-4">{a.name}</td>
-                  <td className="px-6 py-4">{a.email}</td>
-                  <td className="px-6 py-4">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${a.role === 'developer' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
-                      {a.role}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    {a.role !== 'developer' && (
-                      <button 
-                        onClick={() => handleDelete(a.id)}
-                        className="text-red-500 hover:text-red-700 p-2"
-                        title="Видалити"
-                      >
-                        <span className="material-symbols-outlined">delete</span>
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
+                <tr><td colSpan={4} className="p-6 text-center text-on-surface-variant">{t.loading}</td></tr>
+              ) : (
+                admins.map(admin => (
+                  <tr key={admin.id} className="border-b border-outline-variant last:border-0 hover:bg-surface-container-lowest transition-colors">
+                    <td className="px-6 py-4 font-sans text-on-surface">{admin.name}</td>
+                    <td className="px-6 py-4 font-sans text-on-surface-variant">{admin.email}</td>
+                    <td className="px-6 py-4">
+                      <span className="bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full text-xs font-semibold">
+                        {admin.role}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      {admin.role !== 'developer' && (
+                        <button 
+                          onClick={() => handleDelete(admin.id)}
+                          className="p-2 text-error hover:bg-error-container hover:text-on-error-container rounded-full transition-colors"
+                          title={t.delete}
+                        >
+                          <span className="material-symbols-outlined">delete</span>
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

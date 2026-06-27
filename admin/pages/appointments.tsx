@@ -87,7 +87,7 @@ function AppointmentDetailModal({
             )}
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={downloadICS} className="p-2 flex items-center gap-1 rounded-full hover:bg-surface-container text-on-surface-variant transition-colors" title="Додати в календар (.ics)">
+            <button onClick={downloadICS} className="p-2 flex items-center gap-1 rounded-full hover:bg-surface-container text-on-surface-variant transition-colors" title={t.addToCalendar}>
               <span className="material-symbols-outlined text-[20px]">calendar_add_on</span>
             </button>
             {userRole !== 'groomer' && !isEditing ? (

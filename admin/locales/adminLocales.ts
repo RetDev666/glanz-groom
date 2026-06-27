@@ -19,6 +19,7 @@ const de = {
   upload: 'Hochladen',
   uploading: 'Wird hochgeladen...',
   remove: 'Entfernen',
+  addToCalendar: 'Zum Kalender hinzufügen (.ics)',
 
   // Status labels
   status: {
@@ -40,7 +41,33 @@ const de = {
     groomers: 'Groomer',
     offers: 'Aktionen',
     settings: 'Einstellungen',
+    admins: 'Administratoren',
+    system: 'Systemprotokoll',
     logout: 'Abmelden',
+  },
+
+  // Admins
+  admins: {
+    title: 'Administratoren',
+    manageTitle: 'Administratoren verwalten',
+    addTitle: 'Neuen Administrator hinzufügen',
+    namePlaceholder: 'Name',
+    emailPlaceholder: 'E-Mail',
+    passwordPlaceholder: 'Passwort',
+    roleLabel: 'Rolle',
+    createBtn: 'Erstellen',
+    tableHeaders: ['Name', 'E-Mail', 'Rolle', 'Aktionen'],
+    deleteConfirm: 'Möchten Sie diesen Administrator wirklich löschen?',
+  },
+
+  // System
+  system: {
+    title: 'Systemprotokoll',
+    description: 'Verlauf der Aktionen von Administratoren und Groomern.',
+    tableHeaders: ['Datum / Zeit', 'Benutzer', 'Aktion', 'Details'],
+    noLogs: 'Keine Protokolle gefunden',
+    autoCreated: 'Systemkonto (automatisch erstellt)',
+    downloadBackup: 'Datenbank-Backup herunterladen (dev.db)',
   },
 
   // Login
@@ -261,6 +288,7 @@ const en: typeof de = {
   upload: 'Upload',
   uploading: 'Uploading...',
   remove: 'Remove',
+  addToCalendar: 'Add to calendar (.ics)',
 
   status: {
     pending: 'Pending',
@@ -280,7 +308,31 @@ const en: typeof de = {
     groomers: 'Groomers',
     offers: 'Offers',
     settings: 'Settings',
+    admins: 'Administrators',
+    system: 'System Log',
     logout: 'Log Out',
+  },
+
+  admins: {
+    title: 'Administrators',
+    manageTitle: 'Manage Administrators',
+    addTitle: 'Add New Administrator',
+    namePlaceholder: 'Name',
+    emailPlaceholder: 'Email',
+    passwordPlaceholder: 'Password',
+    roleLabel: 'Role',
+    createBtn: 'Create',
+    tableHeaders: ['Name', 'Email', 'Role', 'Actions'],
+    deleteConfirm: 'Are you sure you want to delete this administrator?',
+  },
+
+  system: {
+    title: 'System Log',
+    description: 'History of actions performed by administrators and groomers.',
+    tableHeaders: ['Date / Time', 'User', 'Action', 'Details'],
+    noLogs: 'No logs found',
+    autoCreated: 'System account (auto-created)',
+    downloadBackup: 'Download database backup (dev.db)',
   },
 
   login: {
@@ -492,6 +544,7 @@ const ru: typeof de = {
   upload: 'Загрузить',
   uploading: 'Загрузка...',
   remove: 'Удалить',
+  addToCalendar: 'Добавить в календарь (.ics)',
 
   status: {
     pending: 'Ожидает',
@@ -511,7 +564,31 @@ const ru: typeof de = {
     groomers: 'Грумеры',
     offers: 'Акции',
     settings: 'Настройки',
+    admins: 'Администраторы',
+    system: 'Системный лог',
     logout: 'Выйти',
+  },
+
+  admins: {
+    title: 'Администраторы',
+    manageTitle: 'Управление администраторами',
+    addTitle: 'Добавить нового администратора',
+    namePlaceholder: 'Имя',
+    emailPlaceholder: 'Email',
+    passwordPlaceholder: 'Пароль',
+    roleLabel: 'Роль',
+    createBtn: 'Создать',
+    tableHeaders: ['Имя', 'Email', 'Роль', 'Действия'],
+    deleteConfirm: 'Вы уверены, что хотите удалить этого администратора?',
+  },
+
+  system: {
+    title: 'Системный лог',
+    description: 'История действий администраторов и грумеров.',
+    tableHeaders: ['Дата / Время', 'Пользователь', 'Действие', 'Детали'],
+    noLogs: 'Логи не найдены',
+    autoCreated: 'Системный аккаунт (создан автоматически)',
+    downloadBackup: 'Скачать бэкап базы (dev.db)',
   },
 
   login: {

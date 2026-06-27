@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import AdminLayout from '@/components/AdminLayout';
+import { useAdminLang } from '../hooks/useAdminLang';
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
@@ -7,6 +8,7 @@ export default function SystemPage() {
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState('');
+  const { t } = useAdminLang();
 
   useEffect(() => {
     const userStr = localStorage.getItem('admin_user');
@@ -70,49 +72,46 @@ export default function SystemPage() {
             className="bg-surface-container border border-outline px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-surface-container-high transition-colors"
           >
             <span className="material-symbols-outlined">download</span>
-            Стягнути бекап бази (dev.db)
+            {t.system.downloadBackup}
           </button>
         </div>
+        <p className="text-on-surface-variant font-sans">{t.system.description}</p>
 
-        <div className="bg-surface-container-lowest rounded-3xl border border-outline-variant overflow-hidden">
-          <div className="p-6 border-b border-outline-variant">
-            <h3 className="font-sans font-semibold text-lg text-on-surface">Audit Trail (Логи активності)</h3>
-            <p className="text-sm text-on-surface-variant">Останні 100 дій в системі</p>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left font-sans">
-              <thead className="bg-surface-container-low border-b border-outline-variant text-sm">
-                <tr>
-                  <th className="px-6 py-3 font-semibold text-on-surface-variant whitespace-nowrap">Дата</th>
-                  <th className="px-6 py-3 font-semibold text-on-surface-variant whitespace-nowrap">Користувач</th>
-                  <th className="px-6 py-3 font-semibold text-on-surface-variant whitespace-nowrap">Дія</th>
-                  <th className="px-6 py-3 font-semibold text-on-surface-variant w-full">Деталі</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-outline-variant text-sm">
-                {loading ? (
-                  <tr><td colSpan={4} className="p-6 text-center text-on-surface-variant">Завантаження...</td></tr>
-                ) : logs.length === 0 ? (
-                  <tr><td colSpan={4} className="p-6 text-center text-on-surface-variant">Логів поки немає</td></tr>
-                ) : logs.map(l => (
-                  <tr key={l.id} className="hover:bg-surface-container-low/50 transition-colors">
-                    <td className="px-6 py-3 whitespace-nowrap text-on-surface-variant">
-                      {new Date(l.createdAt).toLocaleString('uk-UA', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+        <div className="bg-surface rounded-3xl border border-outline-variant shadow-sm overflow-hidden">
+          <table className="w-full text-left border-collapse">
+            <thead className="bg-surface-container-low border-b border-outline-variant">
+              <tr>
+                <th className="px-6 py-4 font-semibold text-on-surface-variant">{t.system.tableHeaders[0]}</th>
+                <th className="px-6 py-4 font-semibold text-on-surface-variant">{t.system.tableHeaders[1]}</th>
+                <th className="px-6 py-4 font-semibold text-on-surface-variant">{t.system.tableHeaders[2]}</th>
+                <th className="px-6 py-4 font-semibold text-on-surface-variant">{t.system.tableHeaders[3]}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan={4} className="p-6 text-center text-on-surface-variant">{t.loading}</td></tr>
+              ) : logs.length === 0 ? (
+                <tr><td colSpan={4} className="p-6 text-center text-on-surface-variant">{t.system.noLogs}</td></tr>
+              ) : (
+                logs.map(log => (
+                  <tr key={log.id} className="border-b border-outline-variant last:border-0 hover:bg-surface-container-lowest transition-colors">
+                    <td className="px-6 py-4 font-sans text-on-surface whitespace-nowrap">
+                      {new Date(log.createdAt).toLocaleString('de-DE')}
                     </td>
-                    <td className="px-6 py-3 whitespace-nowrap">
-                      {l.userEmail || <span className="text-on-surface-variant italic">Невідомо</span>}
+                    <td className="px-6 py-4 font-sans text-on-surface-variant">
+                      {log.userEmail || t.system.autoCreated}
                     </td>
-                    <td className="px-6 py-3 whitespace-nowrap font-mono text-xs">
-                      <span className="bg-surface-container px-2 py-1 rounded">{l.action}</span>
+                    <td className="px-6 py-4 font-sans font-medium text-on-surface">
+                      {log.action}
                     </td>
-                    <td className="px-6 py-3 text-on-surface-variant">
-                      {l.details || '-'}
+                    <td className="px-6 py-4 font-sans text-on-surface-variant max-w-xs truncate" title={log.details}>
+                      {log.details || '—'}
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </AdminLayout>
