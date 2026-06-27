@@ -17,7 +17,7 @@ const DEFAULT_SETTINGS: SalonSettings = {
   address: 'Musterstraße 12, 10115 Berlin',
   phone: '+49 30 1234567',
   email: 'info@glanzgroom.de',
-  openingHours: 'Mo–Fr: 09:00–18:00, Sa: 09:00–15:00',
+  openingHours: 'Mo–Fr: 10:00–18:00, Sa: 10:00–15:00',
   instagram: 'https://instagram.com/glanzgroom',
   facebook: '',
 };
@@ -139,7 +139,7 @@ export default function SettingsPage() {
               { label: t.settings.fields.address, key: 'address', placeholder: 'Musterstraße 12, 10115 Berlin', icon: 'location_on' },
               { label: t.settings.fields.phone, key: 'phone', placeholder: '+49 30 1234567', icon: 'phone' },
               { label: t.settings.fields.email, key: 'email', placeholder: 'info@glanzgroom.de', icon: 'mail' },
-              { label: t.settings.fields.openingHours, key: 'openingHours', placeholder: 'Mo–Fr: 09:00–18:00', icon: 'schedule' },
+              { label: t.settings.fields.openingHours, key: 'openingHours', placeholder: 'Mo–Fr: 10:00–18:00', icon: 'schedule' },
               { label: 'Instagram', key: 'instagram', placeholder: 'https://instagram.com/...', icon: 'photo_camera' },
               { label: 'Facebook', key: 'facebook', placeholder: 'https://facebook.com/...', icon: 'thumb_up' },
             ].map(field => (

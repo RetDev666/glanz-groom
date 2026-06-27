@@ -143,7 +143,7 @@ const SIZE_DURATION_KEY: Record<string, keyof Service> = {
   xs: 'durationXs', s: 'durationS', m: 'durationM', l: 'durationL', xl: 'durationXl'
 };
 
-const AVAILABLE_TIMES = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'];
+const AVAILABLE_TIMES = ['10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'];
 
 export async function getServerSideProps({ res }: any) {
   res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
@@ -319,7 +319,7 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
     };
 
     const generatedTimes: string[] = [];
-    const startOfDay = 9 * 60; // 09:00
+    const startOfDay = 10 * 60; // 10:00
     const endOfDay = 18 * 60; // 18:00
 
     for (let mins = startOfDay; mins <= endOfDay - totalDuration; mins += 15) {

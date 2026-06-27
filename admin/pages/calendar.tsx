@@ -5,7 +5,7 @@ import { useAdminLang } from '../hooks/useAdminLang';
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
-const HOURS = Array.from({ length: 11 }, (_, i) => `${i + 9}:00`);
+const HOURS = Array.from({ length: 9 }, (_, i) => `${i + 10}:00`);
 const STATUS_COLORS: Record<string, string> = {
   pending: 'bg-amber-100 border-amber-300 text-amber-900',
   confirmed: 'bg-blue-100 border-blue-300 text-blue-900',
@@ -506,7 +506,7 @@ function BlockTimeModal({
 }) {
   const [form, setForm] = useState({
     groomerId: String(groomers[0]?.id || ''),
-    startTime: '09:00',
+    startTime: '10:00',
     endTime: '18:00',
     notes: 'Blockiert'
   });
@@ -702,9 +702,9 @@ export default function CalendarPage() {
     const rect = e.currentTarget.getBoundingClientRect();
     const y = e.clientY - rect.top - offsetY;
 
-    const totalHours = (y / 80) + 9;
-    let hours = Math.floor(Math.max(9, totalHours));
-    let minutes = Math.round((Math.max(9, totalHours) - hours) * 60);
+    const totalHours = (y / 80) + 10;
+    let hours = Math.floor(Math.max(10, totalHours));
+    let minutes = Math.round((Math.max(10, totalHours) - hours) * 60);
 
     minutes = Math.round(minutes / 15) * 15;
     if (minutes === 60) { hours += 1; minutes = 0; }
@@ -723,7 +723,7 @@ export default function CalendarPage() {
 
   const getTopPosition = (date: string) => {
     const d = new Date(date);
-    return ((d.getHours() - 9) + d.getMinutes() / 60) * 80;
+    return ((d.getHours() - 10) + d.getMinutes() / 60) * 80;
   };
 
   const handleBlockDay = () => {
