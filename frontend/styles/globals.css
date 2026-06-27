@@ -6,8 +6,8 @@
 @tailwind utilities;
 
 :root {
-  --primary: #ae2f34;
-  --secondary: #785900;
+  --primary: #f56a6a;
+  --secondary: #42b5a9;
 }
 
 * {
@@ -45,7 +45,7 @@ h1, h2, h3, h4, h5 {
   height: 6px;
 }
 ::-webkit-scrollbar-track { background: #f1f1f1; }
-::-webkit-scrollbar-thumb { background: #ae2f34; border-radius: 9999px; }
+::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 9999px; }
 
 /* Hide scrollbar utility */
 .hide-scrollbar::-webkit-scrollbar { display: none; }

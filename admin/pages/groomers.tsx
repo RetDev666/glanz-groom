@@ -5,7 +5,7 @@ import { useAdminLang } from '../hooks/useAdminLang';
 const API = process.env.NEXT_PUBLIC_API_URL;
 
 const PRESET_COLORS = [
-  '#ae2f34', '#785900', '#506073', '#1a6b3c', '#5c3785',
+  '#f56a6a', '#42b5a9', '#ffc627', '#1a6b3c', '#5c3785',
   '#b35c00', '#1565c0', '#2e7d32', '#6a1b9a', '#c62828',
 ];
 
@@ -23,7 +23,7 @@ function GroomerModal({
   const { t } = useAdminLang();
   const [name, setName] = useState(String(groomer?.name || ''));
   const [role, setRole] = useState(String(groomer?.role || ''));
-  const [color, setColor] = useState(String(groomer?.color || '#ae2f34'));
+  const [color, setColor] = useState(String(groomer?.color || '#f56a6a'));
   const [photoUrl, setPhotoUrl] = useState(String(groomer?.photoUrl || ''));
   const [photoPreview, setPhotoPreview] = useState(String(groomer?.photoUrl || ''));
   const [uploading, setUploading] = useState(false);
@@ -280,7 +280,7 @@ export default function GroomersPage() {
                   ) : (
                     <div
                       className="w-14 h-14 rounded-full flex items-center justify-center font-display font-bold text-white text-xl shadow-md shrink-0"
-                      style={{ backgroundColor: String(g.color || '#ae2f34') }}
+                      style={{ backgroundColor: String(g.color || '#f56a6a') }}
                     >
                       {String(g.name).charAt(0)}
                     </div>

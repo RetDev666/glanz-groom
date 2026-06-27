@@ -27,7 +27,7 @@ router.post('/', requireAuth, async (req: AuthRequest, res: Response) => {
   }
   try {
     const groomer = await prisma.groomer.create({
-      data: { name, role, color: color || '#ae2f34', photoUrl: photoUrl || null, isActive: true },
+      data: { name, role, color: color || '#f56a6a', photoUrl: photoUrl || null, isActive: true },
     });
     res.status(201).json(groomer);
   } catch (err) {

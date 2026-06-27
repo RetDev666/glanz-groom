@@ -61,7 +61,7 @@ CREATE TABLE "Groomer" (
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     "name" TEXT NOT NULL,
     "role" TEXT NOT NULL,
-    "color" TEXT NOT NULL DEFAULT '#ae2f34',
+    "color" TEXT NOT NULL DEFAULT '#f56a6a',
     "photoUrl" TEXT,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP

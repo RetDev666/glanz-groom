@@ -47,9 +47,9 @@ export default function AboutPage({ initialGroomers, initialSettings }: { initia
 
   // Fallback static team if API returns nothing
   const fallbackTeam = [
-    { name: t.about.team[1].name, role: t.about.team[1].role, initials: 'SJ', color: '#ae2f34', photoUrl: null },
-    { name: t.about.team[2].name, role: t.about.team[2].role, initials: 'DC', color: '#785900', photoUrl: null },
-    { name: t.about.team[3].name, role: t.about.team[3].role, initials: 'ER', color: '#506073', photoUrl: null },
+    { name: t.about.team[1].name, role: t.about.team[1].role, initials: 'SJ', color: '#f56a6a', photoUrl: null },
+    { name: t.about.team[2].name, role: t.about.team[2].role, initials: 'DC', color: '#42b5a9', photoUrl: null },
+    { name: t.about.team[3].name, role: t.about.team[3].role, initials: 'ER', color: '#ffc627', photoUrl: null },
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -128,7 +128,7 @@ export default function AboutPage({ initialGroomers, initialSettings }: { initia
                 ) : (
                   <div
                     className="w-20 h-20 mx-auto rounded-full flex items-center justify-center font-display text-2xl font-bold mb-4 text-white shadow-md"
-                    style={{ backgroundColor: member.color || '#ae2f34' }}
+                    style={{ backgroundColor: member.color || '#f56a6a' }}
                   >
                     {member.name.charAt(0)}
                   </div>

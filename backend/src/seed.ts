@@ -16,9 +16,9 @@ async function main() {
 
   // Groomers
   const groomers = [
-    { name: 'Олена Р.', role: 'Старший грумер', color: '#ae2f34' },
-    { name: 'Марк Д.', role: 'Купальник & Підготовка', color: '#785900' },
-    { name: 'Сара К.', role: 'Стиліст', color: '#506073' },
+    { name: 'Олена Р.', role: 'Старший грумер', color: '#f56a6a' },
+    { name: 'Марк Д.', role: 'Купальник & Підготовка', color: '#42b5a9' },
+    { name: 'Сара К.', role: 'Стиліст', color: '#ffc627' },
   ];
   for (const g of groomers) {
     await prisma.groomer.upsert({
