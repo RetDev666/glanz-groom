@@ -706,7 +706,7 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
                       key={size}
                       onClick={() => {
                         const newPets = [...booking.pets];
-                        newPets[petIndex] = { ...pet, petSize: size };
+                        newPets[petIndex] = { ...pet, petSize: size, selectedServices: [] };
                         setBooking({ ...booking, pets: newPets });
                       }}
                       className={`flex-1 py-2 px-3 rounded-xl font-sans text-label-sm transition-all ${
@@ -732,6 +732,7 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
                     const selected = pet.selectedServices.includes(svc.id);
                     const p = svc[SIZE_PRICE_KEY[pet.petSize] as keyof Service];
                     const d = svc[SIZE_DURATION_KEY[pet.petSize] as keyof Service];
+                    if (Number(p) === 0) return null;
                     return (
                       <label key={svc.id} className="relative block cursor-pointer">
                         <input type="radio" name={`package-${pet.id}`} className="sr-only" checked={selected} onChange={() => toggleService(petIndex, svc.id, true)} />
@@ -771,6 +772,7 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
                     const selected = pet.selectedServices.includes(svc.id);
                     const p = svc[SIZE_PRICE_KEY[pet.petSize] as keyof Service];
                     const d = svc[SIZE_DURATION_KEY[pet.petSize] as keyof Service];
+                    if (Number(p) === 0) return null;
                     return (
                       <label key={svc.id} className="relative block cursor-pointer">
                         <input type="checkbox" className="sr-only" checked={selected} onChange={() => toggleService(petIndex, svc.id, false)} />
