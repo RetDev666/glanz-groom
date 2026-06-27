@@ -113,22 +113,26 @@ interface Service {
   category: string; 
 }
 interface Groomer { id: number; name: string; role: string; color: string; photoUrl?: string | null; }
-interface BookingState {
-  selectedServices: number[];
+interface PetBooking {
+  id: string;
   petSize: 'xs' | 's' | 'm' | 'l' | 'xl';
+  selectedServices: number[];
+  petName: string;
+  petBreed: string;
+  photoFile: File | null;
+  photoPreview: string | null;
+}
+
+interface BookingState {
+  pets: PetBooking[];
   groomerId: number | null;
   date: string;
   time: string;
-  // Client info
   firstName: string;
   lastName: string;
   email: string;
   phone: string;
-  petName: string;
-  petBreed: string;
   notes: string;
-  photoFile: File | null;
-  photoPreview: string | null;
   acceptTerms: boolean;
 }
 
@@ -185,8 +189,15 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
   };
 
   const [booking, setBooking] = useState<BookingState>({
-    selectedServices: [],
-    petSize: 'm', // default
+    pets: [{
+      id: '1',
+      petSize: 'm',
+      selectedServices: [],
+      petName: '',
+      petBreed: '',
+      photoFile: null,
+      photoPreview: null,
+    }],
     groomerId: null,
     date: '',
     time: '',
@@ -194,11 +205,7 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
     lastName: '',
     email: '',
     phone: '',
-    petName: '',
-    petBreed: '',
     notes: '',
-    photoFile: null,
-    photoPreview: null,
     acceptTerms: false,
   });
 
@@ -235,7 +242,7 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
     if (router.query.size) {
       const s = router.query.size as string;
       if (['xs', 's', 'm', 'l', 'xl'].includes(s)) {
-        setBooking(b => ({ ...b, petSize: s as any }));
+        setBooking(b => ({ ...b, pets: [{ ...b.pets[0], petSize: s as any }] }));
       }
     }
     if (router.query.services) {
@@ -245,7 +252,7 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
         .map(s => s.id);
       
       if (matchingIds.length > 0) {
-        setBooking(b => ({ ...b, selectedServices: matchingIds }));
+        setBooking(b => ({ ...b, pets: [{ ...b.pets[0], selectedServices: matchingIds }] }));
       }
     }
   }, [router.query.size, router.query.services, initialServices, initialGroomers, initialSettings]);
@@ -267,19 +274,21 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
 
   const packages = services.filter(s => s.category === 'package');
   const addons = services.filter(s => s.category === 'addon');
-  const priceKey = SIZE_PRICE_KEY[booking.petSize];
+  const totalPrice = booking.pets.reduce((sum, pet) => {
+    const priceKey = SIZE_PRICE_KEY[pet.petSize];
+    return sum + pet.selectedServices
+      .map(id => services.find(s => s.id === id))
+      .filter(Boolean)
+      .reduce((sSum, s) => sSum + (Number(s![priceKey]) || 0), 0);
+  }, 0);
 
-  const durationKey = SIZE_DURATION_KEY[booking.petSize];
-
-  const totalPrice = booking.selectedServices
-    .map(id => services.find(s => s.id === id))
-    .filter(Boolean)
-    .reduce((sum, s) => sum + (Number(s![priceKey]) || 0), 0);
-
-  const totalDuration = booking.selectedServices
-    .map(id => services.find(s => s.id === id))
-    .filter(Boolean)
-    .reduce((sum, s) => sum + (Number(s![durationKey]) || 0), 0);
+  const totalDuration = booking.pets.reduce((sum, pet) => {
+    const durationKey = SIZE_DURATION_KEY[pet.petSize];
+    return sum + pet.selectedServices
+      .map(id => services.find(s => s.id === id))
+      .filter(Boolean)
+      .reduce((sSum, s) => sSum + (Number(s![durationKey]) || 0), 0);
+  }, 0);
 
   const getAvailableTimes = () => {
     if (!booking.date) return [];
@@ -322,22 +331,51 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
     });
   };
 
-  const toggleService = (id: number, isPackage: boolean) => {
-    if (isPackage) {
-      const packageIds = packages.map(p => p.id);
-      const other = booking.selectedServices.filter(sid => !packageIds.includes(sid));
-      setBooking(b => ({ ...b, selectedServices: booking.selectedServices.includes(id) ? other : [...other, id] }));
-    } else {
-      setBooking(b => ({
-        ...b,
-        selectedServices: b.selectedServices.includes(id)
-          ? b.selectedServices.filter(sid => sid !== id)
-          : [...b.selectedServices, id],
-      }));
-    }
+  const toggleService = (petIndex: number, id: number, isPackage: boolean) => {
+    setBooking(b => {
+      const newPets = [...b.pets];
+      const pet = { ...newPets[petIndex] };
+      if (isPackage) {
+        const packageIds = packages.map(p => p.id);
+        const other = pet.selectedServices.filter(sid => !packageIds.includes(sid));
+        pet.selectedServices = pet.selectedServices.includes(id) ? other : [...other, id];
+      } else {
+        if (pet.selectedServices.includes(id)) {
+          pet.selectedServices = pet.selectedServices.filter(x => x !== id);
+        } else {
+          pet.selectedServices = [...pet.selectedServices, id];
+        }
+      }
+      newPets[petIndex] = pet;
+      return { ...b, pets: newPets };
+    });
   };
 
-  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const addPet = () => {
+    setBooking(b => ({
+      ...b,
+      pets: [...b.pets, {
+        id: Date.now().toString(),
+        petSize: 'm',
+        selectedServices: [],
+        petName: '',
+        petBreed: '',
+        photoFile: null,
+        photoPreview: null
+      }]
+    }));
+  };
+
+  const removePet = (petIndex: number) => {
+    if (booking.pets.length <= 1) return;
+    setBooking(b => {
+      const newPets = [...b.pets];
+      newPets.splice(petIndex, 1);
+      return { ...b, pets: newPets };
+    });
+  };
+
+  const handlePhotoChange = async (petIndex: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
@@ -346,7 +384,11 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
       }
       const reader = new FileReader();
       reader.onloadend = () => {
-        setBooking(b => ({ ...b, photoFile: file, photoPreview: reader.result as string }));
+        setBooking(b => {
+          const newPets = [...b.pets];
+          newPets[petIndex] = { ...newPets[petIndex], photoFile: file, photoPreview: reader.result as string };
+          return { ...b, pets: newPets };
+        });
         setError('');
       };
       reader.readAsDataURL(file);
@@ -354,10 +396,10 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
   };
 
   const canNext = () => {
-    if (step === 0) return booking.selectedServices.length > 0;
+    if (step === 0) return booking.pets.every(p => p.selectedServices.length > 0);
     if (step === 1) return booking.groomerId !== null;
     if (step === 2) return booking.date && booking.time;
-    if (step === 3) return booking.firstName && booking.email && booking.phone && booking.petName && booking.acceptTerms;
+    if (step === 3) return booking.firstName && booking.email && booking.phone && booking.pets.every(p => p.petName) && booking.acceptTerms;
     return false;
   };
 
@@ -367,52 +409,68 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
       
-      let petPhotoUrl = null;
-      if (booking.photoFile) {
-        const formData = new FormData();
-        formData.append('photo', booking.photoFile);
-        const uploadRes = await fetch(`${apiUrl}/upload/pet-photo`, {
-          method: 'POST',
-          body: formData,
-        });
-        if (uploadRes.ok) {
-          const uploadData = await uploadRes.json();
-          petPhotoUrl = uploadData.url;
-        } else {
-          const errData = await uploadRes.json();
-          setError(errData.error || t.book.step3.uploadError);
-          setLoading(false);
-          return;
-        }
-      }
-
       const dateTime = new Date(`${booking.date}T${booking.time}:00`);
-      const res = await fetch(`${apiUrl}/appointments`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          clientFirstName: booking.firstName,
-          clientLastName: booking.lastName,
-          clientEmail: booking.email,
-          clientPhone: booking.phone,
-          petName: booking.petName,
-          petBreed: booking.petBreed,
-          petSize: booking.petSize,
-          serviceIds: booking.selectedServices,
-          groomerId: booking.groomerId,
-          date: dateTime.toISOString(),
-          notes: booking.notes,
-          petPhotoUrl: petPhotoUrl,
-        }),
-      });
-      if (res.ok) {
-        setSubmitted(true);
-      } else {
-        const data = await res.json();
-        setError(data.error || t.book.step3.submitError);
+      let currentDateTime = dateTime;
+
+      for (const pet of booking.pets) {
+        let petPhotoUrl = null;
+        if (pet.photoFile) {
+          const formData = new FormData();
+          formData.append('photo', pet.photoFile);
+          const uploadRes = await fetch(`${apiUrl}/upload/pet-photo`, {
+            method: 'POST',
+            body: formData,
+          });
+          if (uploadRes.ok) {
+            petPhotoUrl = (await uploadRes.json()).url;
+          }
+        }
+
+        const durationKey = SIZE_DURATION_KEY[pet.petSize];
+        const petDuration = pet.selectedServices
+          .map(id => services.find(s => s.id === id))
+          .filter(Boolean)
+          .reduce((sum, s) => sum + (Number(s![durationKey]) || 0), 0);
+        
+        const priceKey = SIZE_PRICE_KEY[pet.petSize];
+        const petPrice = pet.selectedServices
+          .map(id => services.find(s => s.id === id))
+          .filter(Boolean)
+          .reduce((sum, s) => sum + (Number(s![priceKey]) || 0), 0);
+
+        const res = await fetch(`${apiUrl}/appointments`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            clientFirstName: booking.firstName,
+            clientLastName: booking.lastName,
+            clientEmail: booking.email,
+            clientPhone: booking.phone,
+            petName: pet.petName,
+            petBreed: pet.petBreed,
+            petSize: pet.petSize,
+            petPhotoUrl,
+            notes: booking.notes,
+            groomerId: booking.groomerId,
+            date: currentDateTime.toISOString(),
+            serviceIds: pet.selectedServices,
+            duration: petDuration,
+            totalPrice: petPrice
+          })
+        });
+
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.error || 'Fehler beim Erstellen');
+        }
+
+        currentDateTime = new Date(currentDateTime.getTime() + petDuration * 60000);
       }
-    } catch {
-      setError(t.book.step3.connError);
+      
+      setSubmitted(true);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || t.book.step3.submitError);
     } finally {
       setLoading(false);
     }
@@ -426,11 +484,15 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
       return d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
     };
 
-    const serviceNames = booking.selectedServices
-      .map(id => services.find(s => s.id === id))
-      .filter(Boolean)
-      .map(s => locale === 'en' && s?.nameEn ? s.nameEn : s?.name)
-      .join(', ');
+    const serviceNames = booking.pets.map(pet => 
+      pet.selectedServices
+        .map(id => services.find(s => s.id === id))
+        .filter(Boolean)
+        .map(s => locale === 'en' && s?.nameEn ? s.nameEn : s?.name)
+        .join(', ')
+    ).join(' | ');
+
+    const petNames = booking.pets.map(p => p.petName).join(', ');
 
     const icsContent = [
       'BEGIN:VCALENDAR',
@@ -441,7 +503,7 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
       `DTSTAMP:${formatDate(new Date())}`,
       `DTSTART:${formatDate(dateTime)}`,
       `DTEND:${formatDate(endDateTime)}`,
-      `SUMMARY:Grooming ${booking.petName} (Glanz & Groom)`,
+      `SUMMARY:Grooming ${petNames} (Glanz & Groom)`,
       `DESCRIPTION:Services: ${serviceNames}. Duration: ${totalDuration} min.`,
       `LOCATION:Glanz & Groom Salon`,
       'END:VEVENT',
@@ -451,7 +513,7 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
     const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
     const link = document.createElement('a');
     link.href = window.URL.createObjectURL(blob);
-    link.download = `grooming_${booking.petName}.ics`;
+    link.download = `grooming_${petNames.replace(/[^a-z0-9]/gi, '_')}.ics`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -463,15 +525,19 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
     
     const formatDate = (d: Date) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
 
-    const serviceNames = booking.selectedServices
-      .map(id => services.find(s => s.id === id))
-      .filter(Boolean)
-      .map(s => locale === 'en' && s?.nameEn ? s.nameEn : s?.name)
-      .join(', ');
+    const serviceNames = booking.pets.map(pet => 
+      pet.selectedServices
+        .map(id => services.find(s => s.id === id))
+        .filter(Boolean)
+        .map(s => locale === 'en' && s?.nameEn ? s.nameEn : s?.name)
+        .join(', ')
+    ).join(' | ');
+
+    const petNames = booking.pets.map(p => p.petName).join(', ');
 
     const params = new URLSearchParams({
       action: 'TEMPLATE',
-      text: `Grooming ${booking.petName} (Glanz & Groom)`,
+      text: `Grooming ${petNames} (Glanz & Groom)`,
       dates: `${formatDate(dateTime)}/${formatDate(endDateTime)}`,
       details: `Services: ${serviceNames}. Duration: ${totalDuration} min.`,
       location: 'Glanz & Groom Salon',
@@ -494,12 +560,14 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
           </div>
           <h1 className="font-display text-headline-lg text-on-background mb-2">{t.book.success.title}</h1>
           <p className="font-sans text-body-md text-on-surface-variant mb-6">
-            {t.book.success.desc1} <strong>{booking.petName}</strong> {t.book.success.desc2}
+            {t.book.success.desc1} <strong>{booking.pets.map(p => p.petName).join(', ')}</strong> {t.book.success.desc2}
           </p>
 
-          {booking.photoPreview && (
-            <div className="mb-6 flex justify-center">
-              <img src={booking.photoPreview} alt="Pet" className="w-24 h-24 rounded-full object-cover border-4 border-surface shadow-md" />
+          {booking.pets[0]?.photoPreview && (
+            <div className="mb-6 flex flex-wrap gap-4 justify-center">
+              {booking.pets.map(p => p.photoPreview && (
+                <img key={p.id} src={p.photoPreview} alt="Pet" className="w-24 h-24 rounded-full object-cover border-4 border-surface shadow-md" />
+              ))}
             </div>
           )}
 
@@ -586,98 +654,118 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
               <p className="font-sans text-body-md text-on-surface-variant">{t.book.step0.desc}</p>
             </div>
 
-            <div className="bg-surface-container-low rounded-2xl p-4 border border-surface-variant">
-              <p className="font-sans text-label-lg text-on-surface mb-3">{t.book.step0.petSize}</p>
-              <div className="flex flex-wrap gap-2">
-                {(['xs', 's', 'm', 'l', 'xl'] as const).map(size => (
-                  <button
-                    key={size}
-                    onClick={() => setBooking(b => ({ ...b, petSize: size }))}
-                    className={`flex-1 py-2 px-3 rounded-xl font-sans text-label-sm transition-all ${
-                      booking.petSize === size
-                        ? 'bg-primary text-on-primary shadow-sm'
-                        : 'bg-surface border border-surface-variant text-on-surface-variant hover:border-primary'
-                    }`}
-                  >
-                    {size.toUpperCase()}
-                  </button>
-                ))}
+            {booking.pets.map((pet, petIndex) => (
+              <div key={pet.id} className="relative bg-surface-container-low rounded-2xl p-4 border border-surface-variant">
+                {booking.pets.length > 1 && (
+                  <div className="flex justify-between items-center mb-4 pb-2 border-b border-outline">
+                    <h3 className="font-display text-label-lg font-bold text-primary">Собака {petIndex + 1}</h3>
+                    <button onClick={() => removePet(petIndex)} className="text-error hover:bg-error-container p-1 rounded">
+                      <span className="material-symbols-outlined text-[20px]">delete</span>
+                    </button>
+                  </div>
+                )}
+                
+                <p className="font-sans text-label-lg text-on-surface mb-3">{t.book.step0.petSize}</p>
+                <div className="flex flex-wrap gap-2">
+                  {(['xs', 's', 'm', 'l', 'xl'] as const).map(size => (
+                    <button
+                      key={size}
+                      onClick={() => {
+                        const newPets = [...booking.pets];
+                        newPets[petIndex] = { ...pet, petSize: size };
+                        setBooking({ ...booking, pets: newPets });
+                      }}
+                      className={`flex-1 py-2 px-3 rounded-xl font-sans text-label-sm transition-all ${
+                        pet.petSize === size
+                          ? 'bg-primary text-on-primary shadow-sm'
+                          : 'bg-surface border border-surface-variant text-on-surface-variant hover:border-primary'
+                      }`}
+                    >
+                      {size.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+                <p className="font-sans text-label-sm text-on-surface-variant mt-3 text-center">{SIZE_LABELS[pet.petSize]}</p>
+                {breedsConfig[pet.petSize] && (
+                  <p className="font-sans text-label-sm text-on-surface-variant/80 mt-1 text-center italic">
+                    Beispiele: {breedsConfig[pet.petSize].join(', ')}
+                  </p>
+                )}
+
+                <div className="flex flex-col gap-3 mt-6">
+                  <h3 className="font-sans text-label-lg text-on-surface uppercase tracking-widest pl-2 border-l-2 border-primary">{t.book.step0.mainPackages}</h3>
+                  {packages.map(svc => {
+                    const selected = pet.selectedServices.includes(svc.id);
+                    const p = svc[SIZE_PRICE_KEY[pet.petSize] as keyof Service];
+                    const d = svc[SIZE_DURATION_KEY[pet.petSize] as keyof Service];
+                    return (
+                      <label key={svc.id} className="relative block cursor-pointer">
+                        <input type="radio" name={`package-${pet.id}`} className="sr-only" checked={selected} onChange={() => toggleService(petIndex, svc.id, true)} />
+                        <div className={`bg-surface rounded-2xl border-2 transition-all flex items-center p-4 gap-4 ${selected ? 'border-primary shadow-md' : 'border-surface-variant'}`}>
+                          <div className="flex flex-col flex-1 gap-1">
+                            <div className="flex justify-between items-start">
+                              <h4 className="font-sans text-label-lg text-on-surface">{getServiceName(svc)}</h4>
+                              <span className="font-display font-bold text-primary">{p}€</span>
+                            </div>
+                            <p 
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setExpandedDesc(prev => ({ ...prev, [svc.id]: !prev[svc.id] }));
+                              }}
+                              className={`font-sans text-body-md text-on-surface-variant text-sm transition-all duration-300 ${expandedDesc[svc.id] ? '' : 'line-clamp-2'}`}
+                            >
+                              {svc.description}
+                            </p>
+                            <p className="font-sans text-label-sm text-on-surface-variant flex items-center gap-1 mt-1">
+                              <span className="material-symbols-outlined text-[14px]">schedule</span>
+                              {d} {t.book.step0.min}
+                            </p>
+                          </div>
+                          <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 ${selected ? 'border-primary bg-primary' : 'border-outline'}`}>
+                            {selected && <div className="w-2.5 h-2.5 bg-on-primary rounded-full" />}
+                          </div>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+
+                <div className="flex flex-col gap-3 mt-4">
+                  <h3 className="font-sans text-label-lg text-on-surface uppercase tracking-widest pl-2 border-l-2 border-secondary">{t.book.step0.additional}</h3>
+                  {addons.map(svc => {
+                    const selected = pet.selectedServices.includes(svc.id);
+                    const p = svc[SIZE_PRICE_KEY[pet.petSize] as keyof Service];
+                    const d = svc[SIZE_DURATION_KEY[pet.petSize] as keyof Service];
+                    return (
+                      <label key={svc.id} className="relative block cursor-pointer">
+                        <input type="checkbox" className="sr-only" checked={selected} onChange={() => toggleService(petIndex, svc.id, false)} />
+                        <div className={`bg-surface rounded-2xl border-2 transition-all flex items-center p-4 gap-4 ${selected ? 'border-secondary shadow-md' : 'border-surface-variant'}`}>
+                          <div className="flex flex-col flex-1 gap-1">
+                            <div className="flex justify-between items-start">
+                              <h4 className="font-sans text-label-lg text-on-surface">{getServiceName(svc)}</h4>
+                              <span className="font-display font-bold text-secondary">{p}€</span>
+                            </div>
+                            <p className="font-sans text-label-sm text-on-surface-variant flex items-center gap-1 mt-1">
+                              <span className="material-symbols-outlined text-[14px]">schedule</span>
+                              {d} {t.book.step0.min}
+                            </p>
+                          </div>
+                          <div className={`w-6 h-6 rounded border-2 flex items-center justify-center shrink-0 ${selected ? 'border-secondary bg-secondary' : 'border-outline'}`}>
+                            {selected && <span className="material-symbols-outlined text-[16px] text-on-secondary">check</span>}
+                          </div>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
-              <p className="font-sans text-label-sm text-on-surface-variant mt-3 text-center">{SIZE_LABELS[booking.petSize]}</p>
-              {breedsConfig[booking.petSize] && (
-                <p className="font-sans text-label-sm text-on-surface-variant/80 mt-1 text-center italic">
-                  Beispiele: {breedsConfig[booking.petSize]}
-                </p>
-              )}
-            </div>
+            ))}
 
-            <div className="flex flex-col gap-3">
-              <h3 className="font-sans text-label-lg text-on-surface uppercase tracking-widest pl-2 border-l-2 border-primary">{t.book.step0.mainPackages}</h3>
-              {packages.map(svc => {
-                const selected = booking.selectedServices.includes(svc.id);
-                const p = svc[priceKey];
-                const d = svc[durationKey];
-                return (
-                  <label key={svc.id} className="relative block cursor-pointer">
-                    <input type="radio" name="package" className="sr-only" checked={selected} onChange={() => toggleService(svc.id, true)} />
-                    <div className={`bg-surface rounded-2xl border-2 transition-all flex items-center p-4 gap-4 ${selected ? 'border-primary shadow-md' : 'border-surface-variant'}`}>
-                      <div className="flex flex-col flex-1 gap-1">
-                        <div className="flex justify-between items-start">
-                          <h4 className="font-sans text-label-lg text-on-surface">{getServiceName(svc)}</h4>
-                          <span className="font-display font-bold text-primary">{p}€</span>
-                        </div>
-                        <p 
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setExpandedDesc(prev => ({ ...prev, [svc.id]: !prev[svc.id] }));
-                          }}
-                          className={`font-sans text-body-md text-on-surface-variant text-sm transition-all duration-300 ${expandedDesc[svc.id] ? '' : 'line-clamp-2'}`}
-                        >
-                          {svc.description}
-                        </p>
-                        <p className="font-sans text-label-sm text-on-surface-variant flex items-center gap-1 mt-1">
-                          <span className="material-symbols-outlined text-[14px]">schedule</span>
-                          {d} {t.book.step0.min}
-                        </p>
-                      </div>
-                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 ${selected ? 'border-primary bg-primary' : 'border-outline'}`}>
-                        {selected && <div className="w-2.5 h-2.5 bg-on-primary rounded-full" />}
-                      </div>
-                    </div>
-                  </label>
-                );
-              })}
-            </div>
-
-            <div className="flex flex-col gap-3 mt-4">
-              <h3 className="font-sans text-label-lg text-on-surface uppercase tracking-widest pl-2 border-l-2 border-secondary">{t.book.step0.additional}</h3>
-              {addons.map(svc => {
-                const selected = booking.selectedServices.includes(svc.id);
-                const p = svc[priceKey];
-                const d = svc[durationKey];
-                return (
-                  <label key={svc.id} className="relative block cursor-pointer">
-                    <input type="checkbox" className="sr-only" checked={selected} onChange={() => toggleService(svc.id, false)} />
-                    <div className={`bg-surface rounded-2xl border-2 transition-all flex items-center p-4 gap-4 ${selected ? 'border-secondary shadow-md' : 'border-surface-variant'}`}>
-                      <div className="flex flex-col flex-1 gap-1">
-                        <div className="flex justify-between items-start">
-                          <h4 className="font-sans text-label-lg text-on-surface">{getServiceName(svc)}</h4>
-                          <span className="font-display font-bold text-secondary">{p}€</span>
-                        </div>
-                        <p className="font-sans text-label-sm text-on-surface-variant flex items-center gap-1 mt-1">
-                          <span className="material-symbols-outlined text-[14px]">schedule</span>
-                          {d} {t.book.step0.min}
-                        </p>
-                      </div>
-                      <div className={`w-6 h-6 rounded border-2 flex items-center justify-center shrink-0 ${selected ? 'border-secondary bg-secondary' : 'border-outline'}`}>
-                        {selected && <span className="material-symbols-outlined text-[16px] text-on-secondary">check</span>}
-                      </div>
-                    </div>
-                  </label>
-                );
-              })}
-            </div>
+            <button onClick={addPet} className="w-full py-4 border-2 border-dashed border-primary text-primary rounded-2xl font-sans text-label-lg hover:bg-primary-container transition-all flex items-center justify-center gap-2">
+              <span className="material-symbols-outlined">pets</span>
+              Додати ще собаку
+            </button>
           </div>
         )}
 
@@ -831,57 +919,74 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
                 <label className="block font-sans text-label-sm text-on-surface-variant mb-1">{t.book.step3.email}</label>
                 <input type="email" value={booking.email} onChange={e => setBooking({ ...booking, email: e.target.value })} className="w-full bg-surface border border-outline rounded-xl px-4 py-3 focus:border-primary focus:ring-1 outline-none" placeholder={t.book.step3.emailPh} />
               </div>
-              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-surface-variant">
-                <div>
-                  <label className="block font-sans text-label-sm text-on-surface-variant mb-1">{t.book.step3.petName}</label>
-                  <input type="text" value={booking.petName} onChange={e => setBooking({ ...booking, petName: e.target.value })} className="w-full bg-surface border border-outline rounded-xl px-4 py-3 focus:border-primary focus:ring-1 outline-none" placeholder={t.book.step3.petNamePh} />
-                </div>
-                <div>
-                  <label className="block font-sans text-label-sm text-on-surface-variant mb-1">{t.book.step3.petBreed}</label>
-                  <input type="text" list="breed-suggestions" value={booking.petBreed} onChange={e => setBooking({ ...booking, petBreed: e.target.value })} className="w-full bg-surface border border-outline rounded-xl px-4 py-3 focus:border-primary focus:ring-1 outline-none" placeholder={t.book.step3.petBreedPh} />
-                  {breedsConfig[booking.petSize] && breedsConfig[booking.petSize].length > 0 && (
-                    <datalist id="breed-suggestions">
-                      {breedsConfig[booking.petSize].map(b => (
-                        <option key={b} value={b} />
-                      ))}
-                    </datalist>
-                  )}
-                </div>
-              </div>
 
-              {/* Pet Photo Upload */}
-              <div>
-                <label className="block font-sans text-label-sm text-on-surface-variant mb-1">{t.book.step3.photoLabel}</label>
-                <div 
-                  onClick={() => fileInputRef.current?.click()}
-                  className={`w-full border-2 border-dashed rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer transition-colors ${booking.photoPreview ? 'border-primary bg-primary-container/10' : 'border-outline hover:border-primary bg-surface'}`}
-                >
-                  <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    className="hidden" 
-                    accept="image/*" 
-                    onChange={handlePhotoChange}
-                  />
-                  {booking.photoPreview ? (
-                    <div className="flex items-center gap-4 w-full">
-                      <img src={booking.photoPreview} alt="Preview" className="w-16 h-16 rounded-lg object-cover border border-outline" />
-                      <div className="flex-1">
-                        <p className="font-sans text-label-md text-on-surface font-semibold">{booking.photoFile?.name}</p>
-                        <p className="font-sans text-body-sm text-primary hover:underline">{t.book.step3.photoChange}</p>
-                      </div>
+              {booking.pets.map((pet, petIndex) => (
+                <div key={pet.id} className="p-4 bg-surface-container-low border border-surface-variant rounded-xl mt-4">
+                  <h3 className="font-display text-label-lg font-bold text-primary mb-3 pb-2 border-b border-outline">Собака {petIndex + 1} ({SIZE_LABELS[pet.petSize]})</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block font-sans text-label-sm text-on-surface-variant mb-1">{t.book.step3.petName}</label>
+                      <input type="text" value={pet.petName} onChange={e => {
+                        const newPets = [...booking.pets];
+                        newPets[petIndex] = { ...pet, petName: e.target.value };
+                        setBooking({ ...booking, pets: newPets });
+                      }} className="w-full bg-surface border border-outline rounded-xl px-4 py-3 focus:border-primary focus:ring-1 outline-none" placeholder={t.book.step3.petNamePh} />
                     </div>
-                  ) : (
-                    <div className="text-center">
-                      <span className="material-symbols-outlined text-[32px] text-on-surface-variant mb-2">add_a_photo</span>
-                      <p className="font-sans text-label-md text-on-surface">{t.book.step3.photoHelp}</p>
-                      <p className="font-sans text-body-sm text-on-surface-variant">{t.book.step3.photoTypes}</p>
+                    <div>
+                      <label className="block font-sans text-label-sm text-on-surface-variant mb-1">{t.book.step3.petBreed}</label>
+                      <input type="text" list={`breed-suggestions-${pet.id}`} value={pet.petBreed} onChange={e => {
+                        const newPets = [...booking.pets];
+                        newPets[petIndex] = { ...pet, petBreed: e.target.value };
+                        setBooking({ ...booking, pets: newPets });
+                      }} className="w-full bg-surface border border-outline rounded-xl px-4 py-3 focus:border-primary focus:ring-1 outline-none" placeholder={t.book.step3.petBreedPh} />
+                      {breedsConfig[pet.petSize] && breedsConfig[pet.petSize].length > 0 && (
+                        <datalist id={`breed-suggestions-${pet.id}`}>
+                          {breedsConfig[pet.petSize].map(b => (
+                            <option key={b} value={b} />
+                          ))}
+                        </datalist>
+                      )}
                     </div>
-                  )}
-                </div>
-              </div>
+                  </div>
 
-              <div>
+                  {/* Pet Photo Upload */}
+                  <div className="mt-4">
+                    <label className="block font-sans text-label-sm text-on-surface-variant mb-1">{t.book.step3.photoLabel}</label>
+                    <div 
+                      onClick={() => {
+                        const input = document.getElementById(`photoUpload-${pet.id}`);
+                        if (input) input.click();
+                      }}
+                      className={`w-full border-2 border-dashed rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer transition-colors ${pet.photoPreview ? 'border-primary bg-primary-container/10' : 'border-outline hover:border-primary bg-surface'}`}
+                    >
+                      <input 
+                        type="file" 
+                        id={`photoUpload-${pet.id}`}
+                        className="hidden" 
+                        accept="image/*" 
+                        onChange={(e) => handlePhotoChange(petIndex, e as any)}
+                      />
+                      {pet.photoPreview ? (
+                        <div className="flex items-center gap-4 w-full">
+                          <img src={pet.photoPreview} alt="Preview" className="w-16 h-16 rounded-lg object-cover border border-outline" />
+                          <div className="flex-1">
+                            <p className="font-sans text-label-md text-on-surface font-semibold">{pet.photoFile?.name}</p>
+                            <p className="font-sans text-body-sm text-primary hover:underline">{t.book.step3.photoChange}</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-center">
+                          <span className="material-symbols-outlined text-[32px] text-on-surface-variant mb-2">add_a_photo</span>
+                          <p className="font-sans text-label-md text-on-surface">{t.book.step3.photoHelp}</p>
+                          <p className="font-sans text-body-sm text-on-surface-variant">{t.book.step3.photoTypes}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              <div className="mt-4">
                 <label className="block font-sans text-label-sm text-on-surface-variant mb-1">{t.book.step3.notes}</label>
                 <textarea value={booking.notes} onChange={e => setBooking({ ...booking, notes: e.target.value })} className="w-full bg-surface border border-outline rounded-xl px-4 py-3 focus:border-primary focus:ring-1 outline-none" rows={3} placeholder={t.book.step3.notesPh}></textarea>
               </div>
@@ -908,6 +1013,7 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
             {error && <div className="p-4 bg-error-container text-on-error-container rounded-xl font-sans text-body-sm text-center">{error}</div>}
           </div>
         )}
+
       </main>
 
       {/* BOTTOM ACTION BAR */}
