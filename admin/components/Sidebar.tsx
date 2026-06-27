@@ -1,12 +1,25 @@
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useAdminLang } from '../hooks/useAdminLang';
+import { useState, useEffect } from 'react';
 
 export default function Sidebar({ unreadCount = 0 }: { unreadCount?: number }) {
   const router = useRouter();
   const { t, lang } = useAdminLang();
 
-  const navItems = [
+  const [userRole, setUserRole] = useState('admin');
+
+  useEffect(() => {
+    const userStr = localStorage.getItem('admin_user');
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        if (user.role) setUserRole(user.role);
+      } catch (e) {}
+    }
+  }, []);
+
+  const allNavItems = [
     { href: '/', icon: 'dashboard', label: t.sidebar.dashboard },
     { href: '/calendar', icon: 'calendar_month', label: t.sidebar.calendar },
     { href: '/clients', icon: 'group', label: t.sidebar.clients },
@@ -15,6 +28,10 @@ export default function Sidebar({ unreadCount = 0 }: { unreadCount?: number }) {
     { href: '/groomers', icon: 'badge', label: t.sidebar.groomers },
     { href: '/offers', icon: 'local_offer', label: t.sidebar.offers },
   ];
+
+  const navItems = userRole === 'groomer' 
+    ? allNavItems.filter(i => ['/calendar', '/appointments'].includes(i.href))
+    : allNavItems;
 
   const logout = () => {
     localStorage.removeItem('admin_token');
@@ -81,12 +98,30 @@ export default function Sidebar({ unreadCount = 0 }: { unreadCount?: number }) {
       <div className="px-3 py-4 border-t border-outline-variant">
         <ul className="flex flex-col gap-0.5">
           {/* Language switcher removed */}
-          <li>
-            <Link href="/settings" className={`flex items-center gap-3 px-4 py-3 rounded-full hover:bg-surface-container-high transition-colors ${router.pathname === '/settings' ? 'text-primary font-semibold' : 'text-on-surface-variant'}`}>
-              <span className="material-symbols-outlined">settings</span>
-              <span className="font-sans text-sm">{t.sidebar.settings}</span>
-            </Link>
-          </li>
+          {userRole !== 'groomer' && (
+            <li>
+              <Link href="/settings" className={`flex items-center gap-3 px-4 py-3 rounded-full hover:bg-surface-container-high transition-colors ${router.pathname === '/settings' ? 'text-primary font-semibold' : 'text-on-surface-variant'}`}>
+                <span className="material-symbols-outlined">settings</span>
+                <span className="font-sans text-sm">{t.sidebar.settings}</span>
+              </Link>
+            </li>
+          )}
+          {userRole === 'developer' && (
+            <>
+              <li>
+                <Link href="/admins" className={`flex items-center gap-3 px-4 py-3 rounded-full hover:bg-surface-container-high transition-colors ${router.pathname === '/admins' ? 'text-primary font-semibold' : 'text-on-surface-variant'}`}>
+                  <span className="material-symbols-outlined">admin_panel_settings</span>
+                  <span className="font-sans text-sm">Адміністратори</span>
+                </Link>
+              </li>
+              <li>
+                <Link href="/system" className={`flex items-center gap-3 px-4 py-3 rounded-full hover:bg-surface-container-high transition-colors ${router.pathname === '/system' ? 'text-primary font-semibold' : 'text-on-surface-variant'}`}>
+                  <span className="material-symbols-outlined">build</span>
+                  <span className="font-sans text-sm">Система</span>
+                </Link>
+              </li>
+            </>
+          )}
           <li>
             <button onClick={logout} className="flex items-center gap-3 text-on-surface-variant px-4 py-3 rounded-full hover:bg-red-50 hover:text-red-600 transition-colors w-full">
               <span className="material-symbols-outlined">logout</span>

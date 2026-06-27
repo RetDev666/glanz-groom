@@ -14,7 +14,11 @@ router.post('/login', async (req: Request, res: Response) => {
   }
 
   try {
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({ 
+      where: { email },
+      include: { groomer: true }
+    });
+    
     if (!user) {
       return res.status(401).json({ error: 'Невірний email або пароль' });
     }
@@ -24,15 +28,17 @@ router.post('/login', async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Невірний email або пароль' });
     }
 
+    const groomerId = user.groomer?.id;
+
     const token = jwt.sign(
-      { userId: user.id, role: user.role },
+      { userId: user.id, role: user.role, groomerId },
       process.env.JWT_SECRET || 'fallback_secret_key_for_development_only',
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' } as jwt.SignOptions
     );
 
     res.json({
       token,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+      user: { id: user.id, name: user.name, email: user.email, role: user.role, groomerId },
     });
   } catch (err: any) {
     console.error("Login Error:", err);
@@ -49,9 +55,12 @@ router.get('/me', async (req: Request, res: Response) => {
   try {
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: number };
-    const user = await prisma.user.findUnique({ where: { id: decoded.userId } });
+    const user = await prisma.user.findUnique({ 
+      where: { id: decoded.userId },
+      include: { groomer: true }
+    });
     if (!user) return res.status(404).json({ error: 'User not found' });
-    res.json({ id: user.id, name: user.name, email: user.email, role: user.role });
+    res.json({ id: user.id, name: user.name, email: user.email, role: user.role, groomerId: user.groomer?.id });
   } catch {
     res.status(401).json({ error: 'Invalid token' });
   }

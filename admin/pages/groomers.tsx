@@ -28,6 +28,12 @@ function GroomerModal({
   const [photoPreview, setPhotoPreview] = useState(String(groomer?.photoUrl || ''));
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  
+  // Account creation state
+  const [accountEmail, setAccountEmail] = useState('');
+  const [accountPassword, setAccountPassword] = useState('');
+  const [creatingAccount, setCreatingAccount] = useState(false);
+  
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -62,6 +68,29 @@ function GroomerModal({
     setSaving(true);
     await onSave({ name, role, color, photoUrl: photoUrl || undefined, id: groomer ? Number(groomer.id) : undefined });
     setSaving(false);
+  };
+
+  const handleCreateAccount = async () => {
+    if (!groomer || !accountEmail || !accountPassword) return;
+    setCreatingAccount(true);
+    try {
+      const token = localStorage.getItem('admin_token');
+      const res = await fetch(`${API}/groomers/${groomer.id}/account`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ email: accountEmail, password: accountPassword }),
+      });
+      if (res.ok) {
+        alert('Акаунт успішно створено!');
+        onClose(); // Will refresh list
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Помилка створення акаунта');
+      }
+    } catch (e) {
+      alert('Помилка сервера');
+    }
+    setCreatingAccount(false);
   };
 
   return (
@@ -115,11 +144,11 @@ function GroomerModal({
                 </button>
               )}
             </div>
-            <p className="font-sans text-body-sm text-on-surface-variant mt-1">{t.groomers.photoTypes}</p>
+            <p className="font-sans text-body-sm text-on-surface-variant mt-1">{String(t.groomers.photoTypes)}</p>
           </div>
 
           <div>
-            <label className="block font-sans text-label-sm text-on-surface-variant mb-1">{t.groomers.nameLabel}</label>
+            <label className="block font-sans text-label-sm text-on-surface-variant mb-1">{String(t.groomers.nameLabel)}</label>
             <input
               type="text"
               value={name}
@@ -130,7 +159,7 @@ function GroomerModal({
           </div>
 
           <div>
-            <label className="block font-sans text-label-sm text-on-surface-variant mb-1">{t.groomers.roleLabel}</label>
+            <label className="block font-sans text-label-sm text-on-surface-variant mb-1">{String(t.groomers.roleLabel)}</label>
             <input
               type="text"
               value={role}
@@ -141,7 +170,7 @@ function GroomerModal({
           </div>
 
           <div>
-            <label className="block font-sans text-label-sm text-on-surface-variant mb-2">{t.groomers.colorLabel}</label>
+            <label className="block font-sans text-label-sm text-on-surface-variant mb-2">{String(t.groomers.colorLabel)}</label>
             <div className="flex flex-wrap gap-2 mb-2">
               {PRESET_COLORS.map(c => (
                 <button
@@ -162,6 +191,44 @@ function GroomerModal({
               <span className="font-mono text-label-md text-on-surface-variant">{color}</span>
             </div>
           </div>
+
+          {groomer && !groomer.user && (
+            <div className="pt-4 border-t border-outline-variant">
+              <h4 className="font-sans font-semibold text-on-surface mb-3">Створити акаунт (Доступ в CRM)</h4>
+              <div className="space-y-3">
+                <input
+                  type="email"
+                  value={accountEmail}
+                  onChange={e => setAccountEmail(e.target.value)}
+                  placeholder="Email для входу"
+                  className="w-full bg-surface border border-outline rounded-xl px-4 py-2.5 focus:border-primary focus:ring-1 outline-none font-sans"
+                />
+                <input
+                  type="password"
+                  value={accountPassword}
+                  onChange={e => setAccountPassword(e.target.value)}
+                  placeholder="Пароль"
+                  className="w-full bg-surface border border-outline rounded-xl px-4 py-2.5 focus:border-primary focus:ring-1 outline-none font-sans"
+                />
+                <button
+                  onClick={handleCreateAccount}
+                  disabled={creatingAccount || !accountEmail || !accountPassword}
+                  className="w-full border border-primary text-primary font-sans text-sm font-semibold py-2 rounded-xl hover:bg-primary hover:text-white transition-colors disabled:opacity-50"
+                >
+                  {creatingAccount ? 'Створення...' : 'Створити акаунт'}
+                </button>
+              </div>
+            </div>
+          )}
+          
+          {groomer && Boolean(groomer.user) && (
+            <div className="pt-4 border-t border-outline-variant">
+              <h4 className="font-sans font-semibold text-on-surface mb-1">Акаунт (Доступ в CRM)</h4>
+              <p className="font-sans text-sm text-on-surface-variant">
+                Грумер має доступ. Email: <span className="font-mono font-bold">{String((groomer.user as any).email)}</span>
+              </p>
+            </div>
+          )}
 
           <div className="flex gap-3 pt-2">
             <button onClick={onClose} className="flex-1 border border-outline font-sans text-label-lg py-3 rounded-full hover:bg-surface-container-low transition-colors">

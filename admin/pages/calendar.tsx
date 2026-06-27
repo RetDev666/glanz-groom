@@ -16,7 +16,7 @@ const STATUS_COLORS: Record<string, string> = {
 type Appointment = Record<string, unknown>;
 
 function AppointmentDetailModal({
-  apt, groomers, onClose, onSave, onDelete, t
+  apt, groomers, onClose, onSave, onDelete, t, userRole
 }: {
   apt: Appointment;
   groomers: Record<string, unknown>[];
@@ -24,6 +24,7 @@ function AppointmentDetailModal({
   onSave: (id: number, data: any) => Promise<void>;
   onDelete: (id: number) => Promise<void>;
   t: ReturnType<typeof useAdminLang>['t'];
+  userRole: string;
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [status, setStatus] = useState(String(apt.status || 'pending'));
@@ -88,6 +89,29 @@ function AppointmentDetailModal({
     }
   };
 
+  const downloadICS = () => {
+    const startDate = new Date(String(apt.date));
+    const endDate = new Date(startDate.getTime() + (Number(apt.duration) * 60000));
+    
+    const fmt = (d: Date) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    const dtStart = fmt(startDate);
+    const dtEnd = fmt(endDate);
+    
+    const cName = `${client?.firstName || ''} ${client?.lastName || ''}`;
+    const pName = `${pet?.name || ''} ${pet?.breed ? `(${pet.breed})` : ''}`;
+    const desc = `Kunde: ${cName}\\nTelefon: ${client?.phone || ''}\\nNotizen: ${(notes || '').replace(/\\n/g, '\\n')}`;
+    
+    const ics = `BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//GlanzGroom//CRM//EN\r\nBEGIN:VEVENT\r\nUID:${apt.id}-${Date.now()}@glanzgroom.de\r\nDTSTAMP:${fmt(new Date())}\r\nDTSTART:${dtStart}\r\nDTEND:${dtEnd}\r\nSUMMARY:Grooming: ${pName}\r\nDESCRIPTION:${desc}\r\nEND:VEVENT\r\nEND:VCALENDAR`;
+
+    const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `grooming-${apt.id}.ics`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div
@@ -106,15 +130,18 @@ function AppointmentDetailModal({
             )}
           </div>
           <div className="flex items-center gap-2">
-            {!isEditing ? (
+            <button onClick={downloadICS} className="p-2 flex items-center gap-1 rounded-full hover:bg-surface-container text-on-surface-variant transition-colors" title="Додати в календар (.ics)">
+              <span className="material-symbols-outlined text-[20px]">calendar_add_on</span>
+            </button>
+            {userRole !== 'groomer' && !isEditing ? (
               <button onClick={() => setIsEditing(true)} className="p-2 rounded-full hover:bg-surface-container text-primary transition-colors">
                 <span className="material-symbols-outlined">edit</span>
               </button>
-            ) : (
+            ) : isEditing ? (
               <button onClick={handleSave} disabled={loading} className="p-2 rounded-full hover:bg-surface-container text-green-600 transition-colors">
                 {loading ? <span className="material-symbols-outlined animate-spin">progress_activity</span> : <span className="material-symbols-outlined">save</span>}
               </button>
-            )}
+            ) : null}
             <button onClick={onClose} className="p-2 rounded-full hover:bg-surface-container-high text-on-surface-variant transition-colors">
               <span className="material-symbols-outlined">close</span>
             </button>
@@ -236,7 +263,7 @@ function AppointmentDetailModal({
             </div>
           )}
 
-          {!isEditing && (
+          {!isEditing && userRole !== 'groomer' && (
             <div className="grid grid-cols-2 gap-3 pt-2">
               <button onClick={() => setIsEditing(true)} className="py-2.5 bg-surface-container border border-outline rounded-xl font-medium text-on-surface hover:bg-surface-container-high transition-colors flex justify-center items-center gap-2">
                 <span className="material-symbols-outlined text-[18px]">edit_calendar</span>
@@ -594,6 +621,17 @@ export default function CalendarPage() {
   const [selectedApt, setSelectedApt] = useState<Appointment | null>(null);
   const [showNewApt, setShowNewApt] = useState(false);
   const [showBlockModal, setShowBlockModal] = useState(false);
+  const [userRole, setUserRole] = useState('admin');
+
+  useEffect(() => {
+    const userStr = localStorage.getItem('admin_user');
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        if (user.role) setUserRole(user.role);
+      } catch (e) {}
+    }
+  }, []);
 
   const fetchAppointments = () => {
     setCurrentDate(new Date(currentDate));
@@ -656,6 +694,7 @@ export default function CalendarPage() {
 
   const handleDrop = async (e: React.DragEvent, newGroomerId: number) => {
     e.preventDefault();
+    if (userRole === 'groomer') return;
     const aptId = e.dataTransfer.getData('aptId');
     if (!aptId) return;
 
@@ -697,6 +736,7 @@ export default function CalendarPage() {
   const handleResizeStart = (e: React.MouseEvent, aptId: number, currentDuration: number) => {
     e.stopPropagation();
     e.preventDefault();
+    if (userRole === 'groomer') return;
 
     const startY = e.clientY;
     
@@ -733,7 +773,7 @@ export default function CalendarPage() {
 
   return (
     <AdminLayout title={t.calendar.title}>
-      {selectedApt && <AppointmentDetailModal apt={selectedApt} groomers={groomers} t={t} onClose={() => setSelectedApt(null)} onSave={handleUpdateAppointment} onDelete={handleDeleteAppointment} />}
+      {selectedApt && <AppointmentDetailModal apt={selectedApt} groomers={groomers} t={t} userRole={userRole} onClose={() => setSelectedApt(null)} onSave={handleUpdateAppointment} onDelete={handleDeleteAppointment} />}
       {showNewApt && <NewAppointmentModal groomers={groomers} t={t} onClose={() => setShowNewApt(false)} onSave={() => setCurrentDate(new Date(currentDate))} />}
       {showBlockModal && <BlockTimeModal groomers={groomers} currentDate={currentDate} t={t} onClose={() => setShowBlockModal(false)} onSave={() => setCurrentDate(new Date(currentDate))} />}
 
@@ -753,20 +793,24 @@ export default function CalendarPage() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => setShowNewApt(true)}
-            className="bg-primary text-on-primary font-sans text-label-lg px-4 py-1.5 rounded-full hover:opacity-90 transition-opacity flex items-center gap-1 shadow-sm"
-          >
-            <span className="material-symbols-outlined text-[18px]">add</span>
-            {t.sidebar.newAppointment}
-          </button>
-          <button
-            onClick={handleBlockDay}
-            className="bg-surface-container text-on-surface font-sans text-label-lg px-4 py-1.5 rounded-full hover:bg-surface-container-high border border-outline-variant transition-opacity flex items-center gap-1 shadow-sm"
-          >
-            <span className="material-symbols-outlined text-[18px]">block</span>
-            Zeit blockieren
-          </button>
+          {userRole !== 'groomer' && (
+            <>
+              <button
+                onClick={() => setShowNewApt(true)}
+                className="bg-primary text-on-primary font-sans text-label-lg px-4 py-1.5 rounded-full hover:opacity-90 transition-opacity flex items-center gap-1 shadow-sm"
+              >
+                <span className="material-symbols-outlined text-[18px]">add</span>
+                {t.sidebar.newAppointment}
+              </button>
+              <button
+                onClick={handleBlockDay}
+                className="bg-surface-container text-on-surface font-sans text-label-lg px-4 py-1.5 rounded-full hover:bg-surface-container-high border border-outline-variant transition-opacity flex items-center gap-1 shadow-sm"
+              >
+                <span className="material-symbols-outlined text-[18px]">block</span>
+                Zeit blockieren
+              </button>
+            </>
+          )}
           <button
             onClick={() => setCurrentDate(new Date())}
             className="border border-outline font-sans text-label-lg px-4 py-1.5 rounded-full hover:bg-surface-container-low transition-colors"

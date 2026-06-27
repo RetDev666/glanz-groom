@@ -16,6 +16,7 @@ model User {
   password  String
   name      String
   role      String   @default("admin")
+  groomer   Groomer?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -76,6 +77,8 @@ model Groomer {
   photoUrl     String?
   isActive     Boolean       @default(true)
   appointments Appointment[]
+  user         User?         @relation(fields: [userId], references: [id])
+  userId       Int?          @unique
   createdAt    DateTime      @default(now())
 }
 
@@ -146,4 +149,13 @@ model GoogleReview {
   time        DateTime
   isVisible   Boolean  @default(true)
   syncedAt    DateTime @default(now())
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int?
+  userEmail String?
+  action    String
+  details   String?
+  createdAt DateTime @default(now())
 }

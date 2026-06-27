@@ -14,7 +14,7 @@ const STATUS_COLORS: Record<string, string> = {
 type Appointment = Record<string, unknown>;
 
 function AppointmentDetailModal({
-  apt, groomers, onClose, onStatusChange, onSave, t
+  apt, groomers, onClose, onStatusChange, onSave, t, userRole
 }: {
   apt: Appointment;
   groomers: Record<string, unknown>[];
@@ -22,6 +22,7 @@ function AppointmentDetailModal({
   onStatusChange: (id: number, status: string) => void;
   onSave: (id: number, data: any) => Promise<void>;
   t: ReturnType<typeof useAdminLang>['t'];
+  userRole: string;
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [status, setStatus] = useState(String(apt.status || 'pending'));
@@ -45,6 +46,29 @@ function AppointmentDetailModal({
     setIsEditing(false);
   };
 
+  const downloadICS = () => {
+    const startDate = new Date(String(apt.date));
+    const endDate = new Date(startDate.getTime() + (Number(apt.duration || 60) * 60000));
+    
+    const fmt = (d: Date) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    const dtStart = fmt(startDate);
+    const dtEnd = fmt(endDate);
+    
+    const cName = `${client?.firstName || ''} ${client?.lastName || ''}`;
+    const pName = `${pet?.name || ''} ${pet?.breed ? `(${pet.breed})` : ''}`;
+    const desc = `Kunde: ${cName}\\nTelefon: ${client?.phone || ''}`;
+    
+    const ics = `BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//GlanzGroom//CRM//EN\r\nBEGIN:VEVENT\r\nUID:${apt.id}-${Date.now()}@glanzgroom.de\r\nDTSTAMP:${fmt(new Date())}\r\nDTSTART:${dtStart}\r\nDTEND:${dtEnd}\r\nSUMMARY:Grooming: ${pName}\r\nDESCRIPTION:${desc}\r\nEND:VEVENT\r\nEND:VCALENDAR`;
+
+    const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `grooming-${apt.id}.ics`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div
@@ -63,15 +87,18 @@ function AppointmentDetailModal({
             )}
           </div>
           <div className="flex items-center gap-2">
-            {!isEditing ? (
+            <button onClick={downloadICS} className="p-2 flex items-center gap-1 rounded-full hover:bg-surface-container text-on-surface-variant transition-colors" title="Додати в календар (.ics)">
+              <span className="material-symbols-outlined text-[20px]">calendar_add_on</span>
+            </button>
+            {userRole !== 'groomer' && !isEditing ? (
               <button onClick={() => setIsEditing(true)} className="p-2 rounded-full hover:bg-surface-container text-primary transition-colors">
                 <span className="material-symbols-outlined">edit</span>
               </button>
-            ) : (
+            ) : isEditing ? (
               <button onClick={handleSave} disabled={loading} className="p-2 rounded-full hover:bg-surface-container text-green-600 transition-colors">
                 {loading ? <span className="material-symbols-outlined animate-spin">progress_activity</span> : <span className="material-symbols-outlined">save</span>}
               </button>
-            )}
+            ) : null}
             <button onClick={onClose} className="p-2 rounded-full hover:bg-surface-container-high text-on-surface-variant transition-colors">
               <span className="material-symbols-outlined">close</span>
             </button>
@@ -178,7 +205,7 @@ function AppointmentDetailModal({
             </div>
           )}
 
-          {!isEditing && (
+          {!isEditing && userRole !== 'groomer' && (
             <div className="flex gap-2 flex-wrap">
               {apt.status === 'pending' && (
                 <button
@@ -221,6 +248,17 @@ export default function AppointmentsPage() {
   const [search, setSearch] = useState('');
   const [selectedApt, setSelectedApt] = useState<Appointment | null>(null);
   const [groomers, setGroomers] = useState<Record<string, unknown>[]>([]);
+  const [userRole, setUserRole] = useState('admin');
+
+  useEffect(() => {
+    const userStr = localStorage.getItem('admin_user');
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        if (user.role) setUserRole(user.role);
+      } catch (e) {}
+    }
+  }, []);
 
   const fetchAppointments = useCallback(async () => {
     const token = localStorage.getItem('admin_token');
@@ -305,6 +343,7 @@ export default function AppointmentsPage() {
           apt={selectedApt}
           groomers={groomers}
           t={t}
+          userRole={userRole}
           onClose={() => setSelectedApt(null)}
           onStatusChange={updateStatus}
           onSave={async (id, data) => {
@@ -442,21 +481,23 @@ export default function AppointmentsPage() {
                           </span>
                         </td>
                         <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
-                          <div className="flex gap-1">
-                            {apt.status === 'pending' && (
-                              <button onClick={() => updateStatus(Number(apt.id), 'confirmed')} className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors" title={t.appointments.confirmTitle}>
-                                <span className="material-symbols-outlined text-[18px]">check</span>
+                          {userRole !== 'groomer' && (
+                            <div className="flex gap-1">
+                              {apt.status === 'pending' && (
+                                <button onClick={() => updateStatus(Number(apt.id), 'confirmed')} className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors" title={t.appointments.confirmTitle}>
+                                  <span className="material-symbols-outlined text-[18px]">check</span>
+                                </button>
+                              )}
+                              {apt.status === 'confirmed' && (
+                                <button onClick={() => updateStatus(Number(apt.id), 'completed')} className="p-1.5 rounded-lg text-green-600 hover:bg-green-50 transition-colors" title={t.appointments.completeTitle}>
+                                  <span className="material-symbols-outlined text-[18px]">done_all</span>
+                                </button>
+                              )}
+                              <button onClick={() => deleteAppointment(Number(apt.id))} className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 transition-colors" title={t.appointments.deleteTitle}>
+                                <span className="material-symbols-outlined text-[18px]">delete</span>
                               </button>
-                            )}
-                            {apt.status === 'confirmed' && (
-                              <button onClick={() => updateStatus(Number(apt.id), 'completed')} className="p-1.5 rounded-lg text-green-600 hover:bg-green-50 transition-colors" title={t.appointments.completeTitle}>
-                                <span className="material-symbols-outlined text-[18px]">done_all</span>
-                              </button>
-                            )}
-                            <button onClick={() => deleteAppointment(Number(apt.id))} className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 transition-colors" title={t.appointments.deleteTitle}>
-                              <span className="material-symbols-outlined text-[18px]">delete</span>
-                            </button>
-                          </div>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     );

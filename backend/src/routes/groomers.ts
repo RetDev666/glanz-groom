@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import bcrypt from 'bcryptjs';
 import prisma from '../lib/prisma';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 
@@ -15,7 +16,10 @@ router.get('/', async (_req: Request, res: Response) => {
 
 // GET all groomers (admin) — including inactive
 router.get('/all', requireAuth, async (_req: AuthRequest, res: Response) => {
-  const groomers = await prisma.groomer.findMany({ orderBy: { id: 'asc' } });
+  const groomers = await prisma.groomer.findMany({ 
+    orderBy: { id: 'asc' },
+    include: { user: { select: { email: true } } }
+  });
   res.json(groomers);
 });
 
@@ -59,6 +63,46 @@ router.delete('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
     res.json({ success: true });
   } catch {
     res.status(404).json({ error: 'Not found' });
+  }
+});
+
+// POST /:id/account — create user account for groomer
+router.post('/:id/account', requireAuth, async (req: AuthRequest, res: Response) => {
+  const { email, password } = req.body;
+  const groomerId = Number(req.params.id);
+
+  if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
+
+  try {
+    const groomer = await prisma.groomer.findUnique({ where: { id: groomerId } });
+    if (!groomer) return res.status(404).json({ error: 'Groomer not found' });
+
+    if (groomer.userId) {
+      return res.status(400).json({ error: 'Groomer already has an account' });
+    }
+
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) return res.status(400).json({ error: 'Email already in use' });
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    const user = await prisma.user.create({
+      data: {
+        email,
+        password: hashedPassword,
+        name: groomer.name,
+        role: 'groomer',
+      }
+    });
+
+    await prisma.groomer.update({
+      where: { id: groomerId },
+      data: { userId: user.id }
+    });
+
+    res.json({ success: true, user: { id: user.id, email: user.email } });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
   }
 });
 

@@ -11,7 +11,12 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
     const where: Record<string, unknown> = {};
 
     if (status && status !== 'all') where.status = status as string;
-    if (groomerId) where.groomerId = Number(groomerId);
+    
+    if (req.userRole === 'groomer' && req.groomerId) {
+      where.groomerId = req.groomerId;
+    } else if (groomerId) {
+      where.groomerId = Number(groomerId);
+    }
     
     if (startDate && endDate) {
       where.date = { gte: new Date(startDate as string), lte: new Date(endDate as string) };
@@ -291,10 +296,19 @@ router.patch('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
 // DELETE /api/appointments/:id
 router.delete('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    await prisma.appointment.delete({ where: { id: Number(req.params.id) } });
+    const id = Number(req.params.id);
+    const appointment = await prisma.appointment.findUnique({ where: { id }, include: { client: true, pet: true } });
+    await prisma.appointment.delete({ where: { id } });
+    
+    // Import dynamically or ensure it's imported at top. Actually let's just require it here to avoid import issues at top
+    const { logAudit } = require('../utils/audit');
+    if (appointment) {
+      await logAudit(req, 'DELETE_APPOINTMENT', `Deleted appointment for ${appointment.client.firstName} (${appointment.pet.name}) at ${appointment.date.toISOString()}`);
+    }
+
     res.json({ success: true });
-  } catch {
-    res.status(404).json({ error: 'Not found' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete' });
   }
 });
 
