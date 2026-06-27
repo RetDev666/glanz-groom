@@ -209,6 +209,19 @@ function AppointmentDetailModal({
                   <span className="font-display font-bold text-primary">{s.price}€</span>
                 </div>
               ))}
+              {(() => {
+                const sumOfServices = currentServices?.reduce((sum, s) => sum + Number(s.price || 0), 0) || 0;
+                const aptTotalPrice = Number(apt.totalPrice || 0);
+                if (sumOfServices > aptTotalPrice) {
+                  return (
+                    <div className="flex justify-between text-green-600 pt-1">
+                      <span className="font-sans text-label-sm font-semibold">Rabatt / Знижка</span>
+                      <span className="font-display font-bold">-{sumOfServices - aptTotalPrice}€</span>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
             </div>
             <div className="border-t border-outline-variant pt-2 flex justify-between mt-2">
               <span className="font-sans text-label-md text-on-surface-variant">{String(apt.duration)} min</span>
