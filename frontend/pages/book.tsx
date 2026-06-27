@@ -354,7 +354,7 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
   };
 
   const canNext = () => {
-    if (step === 0) return booking.selectedServices.some(id => packages.map(p => p.id).includes(id));
+    if (step === 0) return booking.selectedServices.length > 0;
     if (step === 1) return booking.groomerId !== null;
     if (step === 2) return booking.date && booking.time;
     if (step === 3) return booking.firstName && booking.email && booking.phone && booking.petName && booking.acceptTerms;
