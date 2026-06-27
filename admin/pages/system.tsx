@@ -34,7 +34,12 @@ export default function SystemPage() {
     try {
       const res = await fetch(`${API}/system/audit`, { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
-      setLogs(data);
+      if (Array.isArray(data)) {
+        setLogs(data);
+      } else {
+        console.error('Expected array, got:', data);
+        setLogs([]);
+      }
     } catch (e) {
       console.error(e);
     } finally {

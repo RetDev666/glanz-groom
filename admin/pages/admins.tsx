@@ -31,7 +31,12 @@ export default function AdminsPage() {
     try {
       const res = await fetch(`${API}/admins`, { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
-      setAdmins(data);
+      if (Array.isArray(data)) {
+        setAdmins(data);
+      } else {
+        console.error('Expected array, got:', data);
+        setAdmins([]);
+      }
     } catch (error) {
       console.error(error);
     } finally {

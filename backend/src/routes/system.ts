@@ -8,8 +8,8 @@ const router = Router();
 
 // Middleware to check if user is developer
 const requireDeveloper: RequestHandler = (req, res, next) => {
-  const user = (req as any).user;
-  if (!user || user.role !== 'developer') {
+  const userRole = (req as any).userRole;
+  if (userRole !== 'developer') {
     res.status(403).json({ error: 'Access denied: Developer only' });
     return;
   }
