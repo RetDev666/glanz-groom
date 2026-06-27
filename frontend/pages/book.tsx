@@ -257,6 +257,8 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
     }
   }, [router.query.size, router.query.services, initialServices, initialGroomers, initialSettings]);
 
+  const [busySlotsDate, setBusySlotsDate] = useState('');
+
   // Fetch busy slots when date changes
   useEffect(() => {
     if (booking.date) {
@@ -264,11 +266,15 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
       fetch(`${apiUrl}/appointments/availability?date=${booking.date}`)
         .then(r => r.json())
         .then(data => {
-          if (Array.isArray(data)) setBusySlots(data);
+          if (Array.isArray(data)) {
+            setBusySlots(data);
+            setBusySlotsDate(booking.date);
+          }
         })
         .catch(console.error);
     } else {
       setBusySlots([]);
+      setBusySlotsDate('');
     }
   }, [booking.date]);
 
@@ -293,43 +299,71 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
   const getAvailableTimes = () => {
     if (!booking.date) return [];
     
-    // Convert time "HH:MM" to minutes from midnight
     const timeToMins = (t: string) => {
       const [h, m] = t.split(':').map(Number);
       return h * 60 + m;
     };
 
-    // Calculate busy ranges for each groomer
+    const minsToTime = (mins: number) => {
+      const h = Math.floor(mins / 60);
+      const m = mins % 60;
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    };
+
     const groomerBusyRanges: Record<number, {start: number, end: number}[]> = {};
     busySlots.forEach(slot => {
       const d = new Date(slot.date);
-      // Ensure we treat the date in local timezone as intended by user
       const startMins = d.getUTCHours() * 60 + d.getUTCMinutes(); 
       const endMins = startMins + slot.duration;
       if (!groomerBusyRanges[slot.groomerId]) groomerBusyRanges[slot.groomerId] = [];
       groomerBusyRanges[slot.groomerId].push({ start: startMins, end: endMins });
     });
 
-    const isSlotFreeForGroomer = (time: string, gId: number) => {
-      const slotStart = timeToMins(time);
-      const slotEnd = slotStart + totalDuration;
+    const isSlotFreeForGroomer = (timeMins: number, gId: number) => {
+      const slotEnd = timeMins + totalDuration;
+      if (slotEnd > 18 * 60) return false; // Store closes at 18:00
       const ranges = groomerBusyRanges[gId] || [];
-      return !ranges.some(r => (slotStart < r.end && slotEnd > r.start)); // check overlap
+      return !ranges.some(r => (timeMins < r.end && slotEnd > r.start)); // check overlap
     };
 
-    return AVAILABLE_TIMES.filter(time => {
+    const generatedTimes: string[] = [];
+    const startOfDay = 9 * 60; // 09:00
+    const endOfDay = 18 * 60; // 18:00
+
+    for (let mins = startOfDay; mins <= endOfDay - totalDuration; mins += 15) {
       if (booking.groomerId === -1) {
-        return true; // Show all times for waiting list
+        generatedTimes.push(minsToTime(mins));
       } else if (booking.groomerId === 0) {
-        // Any free groomer: check if AT LEAST ONE active groomer is free
-        return groomers.some(g => isSlotFreeForGroomer(time, g.id));
+        if (groomers.some(g => isSlotFreeForGroomer(mins, g.id))) {
+          generatedTimes.push(minsToTime(mins));
+        }
       } else if (booking.groomerId !== null) {
-        // Specific groomer
-        return isSlotFreeForGroomer(time, booking.groomerId);
+        if (isSlotFreeForGroomer(mins, booking.groomerId)) {
+          generatedTimes.push(minsToTime(mins));
+        }
       }
-      return false;
-    });
+    }
+
+    return generatedTimes;
   };
+
+  // Auto-jump to next day if no slots available
+  useEffect(() => {
+    if (step === 2 && booking.date && busySlotsDate === booking.date && booking.groomerId !== -1) {
+      if (getAvailableTimes().length === 0) {
+        // Prevent infinite loop if something goes wrong, only auto-jump up to 30 times
+        const jumpLimit = sessionStorage.getItem('jumpLimit') ? Number(sessionStorage.getItem('jumpLimit')) : 0;
+        if (jumpLimit < 30) {
+          sessionStorage.setItem('jumpLimit', String(jumpLimit + 1));
+          const nextDate = new Date(booking.date);
+          nextDate.setDate(nextDate.getDate() + 1);
+          setBooking(b => ({ ...b, date: nextDate.toISOString().split('T')[0], time: '' }));
+        }
+      } else {
+        sessionStorage.removeItem('jumpLimit');
+      }
+    }
+  }, [step, booking.date, busySlotsDate, booking.groomerId, totalDuration]);
 
   const toggleService = (petIndex: number, id: number, isPackage: boolean) => {
     setBooking(b => {

@@ -694,6 +694,43 @@ export default function CalendarPage() {
   const getHeight = (duration: number) => (duration / 60) * 80;
   const getGroomerApts = (groomerId: number) => appointments.filter(a => a.groomerId === groomerId);
 
+  const handleResizeStart = (e: React.MouseEvent, aptId: number, currentDuration: number) => {
+    e.stopPropagation();
+    e.preventDefault();
+
+    const startY = e.clientY;
+    
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const deltaY = moveEvent.clientY - startY;
+      const deltaMinutes = (deltaY / 80) * 60;
+      let newDuration = Math.round((currentDuration + deltaMinutes) / 15) * 15;
+      if (newDuration < 15) newDuration = 15;
+
+      setAppointments(prev => prev.map(a => 
+        a.id === aptId ? { ...a, duration: newDuration } : a
+      ));
+    };
+
+    const handleMouseUp = async (upEvent: MouseEvent) => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      
+      const deltaY = upEvent.clientY - startY;
+      const deltaMinutes = (deltaY / 80) * 60;
+      let newDuration = Math.round((currentDuration + deltaMinutes) / 15) * 15;
+      if (newDuration < 15) newDuration = 15;
+
+      setAppointments(prev => prev.map(a => 
+        a.id === aptId ? { ...a, duration: newDuration } : a
+      ));
+      
+      await handleUpdateAppointment(aptId, { duration: newDuration });
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  };
+
   return (
     <AdminLayout title={t.calendar.title}>
       {selectedApt && <AppointmentDetailModal apt={selectedApt} groomers={groomers} t={t} onClose={() => setSelectedApt(null)} onSave={handleUpdateAppointment} onDelete={handleDeleteAppointment} />}
@@ -849,7 +886,13 @@ export default function CalendarPage() {
                             <span className="font-sans text-label-sm truncate">
                               {client ? `${client.firstName} ${client.lastName}` : ''}
                             </span>
-                          </div>
+                            <div 
+                              className="absolute bottom-0 left-0 right-0 h-3 cursor-ns-resize flex items-end justify-center group"
+                              onMouseDown={(e) => handleResizeStart(e, Number(apt.id), Number(apt.duration))}
+                            >
+                              <div className="w-8 h-1 bg-black/20 rounded-full mb-0.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </div>
+</div>
                         );
                       })}
                     </div>
@@ -897,7 +940,13 @@ export default function CalendarPage() {
                             <span className="font-sans text-label-sm truncate text-[11px] opacity-80">
                               {groomer ? String(groomer.name) : '—'}
                             </span>
-                          </div>
+                            <div 
+                              className="absolute bottom-0 left-0 right-0 h-3 cursor-ns-resize flex items-end justify-center group"
+                              onMouseDown={(e) => handleResizeStart(e, Number(apt.id), Number(apt.duration))}
+                            >
+                              <div className="w-6 h-1 bg-black/20 rounded-full mb-0.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </div>
+</div>
                         );
                       })}
                     </div>
