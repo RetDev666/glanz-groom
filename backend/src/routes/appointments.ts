@@ -72,7 +72,11 @@ router.get('/latest', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
     const latest = await prisma.appointment.findFirst({
       orderBy: { id: 'desc' },
-      select: { id: true }
+      select: { 
+        id: true, 
+        date: true,
+        client: { select: { firstName: true, lastName: true } }
+      }
     });
     res.json(latest || { id: 0 });
   } catch (err) {

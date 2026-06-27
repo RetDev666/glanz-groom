@@ -175,6 +175,7 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
   const [busySlots, setBusySlots] = useState<{groomerId: number, date: string, duration: number}[]>([]);
+  const [expandedDesc, setExpandedDesc] = useState<Record<number, boolean>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const STEPS = [t.book.steps.services, t.book.steps.groomer, t.book.steps.time, t.book.steps.details];
@@ -624,7 +625,16 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
                           <h4 className="font-sans text-label-lg text-on-surface">{getServiceName(svc)}</h4>
                           <span className="font-display font-bold text-primary">{p}€</span>
                         </div>
-                        <p className="font-sans text-body-md text-on-surface-variant text-sm line-clamp-2">{svc.description}</p>
+                        <p 
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setExpandedDesc(prev => ({ ...prev, [svc.id]: !prev[svc.id] }));
+                          }}
+                          className={`font-sans text-body-md text-on-surface-variant text-sm transition-all duration-300 ${expandedDesc[svc.id] ? '' : 'line-clamp-2'}`}
+                        >
+                          {svc.description}
+                        </p>
                         <p className="font-sans text-label-sm text-on-surface-variant flex items-center gap-1 mt-1">
                           <span className="material-symbols-outlined text-[14px]">schedule</span>
                           {d} {t.book.step0.min}
