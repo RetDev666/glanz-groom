@@ -237,15 +237,15 @@ export default function ServicesPage({ initialServices, initialSettings }: { ini
 
       {/* STUNNING HERO SECTION */}
       <section className="relative w-full pt-32 pb-24 overflow-hidden bg-[#FAFAFA]">
-        <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-red-100/40 rounded-full blur-[100px] -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
+        <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-emerald-100/40 rounded-full blur-[100px] -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
         <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-amber-50/50 rounded-full blur-[120px] translate-x-1/3 translate-y-1/3 pointer-events-none" />
         
         <div className="relative z-10 px-6 max-w-5xl mx-auto text-center">
-          <span className="inline-block px-4 py-1.5 rounded-full bg-red-50 text-red-600 font-sans text-xs font-bold uppercase tracking-[0.2em] mb-6 shadow-sm border border-red-100">
+          <span className="inline-block px-4 py-1.5 rounded-full bg-emerald-50 text-emerald-600 font-sans text-xs font-bold uppercase tracking-[0.2em] mb-6 shadow-sm border border-emerald-100">
             {t.services.badge}
           </span>
           <h1 className="font-display text-5xl md:text-7xl font-bold text-gray-900 mb-6 tracking-tight">
-            {t.services.heroTitle1} <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-amber-500">{t.services.heroTitle2}</span>
+            {t.services.heroTitle1} <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-amber-500">{t.services.heroTitle2}</span>
           </h1>
           <p className="font-sans text-lg md:text-xl text-gray-500 max-w-2xl mx-auto leading-relaxed">
             {t.services.heroDesc}
@@ -274,7 +274,7 @@ export default function ServicesPage({ initialServices, initialSettings }: { ini
                   }`}
                 >
                   {isActive && (
-                    <div className="absolute inset-0 bg-gradient-to-r from-red-600 to-red-500 rounded-full shadow-[0_0_20px_rgba(220,38,38,0.4)] -z-10" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-emerald-600 to-emerald-500 rounded-full shadow-[0_0_20px_rgba(220,38,38,0.4)] -z-10" />
                   )}
                   {cat.id.toUpperCase()}
                 </button>
@@ -288,12 +288,12 @@ export default function ServicesPage({ initialServices, initialSettings }: { ini
           
           <div className="flex flex-col items-center mb-16">
             <p className="font-sans text-xs text-gray-400 uppercase tracking-widest mb-6 font-semibold">
-              {t.services.forWhom} <span className="text-red-500 normal-case ml-2">({activeTab === 'xs' ? 'bis 5 kg' : activeTab === 's' ? '5-10 kg' : activeTab === 'm' ? '10-20 kg' : activeTab === 'l' ? '20-30 kg' : 'ab 30 kg'})</span>
+              {t.services.forWhom} <span className="text-emerald-500 normal-case ml-2">({activeTab === 'xs' ? 'bis 5 kg' : activeTab === 's' ? '5-10 kg' : activeTab === 'm' ? '10-20 kg' : activeTab === 'l' ? '20-30 kg' : 'ab 30 kg'})</span>
             </p>
             <div className="flex justify-center gap-6">
               {activeData.breeds.map((b: any) => (
                 <div key={b.name} className="flex flex-col items-center gap-3 group cursor-default">
-                  <div className="w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden shadow-md ring-4 ring-white group-hover:ring-red-50 transition-all duration-300 group-hover:-translate-y-2">
+                  <div className="w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden shadow-md ring-4 ring-white group-hover:ring-emerald-50 transition-all duration-300 group-hover:-translate-y-2">
                     <img src={b.img} alt={b.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                   </div>
                   <span className="font-sans text-sm text-gray-600 font-medium">{b.name}</span>
@@ -306,7 +306,7 @@ export default function ServicesPage({ initialServices, initialSettings }: { ini
             {/* LUXURY PACKAGES GRID */}
             <div>
               <div className="flex items-center gap-4 mb-8">
-                <div className="w-10 h-10 rounded-2xl bg-red-50 flex items-center justify-center text-red-500">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-500">
                   <span className="material-symbols-outlined">diamond</span>
                 </div>
                 <h3 className="font-display text-2xl font-bold text-gray-900">{t.services.mainPackages}</h3>
@@ -323,11 +323,11 @@ export default function ServicesPage({ initialServices, initialSettings }: { ini
                       onClick={() => toggleService(svc.name)}
                       className={`group cursor-pointer rounded-[2rem] p-6 md:p-8 flex flex-col transition-all duration-500 relative overflow-hidden bg-white ${
                         isSelected 
-                          ? 'shadow-[0_20px_40px_rgba(220,38,38,0.15)] ring-2 ring-red-500 -translate-y-1' 
+                          ? 'shadow-[0_20px_40px_rgba(220,38,38,0.15)] ring-2 ring-emerald-500 -translate-y-1' 
                           : 'shadow-[0_4px_20px_rgba(0,0,0,0.04)] border border-gray-100 hover:shadow-[0_10px_30px_rgba(0,0,0,0.08)] hover:-translate-y-1'
                       }`}
                     >
-                      {isSelected && <div className="absolute top-0 right-0 w-32 h-32 bg-red-400/20 rounded-full blur-3xl" />}
+                      {isSelected && <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-400/20 rounded-full blur-3xl" />}
                       
                       <div className="flex justify-between items-start mb-6 relative z-10">
                         <div>
@@ -339,7 +339,7 @@ export default function ServicesPage({ initialServices, initialSettings }: { ini
                           )}
                         </div>
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors duration-300 ${
-                          isSelected ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-400 group-hover:bg-red-50 group-hover:text-red-400'
+                          isSelected ? 'bg-emerald-500 text-white' : 'bg-gray-100 text-gray-400 group-hover:bg-emerald-50 group-hover:text-emerald-400'
                         }`}>
                           <span className="material-symbols-outlined text-[18px]">
                             {isSelected ? 'check' : 'add'}
@@ -409,7 +409,7 @@ export default function ServicesPage({ initialServices, initialSettings }: { ini
             {/* POPULAR BUNDLES */}
             <div>
               <div className="flex items-center gap-4 mb-8">
-                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center text-white shadow-lg shadow-red-500/20">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
                   <span className="material-symbols-outlined">hotel_class</span>
                 </div>
                 <div>
@@ -441,10 +441,10 @@ export default function ServicesPage({ initialServices, initialSettings }: { ini
                   return (
                     <div 
                       key={bundle.name}
-                      className="group relative overflow-hidden rounded-[2rem] p-8 transition-all duration-500 shadow-[0_10px_30px_rgba(0,0,0,0.06)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.12)] hover:-translate-y-1 bg-gray-900"
+                      className="group relative overflow-hidden rounded-[2rem] p-8 transition-all duration-500 shadow-[0_10px_30px_rgba(0,0,0,0.06)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.12)] hover:-translate-y-1 bg-[#0f1d18]"
                     >
-                      <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900" />
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/20 rounded-full blur-3xl" />
+                      <div className="absolute inset-0 bg-gradient-to-br from-[#0f1d18] via-[#163028] to-[#0f1d18]" />
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/20 rounded-full blur-3xl" />
                       
                       <div className="relative z-10 flex flex-col h-full">
                         <div className="mb-6">
@@ -485,7 +485,7 @@ export default function ServicesPage({ initialServices, initialSettings }: { ini
                             className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 ${
                               isFullySelected 
                                 ? 'bg-green-500 text-white' 
-                                : 'bg-red-500 text-white hover:bg-red-400 group-hover:scale-110 shadow-lg shadow-red-500/30'
+                                : 'bg-emerald-500 text-white hover:bg-emerald-400 group-hover:scale-110 shadow-lg shadow-emerald-500/30'
                             }`}
                           >
                             <span className="material-symbols-outlined text-[24px]">
@@ -506,7 +506,7 @@ export default function ServicesPage({ initialServices, initialSettings }: { ini
 
       {/* GLASSMORPHISM FLOATING CART */}
       <div className={`fixed bottom-8 left-1/2 -translate-x-1/2 z-50 transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${selectedServices.length > 0 ? 'translate-y-0 opacity-100' : 'translate-y-32 opacity-0 pointer-events-none'}`}>
-        <div className="bg-gray-900/95 backdrop-blur-xl p-2 pl-6 md:pl-8 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-white/10 flex items-center gap-6 md:gap-10">
+        <div className="bg-[#0f1d18]/95 backdrop-blur-xl p-2 pl-6 md:pl-8 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-white/10 flex items-center gap-6 md:gap-10">
           <div className="flex flex-col py-2">
             <span className="font-sans text-xs text-gray-400 font-medium">{t.services.selection}</span>
             <span className="font-display font-bold text-white text-lg">
@@ -515,7 +515,7 @@ export default function ServicesPage({ initialServices, initialSettings }: { ini
           </div>
           <Link 
             href={getBookingUrl()} 
-            className="px-6 md:px-8 py-4 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white rounded-full font-sans font-bold text-sm md:text-base shadow-lg shadow-red-500/30 transition-all flex items-center gap-2 group"
+            className="px-6 md:px-8 py-4 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white rounded-full font-sans font-bold text-sm md:text-base shadow-lg shadow-emerald-500/30 transition-all flex items-center gap-2 group"
           >
             {t.services.bookBtn}
             <span className="material-symbols-outlined text-[18px] group-hover:translate-x-1 transition-transform">east</span>
