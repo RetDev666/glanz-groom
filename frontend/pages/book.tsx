@@ -365,46 +365,44 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
     }
   }, [step, booking.date, busySlotsDate, booking.groomerId, totalDuration]);
 
-  const toggleService = (petIndex: number, id: number, isPackage: boolean) => {
+  const toggleServiceForSize = (serviceId: number, size: 'xs' | 's' | 'm' | 'l' | 'xl', isPackage: boolean) => {
     setBooking(b => {
       const newPets = [...b.pets];
+      let petIndex = newPets.findIndex(p => p.petSize === size);
+      
+      if (petIndex === -1) {
+        newPets.push({
+          id: Date.now().toString() + '-' + size,
+          petSize: size,
+          selectedServices: [],
+          petName: '',
+          petBreed: '',
+          photoFile: null,
+          photoPreview: null
+        });
+        petIndex = newPets.length - 1;
+      }
+      
       const pet = { ...newPets[petIndex] };
+      const packageIds = packages.map(p => p.id);
+
       if (isPackage) {
-        const packageIds = packages.map(p => p.id);
         const other = pet.selectedServices.filter(sid => !packageIds.includes(sid));
-        pet.selectedServices = pet.selectedServices.includes(id) ? other : [...other, id];
+        pet.selectedServices = pet.selectedServices.includes(serviceId) ? other : [...other, serviceId];
       } else {
-        if (pet.selectedServices.includes(id)) {
-          pet.selectedServices = pet.selectedServices.filter(x => x !== id);
+        if (pet.selectedServices.includes(serviceId)) {
+          pet.selectedServices = pet.selectedServices.filter(x => x !== serviceId);
         } else {
-          pet.selectedServices = [...pet.selectedServices, id];
+          pet.selectedServices = [...pet.selectedServices, serviceId];
         }
       }
-      newPets[petIndex] = pet;
-      return { ...b, pets: newPets };
-    });
-  };
+      
+      if (pet.selectedServices.length === 0) {
+         newPets.splice(petIndex, 1);
+      } else {
+         newPets[petIndex] = pet;
+      }
 
-  const addPet = () => {
-    setBooking(b => ({
-      ...b,
-      pets: [...b.pets, {
-        id: Date.now().toString(),
-        petSize: 'm',
-        selectedServices: [],
-        petName: '',
-        petBreed: '',
-        photoFile: null,
-        photoPreview: null
-      }]
-    }));
-  };
-
-  const removePet = (petIndex: number) => {
-    if (booking.pets.length <= 1) return;
-    setBooking(b => {
-      const newPets = [...b.pets];
-      newPets.splice(petIndex, 1);
       return { ...b, pets: newPets };
     });
   };
@@ -684,129 +682,94 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
         {step === 0 && (
           <div className="flex flex-col gap-6">
             <div className="text-center">
-              <h2 className="font-display text-headline-lg text-on-surface">{t.book.step0.title}</h2>
-              <p className="font-sans text-body-md text-on-surface-variant">{t.book.step0.desc}</p>
+              <h2 className="font-display text-headline-lg text-on-surface">Leistungen wählen</h2>
+              <p className="font-sans text-body-md text-on-surface-variant">Bitte wählen Sie die gewünschten Leistungen für Ihren Hund.</p>
             </div>
 
-            {booking.pets.map((pet, petIndex) => (
-              <div key={pet.id} className="relative bg-surface-container-low rounded-2xl p-4 border border-surface-variant">
-                {booking.pets.length > 1 && (
-                  <div className="flex justify-between items-center mb-4 pb-2 border-b border-outline">
-                    <h3 className="font-display text-label-lg font-bold text-primary">Собака {petIndex + 1}</h3>
-                    <button onClick={() => removePet(petIndex)} className="text-error hover:bg-error-container p-1 rounded">
-                      <span className="material-symbols-outlined text-[20px]">delete</span>
-                    </button>
-                  </div>
-                )}
-                
-                <p className="font-sans text-label-lg text-on-surface mb-3">{t.book.step0.petSize}</p>
-                <div className="flex flex-wrap gap-2">
-                  {(['xs', 's', 'm', 'l', 'xl'] as const).map(size => (
-                    <button
-                      key={size}
-                      onClick={() => {
-                        const newPets = [...booking.pets];
-                        const priceKey = SIZE_PRICE_KEY[size];
-                        const validServices = pet.selectedServices.filter(id => {
-                           const s = services.find(svc => svc.id === id);
-                           return s && Number(s[priceKey as keyof Service]) !== 0;
-                        });
-                        newPets[petIndex] = { ...pet, petSize: size, selectedServices: validServices };
-                        setBooking({ ...booking, pets: newPets });
-                      }}
-                      className={`flex-1 py-2 px-3 rounded-xl font-sans text-label-sm transition-all ${
-                        pet.petSize === size
-                          ? 'bg-primary text-on-primary shadow-sm'
-                          : 'bg-surface border border-surface-variant text-on-surface-variant hover:border-primary'
-                      }`}
-                    >
-                      {size.toUpperCase()}
-                    </button>
-                  ))}
-                </div>
-                <p className="font-sans text-label-sm text-on-surface-variant mt-3 text-center">{SIZE_LABELS[pet.petSize]}</p>
-                {breedsConfig[pet.petSize] && (
-                  <p className="font-sans text-label-sm text-on-surface-variant/80 mt-1 text-center italic">
-                    Beispiele: {breedsConfig[pet.petSize].join(', ')}
-                  </p>
-                )}
+            <div className="flex flex-col gap-4">
+               {services.map(svc => {
+                  const isExpanded = expandedDesc[svc.id];
+                  const isPackage = svc.category === 'package';
+                  const SIZES = ['xs', 's', 'm', 'l', 'xl'] as const;
+                  const BREED_IMAGES = {
+                     xs: '/breeds/chihuahua.png',
+                     s: '/breeds/yorkie.png',
+                     m: '/breeds/cocker.png',
+                     l: '/breeds/golden.png',
+                     xl: '/breeds/gsd.png'
+                  };
 
-                <div className="flex flex-col gap-3 mt-6">
-                  <h3 className="font-sans text-label-lg text-on-surface uppercase tracking-widest pl-2 border-l-2 border-primary">{t.book.step0.mainPackages}</h3>
-                  {packages.map(svc => {
-                    const selected = pet.selectedServices.includes(svc.id);
-                    const p = svc[SIZE_PRICE_KEY[pet.petSize] as keyof Service];
-                    const d = svc[SIZE_DURATION_KEY[pet.petSize] as keyof Service];
-                    if (Number(p) === 0) return null;
-                    return (
-                      <label key={svc.id} className="relative block cursor-pointer">
-                        <input type="radio" name={`package-${pet.id}`} className="sr-only" checked={selected} onChange={() => toggleService(petIndex, svc.id, true)} />
-                        <div className={`bg-surface rounded-2xl border-2 transition-all flex items-center p-4 gap-4 ${selected ? 'border-primary shadow-md' : 'border-surface-variant'}`}>
-                          <div className="flex flex-col flex-1 gap-1">
-                            <div className="flex justify-between items-start">
-                              <h4 className="font-sans text-label-lg text-on-surface">{getServiceName(svc)}</h4>
-                              <span className="font-display font-bold text-primary">{p}€</span>
-                            </div>
-                            <p 
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                setExpandedDesc(prev => ({ ...prev, [svc.id]: !prev[svc.id] }));
-                              }}
-                              className={`font-sans text-body-md text-on-surface-variant text-sm transition-all duration-300 ${expandedDesc[svc.id] ? '' : 'line-clamp-2'}`}
-                            >
-                              {svc.description}
-                            </p>
-                            <p className="font-sans text-label-sm text-on-surface-variant flex items-center gap-1 mt-1">
-                              <span className="material-symbols-outlined text-[14px]">schedule</span>
-                              {d} {t.book.step0.min}
-                            </p>
-                          </div>
-                          <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 ${selected ? 'border-primary bg-primary' : 'border-outline'}`}>
-                            {selected && <div className="w-2.5 h-2.5 bg-on-primary rounded-full" />}
-                          </div>
+                  return (
+                     <div key={svc.id} className="bg-surface-container-low rounded-2xl border border-surface-variant overflow-hidden shadow-sm">
+                        <div 
+                           className="flex items-center justify-between p-4 cursor-pointer hover:bg-surface-container transition-colors"
+                           onClick={() => setExpandedDesc(prev => ({ ...prev, [svc.id]: !prev[svc.id] }))}
+                        >
+                           <div className="flex flex-col">
+                              <h3 className="font-display font-bold text-lg text-on-surface uppercase tracking-wide">{getServiceName(svc)}</h3>
+                              <p className={`text-sm text-on-surface-variant ${isExpanded ? '' : 'line-clamp-1'} mt-1`}>{svc.description}</p>
+                           </div>
+                           <span className="material-symbols-outlined text-primary transition-transform ml-4 shrink-0" style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                              expand_more
+                           </span>
                         </div>
-                      </label>
-                    );
-                  })}
-                </div>
+                        
+                        {isExpanded && (
+                           <div className="p-4 bg-surface border-t border-surface-variant flex flex-col gap-4">
+                              {SIZES.map(size => {
+                                 const priceKey = SIZE_PRICE_KEY[size] as keyof Service;
+                                 const durationKey = SIZE_DURATION_KEY[size] as keyof Service;
+                                 const p = Number(svc[priceKey]) || 0;
+                                 const d = Number(svc[durationKey]) || 0;
+                                 if (p === 0) return null;
 
-                <div className="flex flex-col gap-3 mt-4">
-                  <h3 className="font-sans text-label-lg text-on-surface uppercase tracking-widest pl-2 border-l-2 border-secondary">{t.book.step0.additional}</h3>
-                  {addons.map(svc => {
-                    const selected = pet.selectedServices.includes(svc.id);
-                    const p = svc[SIZE_PRICE_KEY[pet.petSize] as keyof Service];
-                    const d = svc[SIZE_DURATION_KEY[pet.petSize] as keyof Service];
-                    if (Number(p) === 0) return null;
-                    return (
-                      <label key={svc.id} className="relative block cursor-pointer">
-                        <input type="checkbox" className="sr-only" checked={selected} onChange={() => toggleService(petIndex, svc.id, false)} />
-                        <div className={`bg-surface rounded-2xl border-2 transition-all flex items-center p-4 gap-4 ${selected ? 'border-secondary shadow-md' : 'border-surface-variant'}`}>
-                          <div className="flex flex-col flex-1 gap-1">
-                            <div className="flex justify-between items-start">
-                              <h4 className="font-sans text-label-lg text-on-surface">{getServiceName(svc)}</h4>
-                              <span className="font-display font-bold text-secondary">{p}€</span>
-                            </div>
-                            <p className="font-sans text-label-sm text-on-surface-variant flex items-center gap-1 mt-1">
-                              <span className="material-symbols-outlined text-[14px]">schedule</span>
-                              {d} {t.book.step0.min}
-                            </p>
-                          </div>
-                          <div className={`w-6 h-6 rounded border-2 flex items-center justify-center shrink-0 ${selected ? 'border-secondary bg-secondary' : 'border-outline'}`}>
-                            {selected && <span className="material-symbols-outlined text-[16px] text-on-secondary">check</span>}
-                          </div>
-                        </div>
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
+                                 const pet = booking.pets.find(p => p.petSize === size);
+                                 const isSelected = pet?.selectedServices.includes(svc.id) || false;
 
-            <button onClick={addPet} className="w-full py-4 border-2 border-dashed border-primary text-primary rounded-2xl font-sans text-label-lg hover:bg-primary-container transition-all flex items-center justify-center gap-2">
-              <span className="material-symbols-outlined">pets</span>
-              Додати ще собаку
-            </button>
+                                 return (
+                                    <label key={size} className={`flex flex-row items-start gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${isSelected ? 'border-primary bg-primary/5 shadow-md' : 'border-outline hover:border-primary/50'}`}>
+                                       <div className="w-24 h-24 rounded-xl bg-surface-container overflow-hidden shrink-0 hidden sm:block">
+                                          <img src={BREED_IMAGES[size]} alt={size} className="w-full h-full object-cover" />
+                                       </div>
+                                       <div className="flex flex-col flex-1">
+                                          <div className="flex justify-between items-start mb-2">
+                                             <span className="font-bold text-primary uppercase bg-primary-container text-on-primary-container px-2 py-0.5 rounded text-xs">
+                                                RASSEN
+                                             </span>
+                                             <div className="relative flex items-center justify-center">
+                                                <input 
+                                                   type="checkbox" 
+                                                   className="sr-only"
+                                                   checked={isSelected}
+                                                   onChange={() => toggleServiceForSize(svc.id, size, isPackage)}
+                                                />
+                                                <div className={`w-6 h-6 rounded border-2 transition-all flex items-center justify-center ${isSelected ? 'bg-primary border-primary' : 'bg-surface border-outline hover:border-primary'}`}>
+                                                   {isSelected && <span className="material-symbols-outlined text-on-primary text-[18px]">check</span>}
+                                                </div>
+                                             </div>
+                                          </div>
+                                          <p className="text-[11px] text-on-surface-variant font-semibold mb-2 leading-tight uppercase">
+                                             {breedsConfig[size]?.join(', ') || SIZE_LABELS[size]}
+                                          </p>
+                                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-t border-outline-variant pt-2 mt-auto">
+                                             <div>
+                                                <h4 className="font-bold text-on-surface text-sm">{size.toUpperCase()} <span className="font-normal text-on-surface-variant">({SIZE_LABELS[size]})</span></h4>
+                                                <p className="text-xs text-on-surface-variant flex items-center gap-1 mt-0.5">
+                                                   <span className="material-symbols-outlined text-[12px]">schedule</span> {d} Min
+                                                </p>
+                                             </div>
+                                             <p className="font-display font-bold text-lg text-primary">{p} €</p>
+                                          </div>
+                                       </div>
+                                    </label>
+                                 )
+                              })}
+                           </div>
+                        )}
+                     </div>
+                  )
+               })}
+            </div>
           </div>
         )}
 
@@ -961,25 +924,35 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
                 <input type="email" value={booking.email} onChange={e => setBooking({ ...booking, email: e.target.value })} className="w-full bg-surface border border-outline rounded-xl px-4 py-3 focus:border-primary focus:ring-1 outline-none" placeholder={t.book.step3.emailPh} />
               </div>
 
-              {booking.pets.map((pet, petIndex) => (
+              {booking.pets.map((pet, petIndex) => {
+                 const petServices = pet.selectedServices
+                    .map(id => services.find(s => s.id === id))
+                    .filter(Boolean)
+                    .map(s => getServiceName(s!))
+                    .join(', ');
+
+                 return (
                 <div key={pet.id} className="p-4 bg-surface-container-low border border-surface-variant rounded-xl mt-4">
-                  <h3 className="font-display text-label-lg font-bold text-primary mb-3 pb-2 border-b border-outline">Собака {petIndex + 1} ({SIZE_LABELS[pet.petSize]})</h3>
-                  <div className="grid grid-cols-2 gap-4">
+                  <h3 className="font-display text-label-lg font-bold text-primary mb-1 pb-2 border-b border-outline">
+                    Hund {petIndex + 1} ({pet.petSize.toUpperCase()} - {SIZE_LABELS[pet.petSize]})
+                  </h3>
+                  <p className="text-xs text-on-surface-variant mb-4 italic">Gewählte Leistungen: {petServices}</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block font-sans text-label-sm text-on-surface-variant mb-1">{t.book.step3.petName}</label>
+                      <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Name des Hundes</label>
                       <input type="text" value={pet.petName} onChange={e => {
                         const newPets = [...booking.pets];
                         newPets[petIndex] = { ...pet, petName: e.target.value };
                         setBooking({ ...booking, pets: newPets });
-                      }} className="w-full bg-surface border border-outline rounded-xl px-4 py-3 focus:border-primary focus:ring-1 outline-none" placeholder={t.book.step3.petNamePh} />
+                      }} className="w-full bg-surface border border-outline rounded-xl px-4 py-3 focus:border-primary focus:ring-1 outline-none" placeholder="z.B. Rex" />
                     </div>
                     <div>
-                      <label className="block font-sans text-label-sm text-on-surface-variant mb-1">{t.book.step3.petBreed}</label>
+                      <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Hunderasse</label>
                       <input type="text" list={`breed-suggestions-${pet.id}`} value={pet.petBreed} onChange={e => {
                         const newPets = [...booking.pets];
                         newPets[petIndex] = { ...pet, petBreed: e.target.value };
                         setBooking({ ...booking, pets: newPets });
-                      }} className="w-full bg-surface border border-outline rounded-xl px-4 py-3 focus:border-primary focus:ring-1 outline-none" placeholder={t.book.step3.petBreedPh} />
+                      }} className="w-full bg-surface border border-outline rounded-xl px-4 py-3 focus:border-primary focus:ring-1 outline-none" placeholder="z.B. Chihuahua" />
                       {breedsConfig[pet.petSize] && breedsConfig[pet.petSize].length > 0 && (
                         <datalist id={`breed-suggestions-${pet.id}`}>
                           {breedsConfig[pet.petSize].map(b => (
@@ -992,7 +965,7 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
 
                   {/* Pet Photo Upload */}
                   <div className="mt-4">
-                    <label className="block font-sans text-label-sm text-on-surface-variant mb-1">{t.book.step3.photoLabel}</label>
+                    <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Foto des Hundes (optional)</label>
                     <div 
                       onClick={() => {
                         const input = document.getElementById(`photoUpload-${pet.id}`);
@@ -1012,20 +985,21 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
                           <img src={pet.photoPreview} alt="Preview" className="w-16 h-16 rounded-lg object-cover border border-outline" />
                           <div className="flex-1">
                             <p className="font-sans text-label-md text-on-surface font-semibold">{pet.photoFile?.name}</p>
-                            <p className="font-sans text-body-sm text-primary hover:underline">{t.book.step3.photoChange}</p>
+                            <p className="font-sans text-body-sm text-primary hover:underline">Foto ändern</p>
                           </div>
                         </div>
                       ) : (
                         <div className="text-center">
                           <span className="material-symbols-outlined text-[32px] text-on-surface-variant mb-2">add_a_photo</span>
-                          <p className="font-sans text-label-md text-on-surface">{t.book.step3.photoHelp}</p>
-                          <p className="font-sans text-body-sm text-on-surface-variant">{t.book.step3.photoTypes}</p>
+                          <p className="font-sans text-label-md text-on-surface">Foto hochladen</p>
+                          <p className="font-sans text-body-sm text-on-surface-variant">JPG, PNG (max. 5MB)</p>
                         </div>
                       )}
                     </div>
                   </div>
                 </div>
-              ))}
+              );
+            })}
 
               <div className="mt-4">
                 <label className="block font-sans text-label-sm text-on-surface-variant mb-1">{t.book.step3.notes}</label>
