@@ -454,6 +454,116 @@ function NewAppointmentModal({
     </div>
   );
 }
+
+function BlockTimeModal({
+  groomers, currentDate, onClose, onSave, t
+}: {
+  groomers: Record<string, unknown>[];
+  currentDate: Date;
+  onClose: () => void;
+  onSave: () => void;
+  t: ReturnType<typeof useAdminLang>['t'];
+}) {
+  const [form, setForm] = useState({
+    groomerId: String(groomers[0]?.id || ''),
+    startTime: '09:00',
+    endTime: '18:00',
+    notes: 'Blockiert'
+  });
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    const [sh, sm] = form.startTime.split(':').map(Number);
+    const [eh, em] = form.endTime.split(':').map(Number);
+    
+    const startMins = sh * 60 + sm;
+    const endMins = eh * 60 + em;
+    const duration = endMins - startMins;
+
+    if (duration <= 0) {
+      alert('Ungültige Zeitspanne');
+      setLoading(false);
+      return;
+    }
+
+    const dateStr = currentDate.toISOString().split('T')[0];
+
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || '/api'}/appointments/admin-create`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('admin_token')}` },
+      body: JSON.stringify({
+        clientFirstName: 'System',
+        clientPhone: '000000000',
+        petName: form.notes,
+        petSize: 'm',
+        serviceIds: [],
+        groomerId: Number(form.groomerId),
+        date: `${dateStr}T${form.startTime}:00`,
+        duration,
+        totalPrice: 0,
+        notes: form.notes
+      })
+    });
+
+    if (res.ok) {
+      onSave();
+      onClose();
+    } else {
+      alert('Fehler beim Blockieren');
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-surface-container-lowest rounded-3xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto border border-outline-variant" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-6 border-b border-outline-variant">
+          <h3 className="font-display text-headline-sm text-on-surface">Zeit blockieren</h3>
+          <button type="button" onClick={onClose} className="p-2 rounded-full hover:bg-surface-container-high text-on-surface-variant transition-colors">
+            <span className="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-5">
+          <div className="flex flex-col gap-1.5">
+            <label className="font-sans text-label-sm text-on-surface-variant">Groomer</label>
+            <select value={form.groomerId} onChange={e => setForm({...form, groomerId: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-4 py-3 outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all">
+              {groomers.map((g: any) => (
+                <option key={g.id} value={g.id}>{g.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="font-sans text-label-sm text-on-surface-variant">Von</label>
+              <input type="time" required value={form.startTime} onChange={e => setForm({...form, startTime: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-4 py-3 outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="font-sans text-label-sm text-on-surface-variant">Bis</label>
+              <input type="time" required value={form.endTime} onChange={e => setForm({...form, endTime: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-4 py-3 outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" />
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="font-sans text-label-sm text-on-surface-variant">Notiz (optional)</label>
+            <input type="text" placeholder="Blockiert" value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-4 py-3 outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" />
+          </div>
+
+          <div className="pt-2 flex gap-3">
+            <button type="button" onClick={onClose} className="flex-1 py-3 bg-surface-container rounded-xl font-sans hover:bg-surface-container-high transition-colors text-on-surface">Abbrechen</button>
+            <button type="submit" disabled={loading} className="flex-1 py-3 bg-primary text-on-primary rounded-xl font-sans font-bold hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+              {loading ? 'Blockiere...' : 'Blockieren'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
 export default function CalendarPage() {
   const { t } = useAdminLang();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -470,6 +580,7 @@ export default function CalendarPage() {
   const [view, setView] = useState<'week' | 'day'>('day');
   const [selectedApt, setSelectedApt] = useState<Appointment | null>(null);
   const [showNewApt, setShowNewApt] = useState(false);
+  const [showBlockModal, setShowBlockModal] = useState(false);
 
   const fetchAppointments = () => {
     setCurrentDate(new Date(currentDate));
@@ -563,32 +674,8 @@ export default function CalendarPage() {
     return ((d.getHours() - 9) + d.getMinutes() / 60) * 80;
   };
 
-  const handleBlockDay = async () => {
-    const groomerId = prompt('Für welchen Groomer? (Geben Sie die ID ein, z.B. 1, 2, 3...)');
-    if (!groomerId) return;
-    
-    const dateStr = currentDate.toISOString().split('T')[0];
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || '/api'}/appointments/admin-create`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('admin_token')}` },
-      body: JSON.stringify({
-        clientFirstName: 'System',
-        clientPhone: '000000000',
-        petName: 'Blockiert',
-        petSize: 'm',
-        serviceIds: [],
-        groomerId: Number(groomerId),
-        date: `${dateStr}T09:00:00`,
-        duration: 540,
-        totalPrice: 0,
-        notes: 'Gesperrter Tag'
-      })
-    });
-    if (res.ok) {
-      setCurrentDate(new Date(currentDate)); // reload
-    } else {
-      alert('Fehler beim Blockieren');
-    }
+  const handleBlockDay = () => {
+    setShowBlockModal(true);
   };
 
   const getHeight = (duration: number) => (duration / 60) * 80;
@@ -598,6 +685,7 @@ export default function CalendarPage() {
     <AdminLayout title={t.calendar.title}>
       {selectedApt && <AppointmentDetailModal apt={selectedApt} groomers={groomers} t={t} onClose={() => setSelectedApt(null)} onSave={handleUpdateAppointment} onDelete={handleDeleteAppointment} />}
       {showNewApt && <NewAppointmentModal groomers={groomers} t={t} onClose={() => setShowNewApt(false)} onSave={() => setCurrentDate(new Date(currentDate))} />}
+      {showBlockModal && <BlockTimeModal groomers={groomers} currentDate={currentDate} t={t} onClose={() => setShowBlockModal(false)} onSave={() => setCurrentDate(new Date(currentDate))} />}
 
       <header className="sticky top-0 bg-surface border-b border-outline-variant flex justify-between items-center px-6 h-16 shrink-0 z-40">
         <div className="flex items-center gap-4">
@@ -627,7 +715,7 @@ export default function CalendarPage() {
             className="bg-surface-container text-on-surface font-sans text-label-lg px-4 py-1.5 rounded-full hover:bg-surface-container-high border border-outline-variant transition-opacity flex items-center gap-1 shadow-sm"
           >
             <span className="material-symbols-outlined text-[18px]">block</span>
-            Tag blockieren
+            Zeit blockieren
           </button>
           <button
             onClick={() => setCurrentDate(new Date())}
