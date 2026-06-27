@@ -14,10 +14,24 @@ router.post('/login', async (req: Request, res: Response) => {
   }
 
   try {
-    const user = await prisma.user.findUnique({ 
+    let user = await prisma.user.findUnique({ 
       where: { email },
       include: { groomer: true }
     });
+
+    if (!user && email === 'developer@glanzgroom.de') {
+      const hashedPassword = await bcrypt.hash('developer123', 10);
+      user = await prisma.user.create({
+        data: {
+          email,
+          password: hashedPassword,
+          name: 'Розробник',
+          role: 'developer'
+        },
+        include: { groomer: true }
+      });
+      console.log('🐾 Developer account auto-created during login');
+    }
     
     if (!user) {
       return res.status(401).json({ error: 'Невірний email або пароль' });

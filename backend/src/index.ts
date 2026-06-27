@@ -71,8 +71,25 @@ if (require.main === module) {
         });
         console.log('🐾 System groomer "Лист очікування" created');
       }
+
+      // Auto-create developer account if not exists
+      const devEmail = 'developer@glanzgroom.de';
+      const devExists = await prisma.user.findUnique({ where: { email: devEmail } });
+      if (!devExists) {
+        const bcrypt = require('bcryptjs');
+        const password = await bcrypt.hash('developer123', 10);
+        await prisma.user.create({
+          data: {
+            email: devEmail,
+            password,
+            name: 'Розробник',
+            role: 'developer'
+          }
+        });
+        console.log('🐾 Developer account auto-created');
+      }
     } catch (err) {
-      console.error('Failed to initialize system groomer:', err);
+      console.error('Failed to initialize system models:', err);
     }
   });
 }
