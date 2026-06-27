@@ -71,7 +71,7 @@ export default function DashboardPage() {
         <div className="flex items-center gap-3">
           <h2 className="font-display text-xl font-bold text-on-surface">{t.dashboard.title}</h2>
           <span className="font-sans text-label-sm text-on-surface-variant bg-surface-container-low px-3 py-1 rounded-full">
-            {new Date().toLocaleDateString('uk-UA', { day: 'numeric', month: 'long', year: 'numeric' })}
+            {new Date().toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' })}
           </span>
         </div>
         <Link href="/calendar" className="flex items-center gap-2 text-sm font-sans text-primary hover:underline">
@@ -125,7 +125,7 @@ export default function DashboardPage() {
                     return (
                       <tr key={String(apt.id)} className="hover:bg-surface-container-low transition-colors">
                         <td className="px-4 py-3 font-sans text-label-lg text-on-surface font-semibold whitespace-nowrap">
-                          {new Date(String(apt.date)).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}
+                          {new Date(String(apt.date)).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
                         </td>
                         <td className="px-4 py-3 font-sans text-body-md text-on-surface whitespace-nowrap">
                           {client ? `${client.firstName} ${client.lastName}` : '—'}

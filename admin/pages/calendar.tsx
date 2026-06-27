@@ -741,7 +741,7 @@ export default function CalendarPage() {
                                 {(() => {
                                   const s = new Date(String(apt.date));
                                   const e = new Date(s.getTime() + Number(apt.duration) * 60000);
-                                  return `${s.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })} - ${e.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}`;
+                                  return `${s.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} - ${e.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}`;
                                 })()}
                               </span>
                             </div>
@@ -786,7 +786,7 @@ export default function CalendarPage() {
                                 {(() => {
                                   const s = new Date(String(apt.date));
                                   const e = new Date(s.getTime() + Number(apt.duration) * 60000);
-                                  return `${s.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })} - ${e.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}`;
+                                  return `${s.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} - ${e.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}`;
                                 })()}
                               </span>
                             </div>

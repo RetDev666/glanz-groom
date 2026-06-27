@@ -101,7 +101,7 @@ function ClientDetailModal({ clientId, onClose }: { clientId: number; onClose: (
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1 flex-wrap">
                             <span className="font-sans text-label-lg text-on-surface font-semibold">
-                              {new Date(String(apt.date)).toLocaleString('uk-UA', {
+                              {new Date(String(apt.date)).toLocaleString('de-DE', {
                                 day: 'numeric', month: 'short', year: 'numeric',
                                 hour: '2-digit', minute: '2-digit',
                               })}
@@ -257,7 +257,7 @@ export default function ClientsPage() {
                           </span>
                         </td>
                         <td className="px-4 py-3 font-sans text-label-sm text-on-surface-variant">
-                          {new Date(String(client.createdAt)).toLocaleDateString('uk-UA')}
+                          {new Date(String(client.createdAt)).toLocaleDateString('de-DE')}
                         </td>
                       </tr>
                     );
