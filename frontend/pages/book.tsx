@@ -65,21 +65,22 @@ function MiniCalendar({ value, onChange }: { value: string; onChange: (date: str
           const date = new Date(viewYear, viewMonth, day);
           date.setHours(0,0,0,0);
           const isPast = date < today;
+          const isSunday = date.getDay() === 0;
           const isToday = date.getTime() === today.getTime();
           const isSelected = selectedDate && date.getTime() === selectedDate.getTime();
           const dateStr = `${viewYear}-${String(viewMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
           return (
             <button
               key={day}
-              disabled={isPast}
+              disabled={isPast || isSunday}
               onClick={() => onChange(dateStr)}
               className={`aspect-square w-full flex items-center justify-center rounded-xl text-sm font-sans transition-all ${
                 isSelected
                   ? 'bg-primary text-on-primary font-bold shadow-sm scale-105'
                   : isToday
                   ? 'border-2 border-primary text-primary font-bold'
-                  : isPast
-                  ? 'text-on-surface-variant/30 cursor-not-allowed'
+                  : isPast || isSunday
+                  ? 'text-on-surface-variant/30 cursor-not-allowed bg-surface-container-lowest'
                   : 'hover:bg-primary/10 text-on-surface'
               }`}
             >
