@@ -706,7 +706,12 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
                       key={size}
                       onClick={() => {
                         const newPets = [...booking.pets];
-                        newPets[petIndex] = { ...pet, petSize: size, selectedServices: [] };
+                        const priceKey = SIZE_PRICE_KEY[size];
+                        const validServices = pet.selectedServices.filter(id => {
+                           const s = services.find(svc => svc.id === id);
+                           return s && Number(s[priceKey as keyof Service]) !== 0;
+                        });
+                        newPets[petIndex] = { ...pet, petSize: size, selectedServices: validServices };
                         setBooking({ ...booking, pets: newPets });
                       }}
                       className={`flex-1 py-2 px-3 rounded-xl font-sans text-label-sm transition-all ${
