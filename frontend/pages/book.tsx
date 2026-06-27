@@ -305,7 +305,7 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
     const groomerBusyRanges: Record<number, {start: number, end: number}[]> = {};
     busySlots.forEach(slot => {
       const d = new Date(slot.date);
-      const startMins = d.getUTCHours() * 60 + d.getUTCMinutes(); 
+      const startMins = d.getHours() * 60 + d.getMinutes(); 
       const endMins = startMins + slot.duration;
       if (!groomerBusyRanges[slot.groomerId]) groomerBusyRanges[slot.groomerId] = [];
       groomerBusyRanges[slot.groomerId].push({ start: startMins, end: endMins });
