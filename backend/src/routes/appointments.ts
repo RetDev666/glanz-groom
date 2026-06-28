@@ -97,6 +97,50 @@ router.get('/latest', requireAuth, async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+// POST /api/appointments/admin-create
+router.post('/admin-create', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const { groomerId, date, duration, notes, petName, petSize, clientFirstName, clientPhone } = req.body;
+
+    let client = await prisma.client.findFirst({ where: { phone: clientPhone } });
+    if (!client) {
+      client = await prisma.client.create({
+        data: { 
+          firstName: clientFirstName || 'System', 
+          lastName: 'Block', 
+          email: `system-${Date.now()}@local`, 
+          phone: clientPhone || '000000000' 
+        }
+      });
+    }
+
+    let pet = await prisma.pet.findFirst({ where: { clientId: client.id, name: petName || 'Block' } });
+    if (!pet) {
+      pet = await prisma.pet.create({
+        data: { name: petName || 'Block', breed: 'Unknown', size: petSize || 'm', clientId: client.id }
+      });
+    }
+
+    const appointment = await prisma.appointment.create({
+      data: {
+        date: new Date(date),
+        duration: Number(duration),
+        totalPrice: 0,
+        notes: notes || '',
+        status: 'confirmed',
+        clientId: client.id,
+        petId: pet.id,
+        groomerId: Number(groomerId),
+      }
+    });
+
+    res.json(appointment);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 
 // GET /api/appointments/:id
 router.get('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
