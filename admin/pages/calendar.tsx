@@ -212,11 +212,11 @@ function AppointmentDetailModal({
           )}
 
           {!isEditing && Boolean(apt.petPhotoUrl) && (
-            <div className="rounded-2xl overflow-hidden border border-outline-variant">
+            <div className="rounded-2xl overflow-hidden border border-outline-variant bg-surface-container-high flex justify-center items-center">
               <img
                 src={String(apt.petPhotoUrl)}
                 alt=""
-                className="w-full h-48 object-cover"
+                className="w-full max-h-72 object-contain"
                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
               />
             </div>
