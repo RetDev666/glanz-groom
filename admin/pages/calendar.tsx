@@ -15,6 +15,11 @@ const STATUS_COLORS: Record<string, string> = {
 
 type Appointment = Record<string, unknown>;
 
+const toLocalDateString = (d: Date) => {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+
 function AppointmentDetailModal({
   apt, groomers, onClose, onSave, onDelete, t, userRole
 }: {
@@ -529,7 +534,7 @@ function BlockTimeModal({
       return;
     }
 
-    const dateStr = currentDate.toISOString().split('T')[0];
+    const dateStr = toLocalDateString(currentDate);
 
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || '/api'}/appointments/admin-create`, {
       method: 'POST',
@@ -649,12 +654,12 @@ export default function CalendarPage() {
     
     let queryDate = '';
     if (view === 'day') {
-      queryDate = `date=${currentDate.toISOString().split('T')[0]}`;
+      queryDate = `date=${toLocalDateString(currentDate)}`;
     } else {
       const start = getWeekStart(currentDate);
       const end = new Date(start);
       end.setDate(end.getDate() + 6);
-      queryDate = `startDate=${start.toISOString().split('T')[0]}&endDate=${end.toISOString().split('T')[0]}`;
+      queryDate = `startDate=${toLocalDateString(start)}&endDate=${toLocalDateString(end)}`;
     }
 
     const fetchData = () => {
@@ -948,7 +953,7 @@ export default function CalendarPage() {
                 {Array.from({ length: 7 }, (_, i) => {
                   const d = new Date(getWeekStart(currentDate));
                   d.setDate(d.getDate() + i);
-                  const dateStr = d.toISOString().split('T')[0];
+                  const dateStr = toLocalDateString(d);
                   // In week view, we get all appointments for this day
                   const dayApts = appointments.filter(a => String(a.date).startsWith(dateStr));
                   
