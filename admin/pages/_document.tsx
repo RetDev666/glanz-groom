@@ -1,8 +1,9 @@
 import { Html, Head, Main, NextScript } from 'next/document';
 export default function Document() {
   return (
-    <Html lang="uk">
+    <Html lang="de">
       <Head>
+        <meta name="google" content="notranslate" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet" />
