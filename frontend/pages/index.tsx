@@ -113,12 +113,12 @@ export default function HomePage() {
       </section>
 
       {/* STATS */}
-      <section className="bg-[#059669] py-10 px-6 md:px-12">
+      <section className="bg-gradient-to-r from-primary-container to-primary py-10 px-6 md:px-12">
         <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
           {stats.map(s => (
             <div key={s.value}>
-              <div className="font-display text-3xl md:text-4xl font-extrabold text-white">{s.value}</div>
-              <div className="font-sans text-label-sm text-white/80 mt-1">{s.label}</div>
+              <div className="font-display text-3xl md:text-4xl font-extrabold text-on-primary-container">{s.value}</div>
+              <div className="font-sans text-label-sm text-on-primary-container/80 mt-1">{s.label}</div>
             </div>
           ))}
         </div>
@@ -267,7 +267,7 @@ export default function HomePage() {
       </section>
 
       {/* CTA BANNER */}
-      <section className="py-xl px-6 md:px-12 bg-gradient-to-r from-primary to-primary-container">
+      <section className="py-xl px-6 md:px-12 bg-gradient-to-r from-[#34d399] to-[#059669]">
         <div className="max-w-3xl mx-auto text-center">
           <span className="material-symbols-outlined fill text-[48px] text-on-primary/80 mb-4 block">pets</span>
           <h2 className="font-display text-headline-lg text-on-primary mb-4">
