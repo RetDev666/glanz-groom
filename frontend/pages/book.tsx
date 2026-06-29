@@ -1024,7 +1024,7 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
       </main>
 
       {/* BOTTOM ACTION BAR */}
-      <div className="fixed bottom-[72px] md:bottom-0 left-0 w-full bg-surface border-t border-surface-variant p-4 z-40 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+      <div className="fixed bottom-0 left-0 w-full bg-surface border-t border-surface-variant p-4 z-40 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div>
             <p className="font-sans text-label-sm text-on-surface-variant">{t.book.footer.totalToPay}</p>
