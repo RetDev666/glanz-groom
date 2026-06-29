@@ -1012,7 +1012,7 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
                     </div>
                   </div>
                   <span className="font-sans text-body-sm text-on-surface-variant leading-tight">
-                    Ich bin mit den <a href="/agb" className="text-primary hover:underline" target="_blank" onClick={e => e.stopPropagation()}>Allgemeinen Geschäftsbedingungen</a> einverstanden und bestätige, dass mein Hund keine ansteckenden Krankheiten hat.
+                    Ich erkläre mich damit einverstanden, dass eine Terminabsage nur bis spätestens 24 Stunden vor dem Termin kostenlos möglich ist. Bei einer späteren Absage oder bei Nichterscheinen verpflichte ich mich, 50 % der Kosten des gebuchten Termins zu bezahlen.
                   </span>
                 </label>
               </div>
