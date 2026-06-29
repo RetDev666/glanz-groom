@@ -152,7 +152,7 @@ export default function HomePage() {
           <div className="text-center mt-10">
             <Link
               href="/services"
-              className="inline-flex items-center gap-2 bg-secondary text-on-secondary font-sans text-label-lg py-3 px-8 rounded-full shadow-md hover:bg-secondary-fixed hover:text-on-secondary-fixed transition-all active:scale-95"
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-[#34d399] to-[#059669] text-white font-sans text-label-lg py-3 px-8 rounded-full shadow-md hover:opacity-90 transition-all active:scale-95"
             >
               {t.home.allServicesBtn}
             </Link>
