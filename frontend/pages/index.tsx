@@ -113,12 +113,12 @@ export default function HomePage() {
       </section>
 
       {/* STATS */}
-      <section className="bg-gradient-to-r from-primary-container to-primary py-10 px-6 md:px-12">
+      <section className="bg-gradient-to-r from-secondary to-secondary-container py-10 px-6 md:px-12">
         <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
           {stats.map(s => (
             <div key={s.value}>
-              <div className="font-display text-3xl md:text-4xl font-extrabold text-on-primary-container">{s.value}</div>
-              <div className="font-sans text-label-sm text-on-primary-container/80 mt-1">{s.label}</div>
+              <div className="font-display text-3xl md:text-4xl font-extrabold text-on-secondary-container">{s.value}</div>
+              <div className="font-sans text-label-sm text-on-secondary-container/80 mt-1">{s.label}</div>
             </div>
           ))}
         </div>
