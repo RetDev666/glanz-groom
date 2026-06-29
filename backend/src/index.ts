@@ -16,6 +16,7 @@ import offersRoutes from './routes/offers';
 import reviewsRoutes from './routes/reviews';
 import systemRouter from './routes/system';
 import adminsRouter from './routes/admins';
+import portfolioRoutes from './routes/portfolio';
 
 dotenv.config();
 
@@ -45,6 +46,7 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/offers', offersRoutes);
 app.use('/api/reviews', reviewsRoutes);
+app.use('/api/portfolio', portfolioRoutes);
 app.use('/api/system', systemRouter);
 app.use('/api/admins', adminsRouter);
 

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import Layout from '@/components/Layout';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useState, useEffect } from 'react';
+import BeforeAfterSlider from '@/components/BeforeAfterSlider';
 
 export default function HomePage() {
   const { t } = useTranslation();
@@ -16,6 +17,9 @@ export default function HomePage() {
   // ─── Real Google Reviews ────────────────────────────────────────────────────
   const [reviews, setReviews] = useState<any[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(true);
+  
+  // ─── Portfolio ──────────────────────────────────────────────────────────────
+  const [portfolioItems, setPortfolioItems] = useState<any[]>([]);
 
   useEffect(() => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api';
@@ -41,6 +45,15 @@ export default function HomePage() {
         ]);
       })
       .finally(() => setReviewsLoading(false));
+
+    fetch(`${apiUrl}/portfolio`)
+      .then(r => r.ok ? r.json() : [])
+      .then(data => {
+        if (Array.isArray(data)) {
+          setPortfolioItems(data.filter(item => item.isActive));
+        }
+      })
+      .catch(console.error);
   }, []);
 
   const stats = [
@@ -146,6 +159,43 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* PORTFOLIO / GALLERY */}
+      {portfolioItems.length > 0 && (
+        <section className="py-xl px-6 md:px-12 bg-surface-container-lowest overflow-hidden">
+          <div className="max-w-7xl mx-auto">
+            <div className="text-center mb-lg">
+              <h2 className="font-display text-headline-lg text-on-surface mb-2">Unsere Arbeiten</h2>
+              <p className="font-sans text-body-md text-on-surface-variant max-w-2xl mx-auto">
+                Sehen Sie sich die Ergebnisse unserer Pflege an (Vorher & Nachher).
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {portfolioItems.slice(0, 6).map(item => (
+                <div key={item.id} className="transform transition-transform duration-300 hover:scale-[1.02]">
+                  {item.beforeUrl ? (
+                    <BeforeAfterSlider 
+                      beforeUrl={item.beforeUrl} 
+                      afterUrl={item.afterUrl} 
+                      title={item.title} 
+                    />
+                  ) : (
+                    <div className="flex flex-col gap-3">
+                      <div className="w-full aspect-[4/3] rounded-3xl overflow-hidden shadow-sm border border-outline-variant">
+                        <img src={item.afterUrl} alt={item.title || "Grooming"} className="w-full h-full object-cover" />
+                      </div>
+                      {item.title && (
+                        <h4 className="font-display font-bold text-center text-on-surface text-lg">{item.title}</h4>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* REVIEWS */}
       <section className="py-xl px-6 md:px-12 bg-surface-container-lowest">
