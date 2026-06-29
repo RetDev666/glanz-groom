@@ -110,7 +110,7 @@ export const en = {
       title: 'Select Services',
       desc: 'Choose the pet size and service.',
       petSize: 'Pet Size',
-      sizes: { xs: 'XS (up to 2.5 kg)', s: 'S (up to 5.5 kg)', m: 'M (up to 10.5 kg)', l: 'L (up to 20.5 kg)', xl: 'XL (over 20.5 kg)' },
+      sizes: { xs: 'XS (up to 3 kg)', s: 'S (3 to 5.5 kg)', m: 'M (5.5 to 13 kg)', l: 'L (13 to 25 kg)', xl: 'XL (over 25 kg)' },
       mainPackages: 'Main Packages',
       additional: 'Additional Care',
       min: 'min'

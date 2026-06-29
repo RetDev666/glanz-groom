@@ -110,7 +110,7 @@ export const de = {
       title: 'Leistungen wählen',
       desc: 'Wählen Sie die Größe des Hundes und die Leistung.',
       petSize: 'Größe des Haustiers',
-      sizes: { xs: 'XS (bis 2.5 kg)', s: 'S (bis 5.5 kg)', m: 'M (bis 10.5 kg)', l: 'L (bis 20.5 kg)', xl: 'XL (ab 20.5 kg)' },
+      sizes: { xs: 'XS (bis 3 kg)', s: 'S (3 bis 5,5 kg)', m: 'M (5,5 bis 13 kg)', l: 'L (13 bis 25 kg)', xl: 'XL (ab 25 kg)' },
       mainPackages: 'Hauptpakete',
       additional: 'Zusatzpflege',
       min: 'Min'
