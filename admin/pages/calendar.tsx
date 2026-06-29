@@ -2,6 +2,11 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import AdminLayout from '@/components/AdminLayout';
 import { useAdminLang } from '../hooks/useAdminLang';
+import DatePicker, { registerLocale } from 'react-datepicker';
+import "react-datepicker/dist/react-datepicker.css";
+import { de } from 'date-fns/locale';
+
+registerLocale('de', de);
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
@@ -789,20 +794,18 @@ export default function CalendarPage() {
             <button onClick={prevDay} className="p-1.5 rounded-full hover:bg-surface-container-highest transition-colors">
               <span className="material-symbols-outlined text-[20px]">chevron_left</span>
             </button>
-            <div className="relative flex items-center">
-              <input
-                type="date"
-                value={toLocalDateString(currentDate)}
-                onChange={(e) => {
-                  if (e.target.value) setCurrentDate(new Date(e.target.value));
-                }}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-              />
-              <span className="font-sans text-label-lg px-2 hover:text-primary transition-colors cursor-pointer flex items-center gap-1">
-                {currentDate.toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' })}
-                <span className="material-symbols-outlined text-[16px]">expand_more</span>
-              </span>
-            </div>
+            <DatePicker
+              selected={currentDate}
+              onChange={(date: Date | null) => date && setCurrentDate(date)}
+              locale="de"
+              dateFormat="d. MMMM yyyy"
+              customInput={
+                <button className="font-sans text-label-lg px-2 hover:text-primary transition-colors cursor-pointer flex items-center gap-1 bg-transparent border-none outline-none">
+                  {currentDate.toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  <span className="material-symbols-outlined text-[16px]">expand_more</span>
+                </button>
+              }
+            />
             <button onClick={nextDay} className="p-1.5 rounded-full hover:bg-surface-container-highest transition-colors">
               <span className="material-symbols-outlined text-[20px]">chevron_right</span>
             </button>
