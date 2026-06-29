@@ -34,7 +34,7 @@ export default function Navbar() {
           />
           <div className="flex flex-col leading-tight">
             <span className="font-display font-extrabold text-lg text-primary tracking-tight">Glanz & Groom</span>
-            <span className="font-sans text-[11px] text-on-surface-variant tracking-widest uppercase">Hundepflege Salon</span>
+            <span className="font-sans text-[11px] text-on-surface-variant tracking-widest uppercase">Hundesalon</span>
           </div>
         </Link>
 
