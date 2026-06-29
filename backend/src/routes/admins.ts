@@ -31,7 +31,7 @@ router.get('/', requireAuth, requireDeveloper, async (req: Request, res: Respons
 // POST /api/admins
 router.post('/', requireAuth, requireDeveloper, async (req: Request, res: Response) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role } = req.body;
     if (!name || !email || !password) {
       res.status(400).json({ error: 'Name, email and password are required' });
       return;
@@ -49,11 +49,11 @@ router.post('/', requireAuth, requireDeveloper, async (req: Request, res: Respon
         name,
         email,
         password: hashedPassword,
-        role: 'admin',
+        role: role === 'developer' ? 'developer' : 'admin',
       },
     });
 
-    await logAudit(req, 'CREATE_ADMIN', `Admin created: ${email}`);
+    await logAudit(req, 'CREATE_ADMIN', `Admin created: ${email} (${newAdmin.role})`);
 
     res.json({ id: newAdmin.id, name: newAdmin.name, email: newAdmin.email, role: newAdmin.role });
   } catch (error) {

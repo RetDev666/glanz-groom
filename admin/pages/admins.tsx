@@ -7,7 +7,7 @@ const API = process.env.NEXT_PUBLIC_API_URL;
 export default function AdminsPage() {
   const [admins, setAdmins] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [newAdmin, setNewAdmin] = useState({ name: '', email: '', password: '' });
+  const [newAdmin, setNewAdmin] = useState({ name: '', email: '', password: '', role: 'admin' });
   const [creating, setCreating] = useState(false);
   const [userRole, setUserRole] = useState('');
   const { t } = useAdminLang();
@@ -59,7 +59,7 @@ export default function AdminsPage() {
         body: JSON.stringify(newAdmin),
       });
       if (res.ok) {
-        setNewAdmin({ name: '', email: '', password: '' });
+        setNewAdmin({ name: '', email: '', password: '', role: 'admin' });
         fetchAdmins();
       } else {
         const data = await res.json();
@@ -129,7 +129,17 @@ export default function AdminsPage() {
                 className="w-full bg-surface border border-outline rounded-xl px-4 py-2"
               />
             </div>
-            <button onClick={handleAddAdmin} className="bg-primary text-on-primary px-6 py-2 rounded-xl font-semibold hover:bg-primary/90 transition-colors">
+            <div className="flex-1 min-w-[200px]">
+              <select
+                value={newAdmin.role}
+                onChange={e => setNewAdmin({...newAdmin, role: e.target.value})}
+                className="w-full bg-surface border border-outline rounded-xl px-4 py-2 text-on-surface"
+              >
+                <option value="admin">Administrator (Standard)</option>
+                <option value="developer">Developer (Full Access)</option>
+              </select>
+            </div>
+            <button onClick={handleAddAdmin} disabled={creating} className="bg-primary text-on-primary px-6 py-2 rounded-xl font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50">
               {t.admins.createBtn}
             </button>
           </div>
