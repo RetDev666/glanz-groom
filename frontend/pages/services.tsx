@@ -288,7 +288,7 @@ export default function ServicesPage({ initialServices, initialSettings }: { ini
           
           <div className="flex flex-col items-center mb-16">
             <p className="font-sans text-xs text-gray-400 uppercase tracking-widest mb-6 font-semibold">
-              {t.services.forWhom} <span className="text-red-500 normal-case ml-2">({activeTab === 'xs' ? 'bis 5 kg' : activeTab === 's' ? '5-10 kg' : activeTab === 'm' ? '10-20 kg' : activeTab === 'l' ? '20-30 kg' : 'ab 30 kg'})</span>
+              {t.services.forWhom} <span className="text-red-500 normal-case ml-2">({activeTab === 'xs' ? 'bis 3 kg' : activeTab === 's' ? '3-5,5 kg' : activeTab === 'm' ? '5,5-13 kg' : activeTab === 'l' ? '13-25 kg' : 'ab 25 kg'})</span>
             </p>
             <div className="flex justify-center gap-6">
               {activeData.breeds.map((b: any) => (
