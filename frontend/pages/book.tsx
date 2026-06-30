@@ -645,7 +645,13 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
         <h1 className="font-display text-headline-md text-primary">{t.book.headerTitle}</h1>
-        <div className="w-10" />
+        <button
+          onClick={() => router.push('/')}
+          className="text-on-surface hover:text-primary transition-colors p-2 rounded-full hover:bg-surface-variant flex items-center justify-center"
+          title="Zur Startseite"
+        >
+          <span className="material-symbols-outlined">home</span>
+        </button>
       </header>
 
       <main className="flex-1 flex flex-col px-6 py-md gap-lg max-w-2xl mx-auto w-full pb-32">
