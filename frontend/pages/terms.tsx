@@ -5,14 +5,14 @@ export default function TermsPage() {
   return (
     <Layout showFab={false}>
       <Head>
-        <title>Загальні умови — Glanz & Groom</title>
-        <meta name="description" content="Загальні умови надання послуг салону Glanz & Groom." />
+        <title>Allgemeine Geschäftsbedingungen — Glanz & Groom</title>
+        <meta name="description" content="Allgemeine Geschäftsbedingungen für die Dienstleistungen des Salons Glanz & Groom." />
       </Head>
 
       <main className="max-w-4xl mx-auto px-6 py-12 md:py-xl">
         <div className="mb-12 text-center md:text-left border-b border-surface-variant pb-8">
-          <h1 className="font-display text-headline-xl text-on-surface mb-4">Загальні умови</h1>
-          <p className="font-sans text-body-lg text-on-surface-variant">Чинні з: 1 січня 2024 року</p>
+          <h1 className="font-display text-headline-xl text-on-surface mb-4">Allgemeine Geschäftsbedingungen</h1>
+          <p className="font-sans text-body-lg text-on-surface-variant">Gültig ab: 1. Januar 2024</p>
         </div>
 
         <article className="space-y-8">
@@ -20,36 +20,36 @@ export default function TermsPage() {
             {
               icon: 'verified',
               num: '1',
-              title: 'Сфера застосування',
-              content: 'Ці Загальні умови (далі — «Умови») регулюють усі послуги, що надаються салоном Glanz & Groom. Актуальна версія Умов діє на момент запису на прийом.',
+              title: 'Geltungsbereich',
+              content: 'Diese Allgemeinen Geschäftsbedingungen (AGB) gelten für alle Dienstleistungen des Salons Glanz & Groom. Die aktuelle Version der AGB ist zum Zeitpunkt der Terminbuchung gültig.',
             },
             {
               icon: 'calendar_month',
               num: '2',
-              title: 'Запис та скасування',
-              content: 'Записи є обов\'язковими. Просимо скасовувати не менш ніж за 24 години. При скасуванні менш ніж за 24 години може стягуватись плата в розмірі 50% від вартості послуги. У разі неявки без попередження стягується повна вартість.',
+              title: 'Terminbuchung und Absage',
+              content: 'Terminbuchungen sind verbindlich. Ich erkläre mich damit einverstanden, dass eine Terminabsage nur bis spätestens 24 Stunden vor dem Termin kostenlos möglich ist. Bei einer späteren Absage oder bei Nichterscheinen verpflichte ich mich, 50 % der Kosten des gebuchten Termins zu bezahlen.',
               list: [
-                'Скасування менш ніж за 24 год → 50% від вартості',
-                'Неявка без попередження → 100% від вартості',
+                'Absage weniger als 24 Stunden vorher → 50% der Kosten',
+                'Nichterscheinen ohne Absage → 50% bis 100% der Kosten',
               ],
             },
             {
               icon: 'payments',
               num: '3',
-              title: 'Ціни та оплата',
-              content: 'Усі ціни зазначені в гривнях та включають ПДВ. Оплата здійснюється після надання послуги готівкою або карткою.',
+              title: 'Preise und Zahlung',
+              content: 'Alle Preise verstehen sich in Euro und beinhalten die gesetzliche Mehrwertsteuer. Die Zahlung erfolgt nach Erbringung der Dienstleistung in bar oder per Karte.',
             },
             {
               icon: 'health_and_safety',
               num: '4',
-              title: 'Відповідальність та здоров\'я тварини',
-              content: 'Власник запевняє, що тварина здорова, без інфекційних захворювань та паразитів. Відомі захворювання, алергії або особливості поведінки необхідно повідомити до початку процедури. Салон не несе відповідальності за шкоду через приховані проблеми зі здоров\'ям, якщо лише не було грубої недбалості з боку салону.',
+              title: 'Haftung und Gesundheit des Tieres',
+              content: 'Der Besitzer versichert, dass das Tier gesund, frei von ansteckenden Krankheiten und Parasiten ist. Bekannte Krankheiten, Allergien oder Verhaltensauffälligkeiten müssen vor Beginn der Behandlung mitgeteilt werden. Der Salon haftet nicht für Schäden aufgrund versteckter gesundheitlicher Probleme, es sei denn, es liegt grobe Fahrlässigkeit seitens des Salons vor.',
             },
             {
               icon: 'lock',
               num: '5',
-              title: 'Захист даних',
-              content: 'Ми обробляємо персональні дані клієнтів лише для надання послуг. Дані не передаються третім сторонам без вашої згоди.',
+              title: 'Datenschutz',
+              content: 'Wir verarbeiten die personenbezogenen Daten der Kunden nur zur Erbringung der Dienstleistungen. Die Daten werden ohne Ihre Zustimmung nicht an Dritte weitergegeben.',
             },
           ].map(section => (
             <section key={section.num} className="bg-surface-container-lowest p-6 md:p-8 rounded-2xl shadow-sm border border-surface-variant">
