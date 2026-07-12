@@ -164,9 +164,48 @@ export async function getServerSideProps({ res }: any) {
         initialSettings: settings || {}
       }
     };
-  } catch (e) {
+} catch (e) {
     return { props: { initialServices: [], initialGroomers: [], initialSettings: {} } };
   }
+}
+
+const COAT_TYPE_CONFIG: Record<string, Record<string, { breeds: string, img: string }>> = {
+  short: {
+    xs: { breeds: 'Chihuahua', img: '/breeds/chihuahua.png' },
+    s: { breeds: 'Mops, Jack Russell Kurzhaar', img: '/breeds/pug.png' },
+    m: { breeds: 'Frenchie, Beagle', img: '/breeds/frenchie.png' },
+    l: { breeds: 'Dalmatiner, Boxer', img: '/breeds/dalmatian.png' },
+    xl: { breeds: 'Dobermann, Ridgeback', img: '/breeds/doberman.png' }
+  },
+  wire: {
+    xs: { breeds: 'Zwerggriffon', img: '/breeds/griffon.png' },
+    s: { breeds: 'Westie, Cairn Terrier', img: '/breeds/westie.png' },
+    m: { breeds: 'Foxterrier, Mittelschnauzer', img: '/breeds/foxterrier.png' },
+    l: { breeds: 'Airedale Terrier', img: '/breeds/airedale.png' },
+    xl: { breeds: 'Riesenschnauzer', img: '/breeds/riesenschnauzer.png' }
+  },
+  undercoat: {
+    xs: { breeds: 'Zwergspitz', img: '/breeds/pomeranian.png' },
+    s: { breeds: 'Pomeranian, Shiba Inu', img: '/breeds/shiba.png' },
+    m: { breeds: 'Samojede', img: '/breeds/samojede.png' },
+    l: { breeds: 'Husky', img: '/breeds/husky.png' },
+    xl: { breeds: 'Golden Retriever, Schäferhund', img: '/breeds/golden.png' }
+  },
+  long: {
+    xs: { breeds: 'Malteser, Biewer Yorkie', img: '/breeds/malteser.png' },
+    s: { breeds: 'Yorkie, Maltipoo', img: '/breeds/yorkie.png' },
+    m: { breeds: 'Cocker Spaniel, Pudel', img: '/breeds/cocker.png' },
+    l: { breeds: 'Königspudel, Labradoodle', img: '/breeds/pudel.png' },
+    xl: { breeds: 'Großer Doodle', img: '/breeds/golden.png' }
+  }
+};
+
+function getCoatType(serviceName: string = ''): keyof typeof COAT_TYPE_CONFIG {
+  const name = serviceName.toLowerCase();
+  if (name.includes('kurzhaar')) return 'short';
+  if (name.includes('handstripping') || name.includes('вищипування')) return 'wire';
+  if (name.includes('unterwolle') || name.includes('undercoat')) return 'undercoat';
+  return 'long';
 }
 
 export default function BookPage({ initialServices, initialGroomers, initialSettings }: { initialServices: Service[], initialGroomers: Groomer[], initialSettings: Record<string, string> }) {
@@ -689,13 +728,8 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
                   const isExpanded = expandedDesc[svc.id];
                   const isPackage = svc.category === 'package';
                   const SIZES = ['xs', 's', 'm', 'l', 'xl'] as const;
-                  const BREED_IMAGES = {
-                     xs: '/breeds/chihuahua.png',
-                     s: '/breeds/yorkie.png',
-                     m: '/breeds/cocker.png',
-                     l: '/breeds/golden.png',
-                     xl: '/breeds/gsd.png'
-                  };
+                  const coatType = getCoatType(svc.name);
+                  const coatConfig = COAT_TYPE_CONFIG[coatType];
 
                   return (
                      <div key={svc.id} className="bg-surface-container-low rounded-2xl border border-surface-variant overflow-hidden shadow-sm">
@@ -727,7 +761,7 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
                                  return (
                                     <label key={size} className={`flex flex-row items-start gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${isSelected ? 'border-primary bg-primary/5 shadow-md' : 'border-outline hover:border-primary/50'}`}>
                                        <div className="w-24 h-24 rounded-xl bg-surface-container overflow-hidden shrink-0 hidden sm:block">
-                                          <img src={BREED_IMAGES[size]} alt={size} className="w-full h-full object-cover" />
+                                          <img src={coatConfig[size]?.img} alt={size} className="w-full h-full object-cover" />
                                        </div>
                                        <div className="flex flex-col flex-1">
                                           <div className="flex justify-between items-start mb-2">
@@ -747,7 +781,7 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
                                              </div>
                                           </div>
                                           <p className="text-[11px] text-on-surface-variant font-semibold mb-2 leading-tight uppercase">
-                                             {breedsConfig[size]?.join(', ') || SIZE_LABELS[size]}
+                                             {coatConfig[size]?.breeds || SIZE_LABELS[size]}
                                           </p>
                                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-t border-outline-variant pt-2 mt-auto">
                                              <div>
