@@ -534,7 +534,7 @@ export default function CalendarPage() {
                   {gApts.map(apt => {
                     const client = apt.client as Record<string, any>;
                     const servicesList = apt.services as { service: Record<string, any>; price: number }[];
-                    const serviceName = servicesList?.[0]?.service?.nameUk || servicesList?.[0]?.service?.name || '';
+                    const serviceName = String(servicesList?.[0]?.service?.nameUk || servicesList?.[0]?.service?.name || '');
                     const pet = apt.pet as Record<string, any>;
                     const petSize = String(pet?.size || 'm').toUpperCase();
                     
