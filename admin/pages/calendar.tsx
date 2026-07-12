@@ -38,7 +38,7 @@ function AppointmentDetailModal({
   const [notes, setNotes] = useState(String((apt.client as any)?.notes || apt.notes || ''));
   const [loading, setLoading] = useState(false);
 
-  const client = apt.client as Record<string, unknown>;
+  const client = apt.client as Record<string, any>;
   const pet = apt.pet as Record<string, unknown>;
   const groomer = apt.groomer as Record<string, unknown>;
   const services = apt.services as { service: Record<string, unknown>; price: number }[];
@@ -532,7 +532,7 @@ export default function CalendarPage() {
 
                   {/* Appointments */}
                   {gApts.map(apt => {
-                    const client = apt.client as Record<string, unknown>;
+                    const client = apt.client as Record<string, any>;
                     const servicesList = apt.services as { service: Record<string, unknown>; price: number }[];
                     const serviceName = servicesList?.[0]?.service?.nameUk || servicesList?.[0]?.service?.name || '';
                     const pet = apt.pet as Record<string, unknown>;
