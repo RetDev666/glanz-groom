@@ -39,9 +39,9 @@ function AppointmentDetailModal({
   const [loading, setLoading] = useState(false);
 
   const client = apt.client as Record<string, any>;
-  const pet = apt.pet as Record<string, unknown>;
-  const groomer = apt.groomer as Record<string, unknown>;
-  const services = apt.services as { service: Record<string, unknown>; price: number }[];
+  const pet = apt.pet as Record<string, any>;
+  const groomer = apt.groomer as Record<string, any>;
+  const services = apt.services as { service: Record<string, any>; price: number }[];
 
   const handleSave = async () => {
     setLoading(true);
@@ -533,9 +533,9 @@ export default function CalendarPage() {
                   {/* Appointments */}
                   {gApts.map(apt => {
                     const client = apt.client as Record<string, any>;
-                    const servicesList = apt.services as { service: Record<string, unknown>; price: number }[];
+                    const servicesList = apt.services as { service: Record<string, any>; price: number }[];
                     const serviceName = servicesList?.[0]?.service?.nameUk || servicesList?.[0]?.service?.name || '';
-                    const pet = apt.pet as Record<string, unknown>;
+                    const pet = apt.pet as Record<string, any>;
                     const petSize = String(pet?.size || 'm').toUpperCase();
                     
                     const d = new Date(String(apt.date));
