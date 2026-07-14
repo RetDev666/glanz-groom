@@ -4,24 +4,24 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        primary: '#ae2f34',
+        primary: '#9B1B30', // main logo red
         'on-primary': '#ffffff',
-        'primary-container': '#ff6b6b',
-        'on-primary-container': '#6d0010',
+        'primary-container': '#fce4e4',
+        'on-primary-container': '#380611',
         'primary-fixed': '#ffdad8',
         'primary-fixed-dim': '#ffb3b0',
         'on-primary-fixed': '#410006',
         'on-primary-fixed-variant': '#8c1520',
-        secondary: '#785900',
+        secondary: '#9B1B30',
         'on-secondary': '#ffffff',
-        'secondary-container': '#fdc003',
-        'on-secondary-container': '#6c5000',
+        'secondary-container': '#fce4e4', // light red for active backgrounds
+        'on-secondary-container': '#9B1B30', // red text for active items
         'secondary-fixed': '#ffdf9e',
         'secondary-fixed-dim': '#fabd00',
         'on-secondary-fixed': '#261a00',
         tertiary: '#506073',
         'on-tertiary': '#ffffff',
-        'tertiary-container': '#8d9db2',
+        'tertiary-container': '#e2e8f0', // slate 200
         'tertiary-fixed': '#d4e4fb',
         'tertiary-fixed-dim': '#b8c8de',
         'on-tertiary-fixed': '#0d1d2d',
@@ -32,17 +32,17 @@ module.exports = {
         'surface-container': '#edeeef',
         'surface-container-high': '#e7e8e9',
         'surface-container-highest': '#e1e3e4',
-        'on-surface': '#191c1d',
-        'on-surface-variant': '#584140',
-        'surface-variant': '#e1e3e4',
-        'outline': '#8c706f',
-        'outline-variant': '#e0bfbd',
+        'on-surface': '#1a1c1e', // near black
+        'on-surface-variant': '#534341', // greyish brown
+        'surface-variant': '#f4dddb',
+        'outline': '#857371',
+        'outline-variant': '#d8c2bf',
         background: '#f8f9fa',
-        'on-background': '#191c1d',
+        'on-background': '#1a1c1e',
         error: '#ba1a1a',
         'on-error': '#ffffff',
         'error-container': '#ffdad6',
-        'on-error-container': '#93000a',
+        'on-error-container': '#410002',
       },
       fontFamily: {
         sans: ['Be Vietnam Pro', 'sans-serif'],
