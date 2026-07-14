@@ -158,7 +158,7 @@ function AppointmentDetailModal({
             </div>
           )}
 
-          {!isEditing && userRole !== 'groomer' && (
+          {userRole !== 'groomer' && (
             <div className="flex gap-2 flex-wrap">
               {apt.status === 'pending' && (
                 <button
