@@ -159,6 +159,8 @@ function NewAppointmentModal({
     petSize: 'm',
     notes: '',
     serviceIds: [] as number[],
+    isBlock: false,
+    duration: 60,
   });
   const [services, setServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -181,8 +183,14 @@ function NewAppointmentModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.clientPhone || !form.petName || !form.date || form.serviceIds.length === 0) {
-      return alert('Будь ласка, заповніть всі обов\'язкові поля');
+    if (!form.isBlock) {
+      if (!form.clientPhone || !form.petName || !form.date || form.serviceIds.length === 0) {
+        return alert('Будь ласка, заповніть всі обов\'язкові поля');
+      }
+    } else {
+      if (!form.date || !form.duration) {
+        return alert('Будь ласка, вкажіть дату та тривалість');
+      }
     }
     
     setLoading(true);
@@ -193,9 +201,10 @@ function NewAppointmentModal({
       groomerId: Number(form.groomerId) || Number(groomers[0]?.id) || 0,
     };
 
-    const res = await fetch(`${API}/appointments`, {
+    const token = localStorage.getItem('admin_token');
+    const res = await fetch(`${API}/appointments/admin-create`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify(payload)
     });
     setLoading(false);
@@ -219,6 +228,23 @@ function NewAppointmentModal({
           </button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div className="flex bg-surface-container-low rounded-xl p-1 mb-4 border border-outline-variant">
+            <button
+              type="button"
+              className={`flex-1 py-2 text-sm font-sans rounded-lg transition-colors ${!form.isBlock ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container'}`}
+              onClick={() => setForm({ ...form, isBlock: false })}
+            >
+              Запис клієнта
+            </button>
+            <button
+              type="button"
+              className={`flex-1 py-2 text-sm font-sans rounded-lg transition-colors ${form.isBlock ? 'bg-error text-on-error shadow-sm' : 'text-on-surface-variant hover:bg-surface-container'}`}
+              onClick={() => setForm({ ...form, isBlock: true })}
+            >
+              Заблокувати час
+            </button>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block font-sans text-label-sm text-on-surface-variant mb-1">{t.calendar.dateTimeLabel}</label>
@@ -231,39 +257,63 @@ function NewAppointmentModal({
               </select>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Ім'я клієнта</label>
-              <input type="text" value={form.clientFirstName} onChange={e => setForm({...form, clientFirstName: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none" placeholder="Ім'я" />
+
+          {!form.isBlock ? (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Ім'я клієнта</label>
+                  <input type="text" value={form.clientFirstName} onChange={e => setForm({...form, clientFirstName: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none" placeholder="Ім'я" />
+                </div>
+                <div>
+                  <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Телефон *</label>
+                  <input type="tel" required={!form.isBlock} value={form.clientPhone} onChange={e => setForm({...form, clientPhone: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none" placeholder="+380..." />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Улюбленець *</label>
+                  <input type="text" required={!form.isBlock} value={form.petName} onChange={e => setForm({...form, petName: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none" placeholder="Кличка" />
+                </div>
+                <div>
+                  <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Розмір</label>
+                  <select value={form.petSize} onChange={e => setForm({...form, petSize: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none">
+                    <option value="xs">XS</option><option value="s">S</option><option value="m">M</option><option value="l">L</option><option value="xl">XL</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block font-sans text-label-sm text-on-surface-variant mb-2">Послуги *</label>
+                <div className="max-h-40 overflow-y-auto space-y-1 bg-surface-container-low p-2 rounded-xl border border-outline-variant">
+                  {services.map(s => (
+                    <label key={s.id} className="flex items-center gap-2 cursor-pointer p-1 hover:bg-surface-container rounded">
+                      <input type="checkbox" checked={form.serviceIds.includes(s.id)} onChange={() => toggleService(s.id)} className="w-4 h-4 rounded text-primary border-outline-variant" />
+                      <span className="text-sm font-sans">{s.nameUk || s.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="space-y-4">
+              <div>
+                <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Тривалість (хвилин) *</label>
+                <select value={form.duration} onChange={e => setForm({...form, duration: Number(e.target.value)})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none">
+                  <option value={15}>15 хв</option>
+                  <option value={30}>30 хв</option>
+                  <option value={60}>1 год</option>
+                  <option value={90}>1.5 год</option>
+                  <option value={120}>2 год</option>
+                  <option value={240}>Півдня (4 год)</option>
+                  <option value={480}>Весь день (8 год)</option>
+                </select>
+              </div>
+              <div>
+                <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Причина (коментар)</label>
+                <input type="text" value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none" placeholder="Обід, відпустка тощо..." />
+              </div>
             </div>
-            <div>
-              <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Телефон *</label>
-              <input type="tel" required value={form.clientPhone} onChange={e => setForm({...form, clientPhone: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none" placeholder="+380..." />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Улюбленець *</label>
-              <input type="text" required value={form.petName} onChange={e => setForm({...form, petName: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none" placeholder="Кличка" />
-            </div>
-            <div>
-              <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Розмір</label>
-              <select value={form.petSize} onChange={e => setForm({...form, petSize: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none">
-                <option value="xs">XS</option><option value="s">S</option><option value="m">M</option><option value="l">L</option><option value="xl">XL</option>
-              </select>
-            </div>
-          </div>
-          <div>
-            <label className="block font-sans text-label-sm text-on-surface-variant mb-2">Послуги *</label>
-            <div className="max-h-40 overflow-y-auto space-y-1 bg-surface-container-low p-2 rounded-xl border border-outline-variant">
-              {services.map(s => (
-                <label key={s.id} className="flex items-center gap-2 cursor-pointer p-1 hover:bg-surface-container rounded">
-                  <input type="checkbox" checked={form.serviceIds.includes(s.id)} onChange={() => toggleService(s.id)} className="w-4 h-4 rounded text-primary border-outline-variant" />
-                  <span className="text-sm font-sans">{s.nameUk || s.name}</span>
-                </label>
-              ))}
-            </div>
-          </div>
+          )}
           <div className="pt-4 flex gap-3 border-t border-outline-variant">
             <button type="button" onClick={onClose} className="flex-1 py-2 rounded-full border border-outline hover:bg-surface-container transition-colors">Скасувати</button>
             <button type="submit" disabled={loading} className="flex-1 py-2 rounded-full bg-primary text-on-primary hover:opacity-90 transition-opacity">

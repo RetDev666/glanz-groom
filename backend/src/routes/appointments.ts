@@ -100,37 +100,91 @@ router.get('/latest', requireAuth, async (req: AuthRequest, res: Response) => {
 // POST /api/appointments/admin-create
 router.post('/admin-create', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    const { groomerId, date, duration, notes, petName, petSize, clientFirstName, clientPhone } = req.body;
+    const { groomerId, date, duration, notes, petName, petSize, clientFirstName, clientPhone, isBlock, serviceIds } = req.body;
 
+    let finalDuration = Number(duration) || 0;
+    const finalGroomerId = Number(groomerId);
+
+    // If it's a block, we don't need a real client or pet, and status is "blocked"
+    if (isBlock) {
+      let client = await prisma.client.findFirst({ where: { phone: '000000000' } });
+      if (!client) {
+        client = await prisma.client.create({
+          data: { firstName: 'System', lastName: 'Block', email: `block-${Date.now()}@local`, phone: '000000000' }
+        });
+      }
+      let pet = await prisma.pet.findFirst({ where: { clientId: client.id, name: 'Block' } });
+      if (!pet) {
+        pet = await prisma.pet.create({
+          data: { name: 'Block', breed: 'Unknown', size: 'm', clientId: client.id }
+        });
+      }
+
+      const appointment = await prisma.appointment.create({
+        data: {
+          date: new Date(date),
+          duration: finalDuration > 0 ? finalDuration : 60, // default to 60m if not provided
+          totalPrice: 0,
+          notes: notes || 'Time blocked by admin',
+          status: 'blocked',
+          clientId: client.id,
+          petId: pet.id,
+          groomerId: finalGroomerId,
+        }
+      });
+      return res.json(appointment);
+    }
+
+    // Normal admin appointment creation
     let client = await prisma.client.findFirst({ where: { phone: clientPhone } });
     if (!client) {
       client = await prisma.client.create({
         data: { 
-          firstName: clientFirstName || 'System', 
-          lastName: 'Block', 
-          email: `system-${Date.now()}@local`, 
+          firstName: clientFirstName || 'Client', 
+          lastName: '', 
+          email: `client-${Date.now()}@local`, 
           phone: clientPhone || '000000000' 
         }
       });
     }
 
-    let pet = await prisma.pet.findFirst({ where: { clientId: client.id, name: petName || 'Block' } });
+    let pet = await prisma.pet.findFirst({ where: { clientId: client.id, name: petName || 'Dog' } });
     if (!pet) {
       pet = await prisma.pet.create({
-        data: { name: petName || 'Block', breed: 'Unknown', size: petSize || 'm', clientId: client.id }
+        data: { name: petName || 'Dog', breed: 'Unknown', size: petSize || 'm', clientId: client.id }
       });
     }
+
+    // Calculate duration from services if not provided explicitly
+    let calculatedDuration = 0;
+    let servicesData: any[] = [];
+    if (serviceIds && Array.isArray(serviceIds) && serviceIds.length > 0) {
+      const services = await prisma.service.findMany({ where: { id: { in: serviceIds.map(Number) } } });
+      const durationMap: Record<string, string> = { xs: 'durationXs', s: 'durationS', m: 'durationM', l: 'durationL', xl: 'durationXl' };
+      const priceMap: Record<string, string> = { xs: 'priceXs', s: 'priceS', m: 'priceM', l: 'priceL', xl: 'priceXl' };
+      const dField = durationMap[pet.size] as keyof typeof services[0] || 'durationM';
+      const pField = priceMap[pet.size] as keyof typeof services[0] || 'priceM';
+      
+      calculatedDuration = services.reduce((sum, s) => sum + (Number(s[dField]) || 0), 0);
+      servicesData = services.map(s => ({ serviceId: s.id, price: Number(s[pField]) || 0 }));
+    }
+
+    if (!finalDuration) finalDuration = calculatedDuration;
+    if (finalDuration === 0) finalDuration = 60; // fallback
 
     const appointment = await prisma.appointment.create({
       data: {
         date: new Date(date),
-        duration: Number(duration),
+        duration: finalDuration,
         totalPrice: 0,
         notes: notes || '',
         status: 'confirmed',
         clientId: client.id,
         petId: pet.id,
-        groomerId: Number(groomerId),
+        groomerId: finalGroomerId,
+        services: {
+          create: servicesData
+        }
       }
     });
 

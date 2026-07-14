@@ -172,10 +172,10 @@ export async function getServerSideProps({ res }: any) {
 const COAT_TYPE_CONFIG: Record<string, Record<string, { breeds: string, img: string }>> = {
   short: {
     xs: { breeds: 'Chihuahua', img: '/breeds/chihuahua.png' },
-    s: { breeds: 'Mops, Jack Russell Kurzhaar', img: '/breeds/pug.png' },
-    m: { breeds: 'Frenchie, Beagle', img: '/breeds/frenchie.png' },
-    l: { breeds: 'Dalmatiner, Boxer', img: '/breeds/dalmatian.png' },
-    xl: { breeds: 'Dobermann, Ridgeback', img: '/breeds/doberman.png' }
+    s: { breeds: 'Jack Rassel, Italienisches Windspiel', img: '/breeds/pug.png' },
+    m: { breeds: 'Boston Terrier, Französische Bulldogge', img: '/breeds/frenchie.png' },
+    l: { breeds: 'Englischer Whippet, Beagle', img: '/breeds/dalmatian.png' },
+    xl: { breeds: 'Rottweiler, Labrador', img: '/breeds/doberman.png' }
   },
   wire: {
     xs: { breeds: 'Zwerggriffon', img: '/breeds/griffon.png' },
@@ -200,8 +200,8 @@ const COAT_TYPE_CONFIG: Record<string, Record<string, { breeds: string, img: str
   }
 };
 
-function getCoatType(serviceName: string = ''): keyof typeof COAT_TYPE_CONFIG {
-  const name = serviceName.toLowerCase();
+function getCoatType(serviceName: string = '', serviceDesc: string = ''): keyof typeof COAT_TYPE_CONFIG {
+  const name = (serviceName + ' ' + serviceDesc).toLowerCase();
   if (name.includes('kurzhaar')) return 'short';
   if (name.includes('handstripping') || name.includes('вищипування')) return 'wire';
   if (name.includes('unterwolle') || name.includes('undercoat')) return 'undercoat';
@@ -728,7 +728,7 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
                   const isExpanded = expandedDesc[svc.id];
                   const isPackage = svc.category === 'package';
                   const SIZES = ['xs', 's', 'm', 'l', 'xl'] as const;
-                  const coatType = getCoatType(svc.name);
+                  const coatType = getCoatType(svc.name, svc.description);
                   const coatConfig = COAT_TYPE_CONFIG[coatType];
 
                   return (
