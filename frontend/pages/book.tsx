@@ -172,10 +172,10 @@ export async function getServerSideProps({ res }: any) {
 const COAT_TYPE_CONFIG: Record<string, Record<string, { breeds: string, img: string }>> = {
   short: {
     xs: { breeds: 'Chihuahua', img: '/breeds/chihuahua.png' },
-    s: { breeds: 'Jack Rassel, Italienisches Windspiel', img: '/breeds/pug.png' },
+    s: { breeds: 'Jack Rassel, Italienisches Windspiel', img: '/breeds/jack_russell.png' },
     m: { breeds: 'Boston Terrier, Französische Bulldogge', img: '/breeds/frenchie.png' },
-    l: { breeds: 'Englischer Whippet, Beagle', img: '/breeds/dalmatian.png' },
-    xl: { breeds: 'Rottweiler, Labrador', img: '/breeds/doberman.png' }
+    l: { breeds: 'Englischer Whippet, Beagle', img: '/breeds/beagle.png' },
+    xl: { breeds: 'Rottweiler, Labrador', img: '/breeds/labrador.png' }
   },
   wire: {
     xs: { breeds: 'Zwerggriffon', img: '/breeds/griffon.png' },
