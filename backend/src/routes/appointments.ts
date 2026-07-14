@@ -339,7 +339,11 @@ router.patch('/:id/status', requireAuth, async (req: AuthRequest, res: Response)
 // PATCH /api/appointments/:id — full update
 router.patch('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
-  const { status, notes, groomerId, date, totalPrice, duration, petPhotoUrl, serviceIds } = req.body;
+  const { 
+    status, notes, groomerId, date, totalPrice, duration, petPhotoUrl, serviceIds,
+    clientFirstName, clientLastName, clientPhone, clientEmail,
+    petName, petBreed, petSize, discount
+  } = req.body;
 
   try {
     const data: Record<string, unknown> = {};
@@ -351,23 +355,64 @@ router.patch('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
     if (duration !== undefined) data.duration = Number(duration);
     if (petPhotoUrl !== undefined) data.petPhotoUrl = petPhotoUrl;
 
+    const appointment = await prisma.appointment.findUnique({ 
+      where: { id: Number(id) }, 
+      include: { pet: true, client: true } 
+    });
+
+    if (!appointment) return res.status(404).json({ error: 'Appointment not found' });
+
+    // Update Client if provided
+    if (clientFirstName !== undefined || clientLastName !== undefined || clientPhone !== undefined || clientEmail !== undefined) {
+      await prisma.client.update({
+        where: { id: appointment.clientId },
+        data: {
+          firstName: clientFirstName !== undefined ? clientFirstName : appointment.client.firstName,
+          lastName: clientLastName !== undefined ? clientLastName : appointment.client.lastName,
+          phone: clientPhone !== undefined ? clientPhone : appointment.client.phone,
+          email: clientEmail !== undefined ? clientEmail : appointment.client.email,
+        }
+      });
+    }
+
+    // Update Pet if provided
+    if (petName !== undefined || petBreed !== undefined || petSize !== undefined) {
+      await prisma.pet.update({
+        where: { id: appointment.petId },
+        data: {
+          name: petName !== undefined ? petName : appointment.pet.name,
+          breed: petBreed !== undefined ? petBreed : appointment.pet.breed,
+          size: petSize !== undefined ? petSize : appointment.pet.size,
+        }
+      });
+      // update local reference to ensure pricing uses new size if updated
+      if (petSize !== undefined) appointment.pet.size = petSize;
+    }
+
     if (serviceIds && Array.isArray(serviceIds)) {
       // Delete old services
       await prisma.appointmentService.deleteMany({ where: { appointmentId: Number(id) } });
       
-      // Get sizes and calculate new prices if needed
-      const appointment = await prisma.appointment.findUnique({ where: { id: Number(id) }, include: { pet: true } });
-      if (appointment) {
-        const services = await prisma.service.findMany({ where: { id: { in: serviceIds.map(Number) } } });
-        const sizeMap: Record<string, 'priceXs' | 'priceS' | 'priceM' | 'priceL' | 'priceXl'> = {
-          xs: 'priceXs', s: 'priceS', m: 'priceM', l: 'priceL', xl: 'priceXl',
-        };
-        const priceField = sizeMap[appointment.pet.size] || 'priceM';
-        
-        data.services = {
-          create: services.map(s => ({ serviceId: s.id, price: s[priceField] })),
-        };
+      const services = await prisma.service.findMany({ where: { id: { in: serviceIds.map(Number) } } });
+      const sizeMap: Record<string, 'priceXs' | 'priceS' | 'priceM' | 'priceL' | 'priceXl'> = {
+        xs: 'priceXs', s: 'priceS', m: 'priceM', l: 'priceL', xl: 'priceXl',
+      };
+      const priceField = sizeMap[appointment.pet.size] || 'priceM';
+      
+      data.services = {
+        create: services.map(s => ({ serviceId: s.id, price: s[priceField] })),
+      };
+
+      // Recalculate totalPrice if not explicitly provided, taking discount into account
+      if (totalPrice === undefined) {
+        const sum = services.reduce((acc, s) => acc + s[priceField], 0);
+        data.totalPrice = Math.max(0, sum - (Number(discount) || 0));
       }
+    } else if (discount !== undefined && totalPrice === undefined) {
+       // If services didn't change but discount changed, recalculate
+       const currentServices = await prisma.appointmentService.findMany({ where: { appointmentId: Number(id) } });
+       const sum = currentServices.reduce((acc, s) => acc + s.price, 0);
+       data.totalPrice = Math.max(0, sum - Number(discount));
     }
 
     const updated = await prisma.appointment.update({

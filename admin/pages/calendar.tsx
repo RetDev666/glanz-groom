@@ -33,54 +33,31 @@ const toLocalDateString = (d: Date) => {
 type Appointment = Record<string, unknown>;
 
 function AppointmentDetailModal({
-  apt, groomers, onClose, onSave, t
+  apt, groomers, onClose, onSave, onEditFull, t
 }: {
   apt: Appointment;
   groomers: Record<string, unknown>[];
   onClose: () => void;
   onSave: (id: number, data: any) => Promise<void>;
+  onEditFull?: (apt: Appointment) => void;
   t: ReturnType<typeof useAdminLang>['t'];
 }) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [status, setStatus] = useState(String(apt.status || 'pending'));
-  const [groomerId, setGroomerId] = useState(String(apt.groomerId || ''));
-  const [date, setDate] = useState(new Date(String(apt.date)).toISOString().slice(0, 16));
-  const [notes, setNotes] = useState(String((apt.client as any)?.notes || apt.notes || ''));
-  const [loading, setLoading] = useState(false);
-
   const client = apt.client as Record<string, any>;
   const pet = apt.pet as Record<string, any>;
   const groomer = apt.groomer as Record<string, any>;
   const services = apt.services as { service: Record<string, any>; price: number }[];
 
-  const handleSave = async () => {
-    setLoading(true);
-    await onSave(Number(apt.id), {
-      status,
-      groomerId: Number(groomerId),
-      date: new Date(date).toISOString(),
-      notes,
-    });
-    setLoading(false);
-    setIsEditing(false);
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-surface-container-lowest rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        {/* Modal content same as before, simplified for brevity */}
         <div className="flex items-center justify-between p-6 border-b border-outline-variant">
           <div>
             <h3 className="font-display text-headline-sm text-on-surface">{t.calendar.detailTitle}</h3>
           </div>
           <div className="flex items-center gap-2">
-            {!isEditing ? (
-              <button onClick={() => setIsEditing(true)} className="p-2 rounded-full hover:bg-surface-container text-primary transition-colors">
+            {onEditFull && (
+              <button onClick={() => onEditFull(apt)} className="p-2 rounded-full hover:bg-surface-container text-primary transition-colors">
                 <span className="material-symbols-outlined">edit</span>
-              </button>
-            ) : (
-              <button onClick={handleSave} disabled={loading} className="p-2 rounded-full hover:bg-surface-container text-green-600 transition-colors">
-                {loading ? <span className="material-symbols-outlined animate-spin">progress_activity</span> : <span className="material-symbols-outlined">save</span>}
               </button>
             )}
             <button onClick={onClose} className="p-2 rounded-full hover:bg-surface-container-high text-on-surface-variant transition-colors">
@@ -88,37 +65,13 @@ function AppointmentDetailModal({
             </button>
           </div>
         </div>
+            <button onClick={onClose} className="p-2 rounded-full hover:bg-surface-container-high text-on-surface-variant transition-colors">
+              <span className="material-symbols-outlined">close</span>
+            </button>
+          </div>
+        </div>
 
         <div className="p-6 space-y-5">
-          {isEditing && (
-            <div className="bg-surface-container-low rounded-2xl p-4 space-y-3">
-              <div>
-                <label className="block font-sans text-label-sm text-on-surface-variant mb-1">{t.calendar.statusLabel}</label>
-                <select value={status} onChange={e => setStatus(e.target.value)} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 text-sm outline-none">
-                  <option value="pending">{t.calendar.statusOptions.pending}</option>
-                  <option value="confirmed">{t.calendar.statusOptions.confirmed}</option>
-                  <option value="completed">{t.calendar.statusOptions.completed}</option>
-                  <option value="cancelled">{t.calendar.statusOptions.cancelled}</option>
-                </select>
-              </div>
-              <div>
-                <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Groomer</label>
-                <select value={groomerId} onChange={e => setGroomerId(e.target.value)} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 text-sm outline-none">
-                  {groomers.map((g: any) => (
-                    <option key={g.id} value={g.id}>{g.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block font-sans text-label-sm text-on-surface-variant mb-1">{t.calendar.dateTimeLabel}</label>
-                <input type="datetime-local" value={date} onChange={e => setDate(e.target.value)} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 text-sm outline-none" />
-              </div>
-              <div>
-                <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Kommentar</label>
-                <textarea value={notes} onChange={e => setNotes(e.target.value)} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 text-sm outline-none" rows={3}></textarea>
-              </div>
-            </div>
-          )}
 
           <div className="bg-surface-container-low rounded-2xl p-4 space-y-2">
             <p className="font-sans text-label-sm text-on-surface-variant uppercase tracking-widest">{t.calendar.clientAndPet}</p>
@@ -147,30 +100,39 @@ function AppointmentDetailModal({
   );
 }
 
-function NewAppointmentModal({
-  groomers, initialDate, initialGroomerId, onClose, onSave, t
+export function NewAppointmentModal({
+  groomers, initialDate, initialGroomerId, editingApt, onClose, onSave, t
 }: {
   groomers: Record<string, unknown>[];
   initialDate?: Date;
   initialGroomerId?: number;
+  editingApt?: any;
   onClose: () => void;
   onSave: () => void;
   t: ReturnType<typeof useAdminLang>['t'];
 }) {
-  const defaultDate = initialDate ? new Date(initialDate.getTime() - initialDate.getTimezoneOffset() * 60000).toISOString().slice(0, 16) : new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  const defaultDate = editingApt?.date ? new Date(new Date(editingApt.date).getTime() - new Date(editingApt.date).getTimezoneOffset() * 60000).toISOString().slice(0, 16) : (initialDate ? new Date(initialDate.getTime() - initialDate.getTimezoneOffset() * 60000).toISOString().slice(0, 16) : new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16));
+  
+  let initialDiscount = 0;
+  if (editingApt && editingApt.services && editingApt.totalPrice !== undefined) {
+    const sum = editingApt.services.reduce((acc: number, s: any) => acc + (s.price || 0), 0);
+    initialDiscount = Math.max(0, sum - editingApt.totalPrice);
+  }
+
   const [form, setForm] = useState({
     date: defaultDate,
-    groomerId: String(initialGroomerId || groomers[0]?.id || ''),
-    clientFirstName: '',
-    clientLastName: '',
-    clientPhone: '',
-    clientEmail: '',
-    petName: '',
-    petSize: 'm',
-    notes: '',
-    serviceIds: [] as number[],
-    isBlock: false,
-    duration: 60,
+    groomerId: String(editingApt?.groomerId || initialGroomerId || groomers[0]?.id || ''),
+    clientFirstName: editingApt?.client?.firstName || '',
+    clientLastName: editingApt?.client?.lastName || '',
+    clientPhone: editingApt?.client?.phone || '',
+    clientEmail: editingApt?.client?.email || '',
+    petName: editingApt?.pet?.name || '',
+    petSize: editingApt?.pet?.size || 'm',
+    notes: editingApt?.notes || '',
+    serviceIds: editingApt?.services?.map((s:any) => s.serviceId) || ([] as number[]),
+    discount: initialDiscount,
+    isBlock: editingApt?.status === 'blocked',
+    duration: editingApt?.duration || 60,
   });
   const [services, setServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -212,11 +174,22 @@ function NewAppointmentModal({
     };
 
     const token = localStorage.getItem('admin_token');
-    const res = await fetch(`${API}/appointments/admin-create`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify(payload)
-    });
+    
+    let res;
+    if (editingApt) {
+      res = await fetch(`${API}/appointments/${editingApt.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload)
+      });
+    } else {
+      res = await fetch(`${API}/appointments/admin-create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload)
+      });
+    }
+
     setLoading(false);
     
     if (res.ok) {
@@ -224,7 +197,7 @@ function NewAppointmentModal({
       onClose();
     } else {
       const data = await res.json();
-      alert(data.error || 'Fehler beim Erstellen');
+      alert(data.error || 'Fehler beim Speichern');
     }
   };
 
@@ -232,7 +205,7 @@ function NewAppointmentModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-surface-container-lowest rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between p-6 border-b border-outline-variant">
-          <h3 className="font-display text-headline-sm text-on-surface">Neuer Termin</h3>
+          <h3 className="font-display text-headline-sm text-on-surface">{editingApt ? 'Termin bearbeiten' : 'Neuer Termin'}</h3>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-surface-container-high text-on-surface-variant transition-colors">
             <span className="material-symbols-outlined">close</span>
           </button>
@@ -292,15 +265,24 @@ function NewAppointmentModal({
                   </select>
                 </div>
               </div>
-              <div>
-                <label className="block font-sans text-label-sm text-on-surface-variant mb-2">Leistungen *</label>
-                <div className="max-h-40 overflow-y-auto space-y-1 bg-surface-container-low p-2 rounded-xl border border-outline-variant">
-                  {services.map(s => (
-                    <label key={s.id} className="flex items-center gap-2 cursor-pointer p-1 hover:bg-surface-container rounded">
-                      <input type="checkbox" checked={form.serviceIds.includes(s.id)} onChange={() => toggleService(s.id)} className="w-4 h-4 rounded text-primary border-outline-variant" />
-                      <span className="text-sm font-sans">{s.nameDe || s.name}</span>
-                    </label>
-                  ))}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block font-sans text-label-sm text-on-surface-variant mb-2">Leistungen *</label>
+                  <div className="max-h-40 overflow-y-auto space-y-1 bg-surface-container-low p-2 rounded-xl border border-outline-variant">
+                    {services.map(s => (
+                      <label key={s.id} className="flex items-center gap-2 cursor-pointer p-1 hover:bg-surface-container rounded">
+                        <input type="checkbox" checked={form.serviceIds.includes(s.id)} onChange={() => toggleService(s.id)} className="w-4 h-4 rounded text-primary border-outline-variant" />
+                        <span className="text-sm font-sans">{s.nameDe || s.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block font-sans text-label-sm text-on-surface-variant mb-2">Rabatt (€)</label>
+                  <input type="number" min="0" step="0.01" value={form.discount} onChange={e => setForm({...form, discount: Number(e.target.value)})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none" placeholder="0.00" />
+                  
+                  <label className="block font-sans text-label-sm text-on-surface-variant mb-1 mt-4">Grund (Kommentar)</label>
+                  <input type="text" value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none" placeholder="Notizen..." />
                 </div>
               </div>
             </>
@@ -347,7 +329,7 @@ export default function CalendarPage() {
   const [viewMode, setViewMode] = useState<'day' | 'week'>('day');
   const [contextMenu, setContextMenu] = useState<{ isOpen: boolean, x: number, y: number, apt: Appointment | null }>({ isOpen: false, x: 0, y: 0, apt: null });
 
-  const [newAptModalData, setNewAptModalData] = useState<{isOpen: boolean, date?: Date, groomerId?: number}>({ isOpen: false });
+  const [newAptModalData, setNewAptModalData] = useState<{isOpen: boolean, date?: Date, groomerId?: number, editingApt?: any}>({ isOpen: false });
 
   // Add a state to store breaks (currently simulated, as API doesn't have it yet)
   const [breaks] = useState([{ groomerId: 1, start: '13:15', end: '13:45' }]);
@@ -494,12 +476,23 @@ export default function CalendarPage() {
 
   return (
     <AdminLayout title={t.calendar.title}>
-      {selectedApt && <AppointmentDetailModal apt={selectedApt} groomers={groomers} t={t} onClose={() => setSelectedApt(null)} onSave={handleUpdateAppointment} />}
+      {selectedApt && <AppointmentDetailModal 
+        apt={selectedApt} 
+        groomers={groomers} 
+        t={t} 
+        onClose={() => setSelectedApt(null)} 
+        onSave={handleUpdateAppointment} 
+        onEditFull={(apt) => {
+          setSelectedApt(null);
+          setNewAptModalData({ isOpen: true, editingApt: apt });
+        }}
+      />}
       {newAptModalData.isOpen && <NewAppointmentModal 
         groomers={groomers} 
         t={t} 
         initialDate={newAptModalData.date}
         initialGroomerId={newAptModalData.groomerId}
+        editingApt={newAptModalData.editingApt}
         onClose={() => setNewAptModalData({ isOpen: false })} 
         onSave={fetchAppointments} 
       />}

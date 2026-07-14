@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import AdminLayout from '@/components/AdminLayout';
 import { useAdminLang } from '../hooks/useAdminLang';
+import { NewAppointmentModal } from './calendar';
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
@@ -14,37 +15,21 @@ const STATUS_COLORS: Record<string, string> = {
 type Appointment = Record<string, unknown>;
 
 function AppointmentDetailModal({
-  apt, groomers, onClose, onStatusChange, onSave, t, userRole
+  apt, groomers, onClose, onStatusChange, onSave, onEditFull, t, userRole
 }: {
   apt: Appointment;
   groomers: Record<string, unknown>[];
   onClose: () => void;
   onStatusChange: (id: number, status: string) => void;
   onSave: (id: number, data: any) => Promise<void>;
+  onEditFull?: (apt: Appointment) => void;
   t: ReturnType<typeof useAdminLang>['t'];
   userRole: string;
 }) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [status, setStatus] = useState(String(apt.status || 'pending'));
-  const [groomerId, setGroomerId] = useState(String(apt.groomerId || ''));
-  const [date, setDate] = useState(new Date(String(apt.date)).toISOString().slice(0, 16));
-  const [loading, setLoading] = useState(false);
-
   const client = apt.client as Record<string, unknown>;
   const pet = apt.pet as Record<string, unknown>;
   const groomer = apt.groomer as Record<string, unknown>;
   const services = apt.services as { service: Record<string, unknown>; price: number }[];
-
-  const handleSave = async () => {
-    setLoading(true);
-    await onSave(Number(apt.id), {
-      status,
-      groomerId: Number(groomerId),
-      date: new Date(date).toISOString(),
-    });
-    setLoading(false);
-    setIsEditing(false);
-  };
 
   const downloadICS = () => {
     const startDate = new Date(String(apt.date));
@@ -78,27 +63,21 @@ function AppointmentDetailModal({
         <div className="flex items-center justify-between p-6 border-b border-outline-variant">
           <div>
             <h3 className="font-display text-headline-sm text-on-surface">{t.appointments.detailTitle}</h3>
-            {!isEditing && (
-              <p className="font-sans text-label-sm text-on-surface-variant mt-0.5">
-                {new Date(String(apt.date)).toLocaleString('de-DE', {
-                  day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
-                })}
-              </p>
-            )}
+            <p className="font-sans text-label-sm text-on-surface-variant mt-0.5">
+              {new Date(String(apt.date)).toLocaleString('de-DE', {
+                day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
+              })}
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={downloadICS} className="p-2 flex items-center gap-1 rounded-full hover:bg-surface-container text-on-surface-variant transition-colors" title={t.addToCalendar}>
               <span className="material-symbols-outlined text-[20px]">calendar_add_on</span>
             </button>
-            {userRole !== 'groomer' && !isEditing ? (
-              <button onClick={() => setIsEditing(true)} className="p-2 rounded-full hover:bg-surface-container text-primary transition-colors">
+            {userRole !== 'groomer' && onEditFull && (
+              <button onClick={() => onEditFull(apt)} className="p-2 rounded-full hover:bg-surface-container text-primary transition-colors">
                 <span className="material-symbols-outlined">edit</span>
               </button>
-            ) : isEditing ? (
-              <button onClick={handleSave} disabled={loading} className="p-2 rounded-full hover:bg-surface-container text-green-600 transition-colors">
-                {loading ? <span className="material-symbols-outlined animate-spin">progress_activity</span> : <span className="material-symbols-outlined">save</span>}
-              </button>
-            ) : null}
+            )}
             <button onClick={onClose} className="p-2 rounded-full hover:bg-surface-container-high text-on-surface-variant transition-colors">
               <span className="material-symbols-outlined">close</span>
             </button>
@@ -106,33 +85,7 @@ function AppointmentDetailModal({
         </div>
 
         <div className="p-6 space-y-5">
-          {isEditing && (
-            <div className="bg-surface-container-low rounded-2xl p-4 space-y-3">
-              <div>
-                <label className="block font-sans text-label-sm text-on-surface-variant mb-1">{t.appointments.statusLabel}</label>
-                <select value={status} onChange={e => setStatus(e.target.value)} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 text-sm outline-none">
-                  <option value="pending">{t.appointments.statusOptions.pending}</option>
-                  <option value="confirmed">{t.appointments.statusOptions.confirmed}</option>
-                  <option value="completed">{t.appointments.statusOptions.completed}</option>
-                  <option value="cancelled">{t.appointments.statusOptions.cancelled}</option>
-                </select>
-              </div>
-              <div>
-                <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Groomer</label>
-                <select value={groomerId} onChange={e => setGroomerId(e.target.value)} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 text-sm outline-none">
-                  {groomers.map((g: any) => (
-                    <option key={g.id} value={g.id}>{g.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block font-sans text-label-sm text-on-surface-variant mb-1">{t.appointments.dateTimeLabel}</label>
-                <input type="datetime-local" value={date} onChange={e => setDate(e.target.value)} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 text-sm outline-none" />
-              </div>
-            </div>
-          )}
-
-          {!isEditing && Boolean(apt.petPhotoUrl) && (
+          {Boolean(apt.petPhotoUrl) && (
             <div className="rounded-2xl overflow-hidden border border-outline-variant bg-surface-container-high flex justify-center items-center">
               <img
                 src={String(apt.petPhotoUrl)}
@@ -247,6 +200,7 @@ export default function AppointmentsPage() {
   const [filterDate, setFilterDate] = useState('');
   const [search, setSearch] = useState('');
   const [selectedApt, setSelectedApt] = useState<Appointment | null>(null);
+  const [editingApt, setEditingApt] = useState<Appointment | null>(null);
   const [groomers, setGroomers] = useState<Record<string, unknown>[]>([]);
   const [userRole, setUserRole] = useState('admin');
 
@@ -346,6 +300,10 @@ export default function AppointmentsPage() {
           userRole={userRole}
           onClose={() => setSelectedApt(null)}
           onStatusChange={updateStatus}
+          onEditFull={(apt) => {
+            setSelectedApt(null);
+            setEditingApt(apt);
+          }}
           onSave={async (id, data) => {
             const token = localStorage.getItem('admin_token');
             await fetch(`${API}/appointments/${id}`, {
@@ -355,6 +313,16 @@ export default function AppointmentsPage() {
             });
             fetchAppointments();
           }}
+        />
+      )}
+
+      {editingApt && (
+        <NewAppointmentModal
+          groomers={groomers}
+          t={t}
+          editingApt={editingApt}
+          onClose={() => setEditingApt(null)}
+          onSave={fetchAppointments}
         />
       )}
 
