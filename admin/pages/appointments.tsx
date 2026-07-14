@@ -2,8 +2,48 @@ import { useEffect, useState, useCallback } from 'react';
 import AdminLayout from '@/components/AdminLayout';
 import { useAdminLang } from '../hooks/useAdminLang';
 import { NewAppointmentModal } from './calendar';
+import DatePicker from 'react-datepicker';
+import { de } from 'date-fns/locale';
+import 'react-datepicker/dist/react-datepicker.css';
+import { format } from 'date-fns';
 
 const API = process.env.NEXT_PUBLIC_API_URL;
+
+function CustomSelect({ value, onChange, options, placeholder = 'Wählen...' }: { value: any, onChange: (v: any) => void, options: { label: string, value: any }[], placeholder?: string }) {
+  const [open, setOpen] = useState(false);
+  const selectedOption = options.find(o => String(o.value) === String(value));
+  
+  return (
+    <div className="relative">
+      <div 
+        className="w-full bg-surface-container-lowest border border-outline-variant rounded-full px-4 py-2 cursor-pointer flex justify-between items-center transition-colors min-w-[140px]"
+        onClick={() => setOpen(!open)}
+      >
+        <span className={`font-sans text-label-lg ${selectedOption ? 'text-on-surface' : 'text-on-surface-variant'}`}>
+          {selectedOption ? selectedOption.label : placeholder}
+        </span>
+        <span className="material-symbols-outlined text-[18px] text-on-surface-variant transition-transform duration-200" style={{ transform: open ? 'rotate(180deg)' : 'none' }}>expand_more</span>
+      </div>
+      
+      {open && (
+        <>
+          <div className="fixed inset-0 z-[60]" onClick={() => setOpen(false)} />
+          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-outline rounded-xl shadow-lg z-[70] overflow-hidden max-h-60 overflow-y-auto py-1">
+            {options.map((o, i) => (
+              <div 
+                key={i}
+                className={`px-3 py-2 cursor-pointer hover:bg-surface-container transition-colors text-sm ${String(value) === String(o.value) ? 'bg-primary/5 text-primary font-medium' : 'text-on-surface'}`}
+                onClick={() => { onChange(o.value); setOpen(false); }}
+              >
+                {o.label}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 const STATUS_COLORS: Record<string, string> = {
   pending: 'bg-amber-100 text-amber-800',
@@ -342,23 +382,31 @@ export default function AppointmentsPage() {
               className="bg-surface-container-lowest border border-outline-variant rounded-full pl-9 pr-4 py-2 font-sans text-label-lg focus:outline-none focus:border-primary w-52 transition-colors"
             />
           </div>
-          <input
-            type="date"
-            value={filterDate}
-            onChange={e => setFilterDate(e.target.value)}
-            className="bg-surface-container-lowest border border-outline-variant rounded-full px-4 py-2 font-sans text-label-lg focus:outline-none focus:border-primary transition-colors"
-          />
-          <select
-            value={filterStatus}
-            onChange={e => setFilterStatus(e.target.value)}
-            className="bg-surface-container-lowest border border-outline-variant rounded-full px-4 py-2 font-sans text-label-lg focus:outline-none focus:border-primary transition-colors"
-          >
-            <option value="all">{t.appointments.allStatuses}</option>
-            <option value="pending">{t.status.pending}</option>
-            <option value="confirmed">{t.status.confirmed}</option>
-            <option value="completed">{t.status.completed}</option>
-            <option value="cancelled">{t.status.cancelled}</option>
-          </select>
+          <div className="relative z-[45]">
+            <DatePicker
+              selected={filterDate ? new Date(filterDate) : null}
+              onChange={(d: Date | null) => setFilterDate(d ? format(d, 'yyyy-MM-dd') : '')}
+              locale={de}
+              dateFormat="dd.MM.yyyy"
+              placeholderText="TT.MM.JJJJ"
+              className="bg-surface-container-lowest border border-outline-variant rounded-full pl-4 pr-10 py-2 font-sans text-label-lg focus:outline-none focus:border-primary transition-colors w-[140px]"
+            />
+            <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-[18px]">calendar_today</span>
+          </div>
+          <div className="z-[45]">
+            <CustomSelect
+              value={filterStatus}
+              onChange={v => setFilterStatus(v)}
+              options={[
+                { label: t.appointments.allStatuses, value: 'all' },
+                { label: t.status.pending, value: 'pending' },
+                { label: t.status.confirmed, value: 'confirmed' },
+                { label: t.status.completed, value: 'completed' },
+                { label: t.status.cancelled, value: 'cancelled' }
+              ]}
+              placeholder={t.appointments.allStatuses}
+            />
+          </div>
           {(filterDate || filterStatus !== 'all' || search) && (
             <button
               onClick={() => { setFilterDate(''); setFilterStatus('all'); setSearch(''); }}

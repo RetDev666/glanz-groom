@@ -83,14 +83,63 @@ function AppointmentDetailModal({
             <div className="space-y-1 mt-2">
               {services?.map((s, i) => (
                 <div key={i} className="flex justify-between">
-                  <span className="font-sans text-label-sm text-on-surface">{String(s.service?.nameUk || s.service?.name || '')}</span>
-                  <span className="font-display font-bold text-primary">{s.price}€</span>
+                  <span className="font-sans text-label-sm text-on-surface">{String(s.service?.nameDe || s.service?.name || '')}</span>
+                  <span className={`font-display font-bold ${((sum > 0 && apt.totalPrice !== undefined) && (sum - Number(apt.totalPrice)) > 0) ? 'text-on-surface-variant line-through' : 'text-primary'}`}>{s.price}€</span>
                 </div>
               ))}
+              
+              {((sum > 0 && apt.totalPrice !== undefined) && (sum - Number(apt.totalPrice)) > 0) && (
+                <>
+                  <div className="flex justify-between pt-2 mt-2 border-t border-outline-variant">
+                    <span className="font-sans text-label-sm text-on-surface-variant">Rabatt</span>
+                    <span className="font-display font-bold text-red-500">-{Math.max(0, sum - Number(apt.totalPrice))}€</span>
+                  </div>
+                  <div className="flex justify-between mt-1">
+                    <span className="font-sans text-label-sm font-bold text-on-surface">Gesamtbetrag</span>
+                    <span className="font-display font-bold text-primary">{Number(apt.totalPrice)}€</span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function CustomSelect({ value, onChange, options, placeholder = 'Wählen...' }: { value: any, onChange: (v: any) => void, options: { label: string, value: any }[], placeholder?: string }) {
+  const [open, setOpen] = useState(false);
+  const selectedOption = options.find(o => String(o.value) === String(value));
+  
+  return (
+    <div className="relative">
+      <div 
+        className="w-full bg-surface border border-outline rounded-xl px-3 py-2 cursor-pointer flex justify-between items-center"
+        onClick={() => setOpen(!open)}
+      >
+        <span className={`font-sans text-sm ${selectedOption ? 'text-on-surface' : 'text-on-surface-variant'}`}>
+          {selectedOption ? selectedOption.label : placeholder}
+        </span>
+        <span className="material-symbols-outlined text-[18px] text-on-surface-variant transition-transform duration-200" style={{ transform: open ? 'rotate(180deg)' : 'none' }}>expand_more</span>
+      </div>
+      
+      {open && (
+        <>
+          <div className="fixed inset-0 z-[60]" onClick={() => setOpen(false)} />
+          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-outline rounded-xl shadow-lg z-[70] overflow-hidden max-h-60 overflow-y-auto py-1">
+            {options.map((o, i) => (
+              <div 
+                key={i}
+                className={`px-3 py-2 cursor-pointer hover:bg-surface-container transition-colors text-sm ${String(value) === String(o.value) ? 'bg-primary/5 text-primary font-medium' : 'text-on-surface'}`}
+                onClick={() => { onChange(o.value); setOpen(false); }}
+              >
+                {o.label}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -237,9 +286,11 @@ export function NewAppointmentModal({
             </div>
             <div>
               <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Groomer</label>
-              <select value={form.groomerId} onChange={e => setForm({...form, groomerId: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none">
-                {groomers.map((g: any) => <option key={g.id} value={g.id}>{g.name}</option>)}
-              </select>
+              <CustomSelect 
+                value={form.groomerId} 
+                onChange={v => setForm({...form, groomerId: v})} 
+                options={groomers.map((g: any) => ({ label: g.name, value: g.id }))} 
+              />
             </div>
           </div>
 
@@ -262,9 +313,17 @@ export function NewAppointmentModal({
                 </div>
                 <div>
                   <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Größe</label>
-                  <select value={form.petSize} onChange={e => setForm({...form, petSize: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none">
-                    <option value="xs">XS</option><option value="s">S</option><option value="m">M</option><option value="l">L</option><option value="xl">XL</option>
-                  </select>
+                  <CustomSelect 
+                    value={form.petSize} 
+                    onChange={v => setForm({...form, petSize: v})} 
+                    options={[
+                      {label: 'XS', value: 'xs'},
+                      {label: 'S', value: 's'},
+                      {label: 'M', value: 'm'},
+                      {label: 'L', value: 'l'},
+                      {label: 'XL', value: 'xl'}
+                    ]} 
+                  />
                 </div>
               </div>
               <div>
@@ -296,15 +355,19 @@ export function NewAppointmentModal({
             <div className="space-y-4">
               <div>
                 <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Dauer (Minuten) *</label>
-                <select value={form.duration} onChange={e => setForm({...form, duration: Number(e.target.value)})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none">
-                  <option value={15}>15 Min</option>
-                  <option value={30}>30 Min</option>
-                  <option value={60}>1 Std</option>
-                  <option value={90}>1.5 Std</option>
-                  <option value={120}>2 Std</option>
-                  <option value={240}>Halber Tag (4 Std)</option>
-                  <option value={480}>Ganzer Tag (8 Std)</option>
-                </select>
+                <CustomSelect 
+                  value={form.duration} 
+                  onChange={v => setForm({...form, duration: Number(v)})} 
+                  options={[
+                    {label: '15 Min', value: 15},
+                    {label: '30 Min', value: 30},
+                    {label: '1 Std', value: 60},
+                    {label: '1.5 Std', value: 90},
+                    {label: '2 Std', value: 120},
+                    {label: 'Halber Tag (4 Std)', value: 240},
+                    {label: 'Ganzer Tag (8 Std)', value: 480}
+                  ]} 
+                />
               </div>
               <div>
                 <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Grund (Kommentar)</label>
@@ -331,6 +394,8 @@ export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedApt, setSelectedApt] = useState<Appointment | null>(null);
   const [filterGroomerId, setFilterGroomerId] = useState<number | null>(null);
+  const [isGroomerDropdownOpen, setIsGroomerDropdownOpen] = useState(false);
+  const [resizeState, setResizeState] = useState<{ aptId: string | number; startY: number; startDuration: number; currentDuration: number } | null>(null);
   
   const [viewMode, setViewMode] = useState<'day' | 'week'>('day');
   const [contextMenu, setContextMenu] = useState<{ isOpen: boolean, x: number, y: number, apt: Appointment | null }>({ isOpen: false, x: 0, y: 0, apt: null });
@@ -339,6 +404,29 @@ export default function CalendarPage() {
 
   // Add a state to store breaks (currently simulated, as API doesn't have it yet)
   const [breaks] = useState([{ groomerId: 1, start: '13:15', end: '13:45' }]);
+
+  useEffect(() => {
+    if (!resizeState) return;
+    const handleMouseMove = (e: MouseEvent) => {
+      const diffY = e.clientY - resizeState.startY;
+      const diffMinutes = Math.round(diffY / 2);
+      const snappedDiff = Math.round(diffMinutes / 5) * 5; // Snap to 5 mins
+      const newDuration = Math.max(15, resizeState.startDuration + snappedDiff);
+      setResizeState(prev => prev ? { ...prev, currentDuration: newDuration } : null);
+    };
+    const handleMouseUp = async () => {
+      if (resizeState.currentDuration !== resizeState.startDuration) {
+        await handleUpdateAppointment(Number(resizeState.aptId), { duration: resizeState.currentDuration });
+      }
+      setResizeState(null);
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [resizeState?.startY, resizeState?.startDuration]);
 
   const fetchAppointments = () => {
     setCurrentDate(new Date(currentDate)); // Trigger effect
@@ -503,28 +591,27 @@ export default function CalendarPage() {
         onSave={fetchAppointments} 
       />}
 
-      {/* Header — Logo Style: dark + gold */}
-      <header className="bg-[#1a1a2e] px-5 py-2.5 shrink-0 z-40 flex justify-between items-center gap-4">
-        {/* Left: Logo-style date + arrows */}
-        <div className="flex items-center gap-3">
+      <header className="bg-primary px-4 py-2 flex items-center justify-between shrink-0">
+        {/* Left: Date navigation */}
+        <div className="flex items-center gap-1">
           <button
             onClick={() => setCurrentDate(d => { const n = new Date(d); n.setDate(n.getDate() - 1); return n; })}
             className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
           >
             <span className="material-symbols-outlined text-[16px]">chevron_left</span>
           </button>
-
-          <div className="cursor-pointer group relative">
+          
+          <div className="px-3 group cursor-pointer relative">
             <DatePicker
               selected={currentDate}
               onChange={(date: Date | null) => date && setCurrentDate(date)}
               locale="de"
               customInput={
                 <div className="flex items-center gap-2">
-                  <span className="font-display font-bold text-lg text-white group-hover:text-[#ffcc00] transition-colors">
+                  <span className="font-display font-bold text-lg text-white group-hover:text-white/80 transition-colors">
                     {format(currentDate, 'd MMMM yyyy', { locale: de })}
                   </span>
-                  <span className="material-symbols-outlined text-white/40 text-[18px] group-hover:text-[#ffcc00] transition-colors">expand_more</span>
+                  <span className="material-symbols-outlined text-white/70 text-[18px] group-hover:text-white transition-colors">expand_more</span>
                 </div>
               }
             />
@@ -539,7 +626,7 @@ export default function CalendarPage() {
 
           <button
             onClick={() => setCurrentDate(new Date())}
-            className="px-3 py-1 text-xs font-semibold rounded-full border border-[#ffcc00]/40 text-[#ffcc00] hover:bg-[#ffcc00] hover:text-gray-900 transition-colors ml-1"
+            className="px-3 py-1 text-xs font-semibold rounded-full border border-white/40 text-white hover:bg-white hover:text-primary transition-colors ml-1"
           >
             Heute
           </button>
@@ -550,7 +637,7 @@ export default function CalendarPage() {
           <button
             onClick={() => setViewMode('day')}
             className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-all ${
-              viewMode === 'day' ? 'bg-[#ffcc00] text-gray-900 shadow-sm' : 'text-white/70 hover:text-white hover:bg-white/10'
+              viewMode === 'day' ? 'bg-white text-primary shadow-sm' : 'text-white/80 hover:text-white hover:bg-white/10'
             }`}
           >
             Tag
@@ -558,7 +645,7 @@ export default function CalendarPage() {
           <button
             onClick={() => setViewMode('week')}
             className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-all ${
-              viewMode === 'week' ? 'bg-[#ffcc00] text-gray-900 shadow-sm' : 'text-white/70 hover:text-white hover:bg-white/10'
+              viewMode === 'week' ? 'bg-white text-primary shadow-sm' : 'text-white/80 hover:text-white hover:bg-white/10'
             }`}
           >
             Woche
@@ -569,30 +656,46 @@ export default function CalendarPage() {
         <div className="flex items-center gap-2">
           {/* Groomer filter */}
           <div className="relative flex items-center">
-            <select
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-              value={filterGroomerId || ''}
-              onChange={(e) => setFilterGroomerId(e.target.value ? Number(e.target.value) : null)}
+            <button 
+              onClick={() => setIsGroomerDropdownOpen(!isGroomerDropdownOpen)}
+              className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-xl transition-colors text-white"
             >
-              <option value="">Alle</option>
-              {groomers.map(g => (
-                <option key={String(g.id)} value={String(g.id)}>{String(g.name)}</option>
-              ))}
-            </select>
-            <button className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-xl transition-colors text-white">
-              <span className="material-symbols-outlined text-[16px] text-[#ffcc00]">group</span>
+              <span className="material-symbols-outlined text-[16px]">group</span>
               <span className="text-sm font-medium">
                 {filterGroomerId ? String(groomers.find(g => Number(g.id) === filterGroomerId)?.name ?? 'Alle') : 'Alle'}
               </span>
               <span className="material-symbols-outlined text-[14px] text-white/50">expand_more</span>
             </button>
+            
+            {isGroomerDropdownOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setIsGroomerDropdownOpen(false)} />
+                <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden z-50 py-1">
+                  <button
+                    className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${!filterGroomerId ? 'bg-primary/5 text-primary font-medium' : 'text-gray-700'}`}
+                    onClick={() => { setFilterGroomerId(null); setIsGroomerDropdownOpen(false); }}
+                  >
+                    Alle
+                  </button>
+                  {groomers.map(g => (
+                    <button
+                      key={String(g.id)}
+                      className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${filterGroomerId === Number(g.id) ? 'bg-primary/5 text-primary font-medium' : 'text-gray-700'}`}
+                      onClick={() => { setFilterGroomerId(Number(g.id)); setIsGroomerDropdownOpen(false); }}
+                    >
+                      {String(g.name)}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
 
           {/* Block day */}
           <button
             onClick={() => setNewAptModalData({ isOpen: true, date: new Date(currentDate.setHours(13, 0, 0, 0)), groomerId: Number(groomers[0]?.id) || 1 })}
             title="Tag blockieren"
-            className="flex items-center gap-1.5 bg-white/10 hover:bg-red-500/30 px-3 py-1.5 rounded-xl transition-colors text-white/70 hover:text-red-300"
+            className="flex items-center gap-1.5 bg-white/10 hover:bg-red-500/30 px-3 py-1.5 rounded-xl transition-colors text-white/80 hover:text-white"
           >
             <span className="material-symbols-outlined text-[16px]">event_busy</span>
             <span className="text-sm">Blockieren</span>
@@ -601,7 +704,7 @@ export default function CalendarPage() {
           {/* New appointment */}
           <button
             onClick={() => setNewAptModalData({ isOpen: true })}
-            className="flex items-center gap-1.5 bg-[#ffcc00] text-gray-900 px-4 py-1.5 rounded-xl font-semibold text-sm hover:bg-yellow-300 transition-colors shadow-sm"
+            className="flex items-center gap-1.5 bg-white text-primary px-4 py-1.5 rounded-xl font-semibold text-sm hover:bg-white/90 transition-colors shadow-sm"
           >
             <span className="material-symbols-outlined text-[18px]">add</span>
             Neuer Termin
@@ -609,12 +712,10 @@ export default function CalendarPage() {
         </div>
       </header>
 
-
-
       <div className="flex-1 flex flex-col overflow-hidden bg-white relative">
         
         {/* Horizontal Week Strip */}
-        <div className="flex bg-[#1a1a2e]/5 shrink-0 overflow-x-auto no-scrollbar border-b border-gray-100">
+        <div className="flex bg-primary/5 shrink-0 overflow-x-auto no-scrollbar border-b border-gray-100">
           {weekDays.map((d, i) => {
             const isActive = isSameDay(d, currentDate);
             const hasApts = appointments.filter(a => isSameDay(new Date(String(a.date)), d)).length;
@@ -624,14 +725,14 @@ export default function CalendarPage() {
                 onClick={() => setCurrentDate(d)}
                 className={`flex-1 min-w-[52px] py-2.5 flex flex-col items-center justify-center cursor-pointer transition-all rounded-b-lg ${
                   isActive
-                    ? 'bg-[#1a1a2e] text-[#ffcc00] font-bold'
-                    : 'hover:bg-[#1a1a2e]/5 text-gray-600'
+                    ? 'bg-primary text-white font-bold shadow-sm'
+                    : 'hover:bg-primary/5 text-gray-600'
                 }`}
               >
-                <span className="text-[10px] uppercase tracking-widest opacity-70">{format(d, 'EE', { locale: de })}</span>
-                <span className={`text-base font-bold ${isActive ? 'text-[#ffcc00]' : 'text-gray-800'}`}>{format(d, 'd')}</span>
+                <span className={`text-[10px] uppercase tracking-widest ${isActive ? 'opacity-90' : 'opacity-70'}`}>{format(d, 'EE', { locale: de })}</span>
+                <span className={`text-base font-bold ${isActive ? 'text-white' : 'text-gray-800'}`}>{format(d, 'd')}</span>
                 {hasApts > 0 && (
-                  <div className={`w-1 h-1 rounded-full mt-0.5 ${isActive ? 'bg-[#ffcc00]' : 'bg-primary'}`} />
+                  <div className={`w-1 h-1 rounded-full mt-0.5 ${isActive ? 'bg-white' : 'bg-primary'}`} />
                 )}
               </div>
             );
@@ -674,7 +775,7 @@ export default function CalendarPage() {
             {HOURS.map((h, i) => {
               const isFullHour = h.endsWith(':00');
               return (
-                <div key={h} className="h-[60px] relative">
+                <div key={h} className="h-[60px] shrink-0 relative">
                   {isFullHour && (
                     <span className="absolute top-0 right-2 -translate-y-1/2 text-[13px] text-gray-500 font-medium bg-white px-1">
                       {h}
@@ -704,7 +805,7 @@ export default function CalendarPage() {
                     {HOURS.map((h) => {
                       const isFullHour = h.endsWith(':00');
                       return (
-                        <div key={h} className={`h-[60px] border-b ${isFullHour ? 'border-gray-200' : 'border-gray-100/50'}`} style={{ pointerEvents: 'none' }} />
+                        <div key={h} className={`h-[60px] shrink-0 border-b ${isFullHour ? 'border-gray-200' : 'border-gray-100/50'}`} style={{ pointerEvents: 'none' }} />
                       );
                     })}
 
@@ -729,11 +830,13 @@ export default function CalendarPage() {
                       const petSize = String(pet?.size || 'm').toUpperCase();
                       
                       const d = new Date(String(apt.date));
-                      const endD = new Date(d.getTime() + Number(apt.duration) * 60000);
+                      const isResizing = resizeState?.aptId === String(apt.id);
+                      const durationToUse = isResizing ? resizeState.currentDuration : Number(apt.duration);
+                      const endD = new Date(d.getTime() + durationToUse * 60000);
                       const timeRange = `${format(d, 'H:mm')} - ${format(endD, 'H:mm')}`;
 
                       const top = getTopPosition(String(apt.date));
-                      const height = Math.max(getHeight(Number(apt.duration)), 40);
+                      const height = Math.max(getHeight(durationToUse), 40);
                       
                       const theme = STATUS_THEMES[String(apt.status)] || STATUS_THEMES.confirmed;
 
@@ -765,10 +868,20 @@ export default function CalendarPage() {
                             </div>
                             
                             {serviceName && (
-                              <div className="text-[10px] leading-tight flex gap-1 items-start mt-auto pt-1">
+                              <div className="text-[10px] leading-tight flex gap-1 items-start mt-auto pt-1 mb-1">
                                 <span className="line-clamp-2">{petSize} - {serviceName}</span>
                               </div>
                             )}
+                          </div>
+                          {/* Resize Handle */}
+                          <div 
+                            className="absolute bottom-0 left-0 right-0 h-2 cursor-ns-resize hover:bg-black/10 transition-colors z-20 group flex items-end justify-center pb-[2px]"
+                            onMouseDown={(e) => {
+                              e.stopPropagation();
+                              setResizeState({ aptId: String(apt.id), startY: e.clientY, startDuration: Number(apt.duration), currentDuration: Number(apt.duration) });
+                            }}
+                          >
+                            <div className="w-8 h-1 bg-black/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
                           </div>
                         </div>
                       );
@@ -795,7 +908,7 @@ export default function CalendarPage() {
                     {HOURS.map((h) => {
                       const isFullHour = h.endsWith(':00');
                       return (
-                        <div key={h} className={`h-[60px] border-b ${isFullHour ? 'border-gray-200' : 'border-gray-100/50'}`} style={{ pointerEvents: 'none' }} />
+                        <div key={h} className={`h-[60px] shrink-0 border-b ${isFullHour ? 'border-gray-200' : 'border-gray-100/50'}`} style={{ pointerEvents: 'none' }} />
                       );
                     })}
 
@@ -805,11 +918,13 @@ export default function CalendarPage() {
                       const groomer = apt.groomer as Record<string, any>;
                       
                       const dStart = new Date(String(apt.date));
-                      const endD = new Date(dStart.getTime() + Number(apt.duration) * 60000);
+                      const isResizing = resizeState?.aptId === String(apt.id);
+                      const durationToUse = isResizing ? resizeState.currentDuration : Number(apt.duration);
+                      const endD = new Date(dStart.getTime() + durationToUse * 60000);
                       const timeRange = `${format(dStart, 'H:mm')} - ${format(endD, 'H:mm')}`;
 
                       const top = getTopPosition(String(apt.date));
-                      const height = Math.max(getHeight(Number(apt.duration)), 40);
+                      const height = Math.max(getHeight(durationToUse), 40);
                       
                       const theme = STATUS_THEMES[String(apt.status)] || STATUS_THEMES.confirmed;
 
@@ -829,10 +944,20 @@ export default function CalendarPage() {
                             <span className="text-[10px] font-bold uppercase truncate max-w-[50px]">{String(groomer?.name || 'O.G.')}</span>
                           </div>
                           
-                          <div className={`${theme.bg} flex-1 p-1 flex flex-col gap-0.5 overflow-hidden text-gray-800`}>
+                          <div className={`${theme.bg} flex-1 p-1 flex flex-col gap-0.5 overflow-hidden text-gray-800 mb-1`}>
                             <div className="leading-tight text-[10px] font-semibold truncate">
                               {client ? `${String(client.firstName)} ${String(client.lastName)}` : '—'}
                             </div>
+                          </div>
+                          {/* Resize Handle */}
+                          <div 
+                            className="absolute bottom-0 left-0 right-0 h-2 cursor-ns-resize hover:bg-black/10 transition-colors z-20 group flex items-end justify-center pb-[2px]"
+                            onMouseDown={(e) => {
+                              e.stopPropagation();
+                              setResizeState({ aptId: String(apt.id), startY: e.clientY, startDuration: Number(apt.duration), currentDuration: Number(apt.duration) });
+                            }}
+                          >
+                            <div className="w-8 h-1 bg-black/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
                           </div>
                         </div>
                       );
