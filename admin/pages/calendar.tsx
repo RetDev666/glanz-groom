@@ -65,11 +65,6 @@ function AppointmentDetailModal({
             </button>
           </div>
         </div>
-            <button onClick={onClose} className="p-2 rounded-full hover:bg-surface-container-high text-on-surface-variant transition-colors">
-              <span className="material-symbols-outlined">close</span>
-            </button>
-          </div>
-        </div>
 
         <div className="p-6 space-y-5">
 
