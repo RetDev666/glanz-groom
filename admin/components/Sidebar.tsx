@@ -28,6 +28,7 @@ export default function Sidebar({ unreadCount = 0 }: { unreadCount?: number }) {
     { href: '/groomers', icon: 'badge', label: t.sidebar.groomers },
     { href: '/offers', icon: 'local_offer', label: t.sidebar.offers },
     { href: '/portfolio', icon: 'photo_library', label: (t.sidebar as any).portfolio || 'Galerie' },
+    { href: '/analytics', icon: 'bar_chart', label: 'Finanzanalysen' },
   ];
 
   const navItems = userRole === 'groomer' 

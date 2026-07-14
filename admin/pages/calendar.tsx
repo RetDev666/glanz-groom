@@ -3,6 +3,10 @@ import AdminLayout from '@/components/AdminLayout';
 import { useAdminLang } from '../hooks/useAdminLang';
 import { format, addDays, startOfWeek, isSameDay } from 'date-fns';
 import { de } from 'date-fns/locale';
+import DatePicker, { registerLocale } from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+
+registerLocale('de', de);
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
@@ -338,6 +342,7 @@ export default function CalendarPage() {
   const [groomers, setGroomers] = useState<Record<string, unknown>[]>([]);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedApt, setSelectedApt] = useState<Appointment | null>(null);
+  const [filterGroomerId, setFilterGroomerId] = useState<number | null>(null);
   
   const [viewMode, setViewMode] = useState<'day' | 'week'>('day');
   const [contextMenu, setContextMenu] = useState<{ isOpen: boolean, x: number, y: number, apt: Appointment | null }>({ isOpen: false, x: 0, y: 0, apt: null });
@@ -501,11 +506,20 @@ export default function CalendarPage() {
 
       {/* Header - Altegio Style */}
       <header className="bg-white border-b border-gray-200 px-4 py-3 shrink-0 z-40 flex justify-between items-center">
-        <div className="flex items-center gap-1 cursor-pointer hover:bg-gray-50 p-1.5 rounded-lg transition-colors group">
-          <span className="font-display font-semibold text-xl text-gray-900 group-hover:text-primary transition-colors capitalize">
-            {format(currentDate, 'd MMMM', { locale: de })}
-          </span>
-          <span className="material-symbols-outlined text-gray-400 group-hover:text-primary">expand_more</span>
+        <div className="flex items-center gap-1 cursor-pointer hover:bg-gray-50 p-1.5 rounded-lg transition-colors group relative">
+          <DatePicker
+            selected={currentDate}
+            onChange={(date: Date) => date && setCurrentDate(date)}
+            locale="de"
+            customInput={
+              <div className="flex items-center gap-1 cursor-pointer">
+                <span className="font-display font-semibold text-xl text-gray-900 group-hover:text-primary transition-colors capitalize">
+                  {format(currentDate, 'd MMMM', { locale: de })}
+                </span>
+                <span className="material-symbols-outlined text-gray-400 group-hover:text-primary">expand_more</span>
+              </div>
+            }
+          />
         </div>
         
         <div className="flex items-center gap-3">
@@ -523,10 +537,24 @@ export default function CalendarPage() {
               Woche
             </button>
           </div>
-          <button className="flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-xl transition-colors">
-            <span className="material-symbols-outlined text-[18px] text-gray-600">group</span>
-            <span className="text-sm font-medium text-gray-700">Alle</span>
-          </button>
+          <div className="relative flex items-center">
+            <select 
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              value={filterGroomerId || ''}
+              onChange={(e) => setFilterGroomerId(e.target.value ? Number(e.target.value) : null)}
+            >
+              <option value="">Alle</option>
+              {groomers.map(g => (
+                <option key={String(g.id)} value={String(g.id)}>{String(g.name)}</option>
+              ))}
+            </select>
+            <button className="flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-xl transition-colors">
+              <span className="material-symbols-outlined text-[18px] text-gray-600">group</span>
+              <span className="text-sm font-medium text-gray-700">
+                {filterGroomerId ? groomers.find(g => Number(g.id) === filterGroomerId)?.name : 'Alle'}
+              </span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -534,15 +562,15 @@ export default function CalendarPage() {
       <div className="absolute bottom-6 right-6 z-50 flex flex-col items-end gap-3">
         <button 
           onClick={() => setCurrentDate(new Date())}
-          className="bg-white px-5 py-3 rounded-full shadow-lg border border-gray-100 font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+          className="bg-primary text-on-primary px-5 py-3 rounded-full shadow-lg font-medium hover:opacity-90 transition-opacity"
         >
           Heute
         </button>
         <button 
           onClick={() => setNewAptModalData({ isOpen: true })}
-          className="bg-white w-14 h-14 flex items-center justify-center rounded-2xl shadow-lg border border-gray-100 hover:bg-gray-50 transition-colors"
+          className="bg-primary text-on-primary w-14 h-14 flex items-center justify-center rounded-2xl shadow-lg hover:opacity-90 transition-opacity"
         >
-          <span className="text-[#ffcc00] font-light text-3xl mb-1">+</span>
+          <span className="font-light text-3xl mb-1">+</span>
         </button>
       </div>
 
@@ -568,12 +596,12 @@ export default function CalendarPage() {
         {/* Column Headers (Groomers or Days) */}
         <div className="flex border-b border-gray-100 shrink-0 mt-2">
           <div className="w-16 shrink-0 flex items-center justify-center">
-             <button onClick={() => setNewAptModalData({ isOpen: true })} className="text-[#ffcc00] font-light text-2xl hover:scale-110 transition-transform">+</button>
+             <button onClick={() => setNewAptModalData({ isOpen: true })} className="bg-primary/10 text-primary w-8 h-8 rounded-full flex items-center justify-center hover:bg-primary/20 transition-colors text-2xl font-light mb-1">+</button>
           </div>
           
-          <div className="flex-1 grid" style={{ gridTemplateColumns: `repeat(${viewMode === 'day' ? Math.max(groomers.length, 1) : 7}, 1fr)` }}>
+          <div className="flex-1 grid" style={{ gridTemplateColumns: `repeat(${viewMode === 'day' ? Math.max((filterGroomerId ? groomers.filter(g => Number(g.id) === filterGroomerId) : groomers).length, 1) : 7}, 1fr)` }}>
             {viewMode === 'day' ? (
-              (groomers.length > 0 ? groomers : [{ id: 1, name: '—' }]).map((g, i) => (
+              ((filterGroomerId ? groomers.filter(g => Number(g.id) === filterGroomerId) : groomers).length > 0 ? (filterGroomerId ? groomers.filter(g => Number(g.id) === filterGroomerId) : groomers) : [{ id: 1, name: '—' }]).map((g, i) => (
                 <div key={String(g.id)} className="py-3 flex flex-col items-center gap-1">
                   {g.photoUrl ? (
                     <img src={String(g.photoUrl)} alt={String(g.name)} className="w-10 h-10 rounded-full object-cover shadow-sm" />
@@ -605,7 +633,7 @@ export default function CalendarPage() {
               return (
                 <div key={h} className="h-[60px] relative">
                   {isFullHour && (
-                    <span className="absolute -top-2.5 right-2 text-[12px] text-gray-500 font-medium">
+                    <span className="absolute top-0 right-2 -translate-y-1/2 text-[13px] text-gray-500 font-medium bg-white px-1">
                       {h}
                     </span>
                   )}
@@ -615,9 +643,9 @@ export default function CalendarPage() {
           </div>
 
           {/* Groomers or Days Columns */}
-          <div className="flex-1 grid" style={{ gridTemplateColumns: `repeat(${viewMode === 'day' ? Math.max(groomers.length, 1) : 7}, 1fr)` }}>
+          <div className="flex-1 grid" style={{ gridTemplateColumns: `repeat(${viewMode === 'day' ? Math.max((filterGroomerId ? groomers.filter(g => Number(g.id) === filterGroomerId) : groomers).length, 1) : 7}, 1fr)` }}>
             {viewMode === 'day' ? (
-              (groomers.length > 0 ? groomers : [{ id: 1 }]).map((g, i, arr) => {
+              ((filterGroomerId ? groomers.filter(g => Number(g.id) === filterGroomerId) : groomers).length > 0 ? (filterGroomerId ? groomers.filter(g => Number(g.id) === filterGroomerId) : groomers) : [{ id: 1 }]).map((g, i, arr) => {
                 const gApts = appointments.filter(a => Number(a.groomerId || 0) === Number(g.id) && isSameDay(new Date(String(a.date)), currentDate));
                 const gBreaks = breaks.filter(b => Number(b.groomerId || 0) === Number(g.id));
 
