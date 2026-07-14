@@ -18,6 +18,12 @@ const STATUS_THEMES: Record<string, { bg: string, header: string, border: string
   confirmed: { bg: 'bg-[#d8cbf5]', header: 'bg-[#8964d8]', border: 'border-[#8964d8]', text: 'text-gray-900' }, // Altegio Purple
   completed: { bg: 'bg-[#b6e8c7]', header: 'bg-[#55b974]', border: 'border-[#55b974]', text: 'text-gray-900' }, // Altegio Green
   cancelled: { bg: 'bg-red-100', header: 'bg-red-500', border: 'border-red-500', text: 'text-red-900' },
+  blocked: { bg: 'bg-red-50', header: 'bg-red-500', border: 'border-red-500', text: 'text-red-900' },
+};
+
+const toLocalDateString = (d: Date) => {
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 };
 
 type Appointment = Record<string, unknown>;
@@ -344,14 +350,28 @@ export default function CalendarPage() {
 
   useEffect(() => {
     const token = localStorage.getItem('admin_token');
-    const queryDate = `date=${currentDate.toISOString().split('T')[0]}`;
+    const queryDate = `date=${toLocalDateString(currentDate)}`;
 
     Promise.all([
       fetch(`${API}/appointments?${queryDate}`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).catch(() => []),
       fetch(`${API}/groomers/all`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).catch(() => []),
     ]).then(([apts, grs]) => {
-      setAppointments(Array.isArray(apts) ? apts : []);
-      setGroomers(Array.isArray(grs) ? grs : []);
+      const validApts = Array.isArray(apts) ? apts : [];
+      const fetchedGroomers = Array.isArray(grs) ? grs : [];
+
+      const missingGroomerIds = Array.from(new Set(validApts.map((a: any) => a.groomerId))).filter(
+        (id: any) => id && !fetchedGroomers.find((g: any) => Number(g.id) === Number(id))
+      );
+
+      const missingGroomers = missingGroomerIds.map((id) => ({
+        id: Number(id),
+        name: `Майстер (ID ${id})`,
+        color: '#666666',
+        photoUrl: 'https://ui-avatars.com/api/?name=M&background=random'
+      }));
+
+      setAppointments(validApts);
+      setGroomers([...fetchedGroomers, ...missingGroomers]);
     });
   }, [currentDate]);
 
