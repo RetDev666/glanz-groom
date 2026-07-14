@@ -10,9 +10,9 @@ registerLocale('de', de);
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
-// Generate 30-minute intervals from 9:00 to 20:00
+// Generate 30-minute intervals from 10:00 to 20:00
 const HOURS: string[] = [];
-for (let i = 9; i <= 20; i++) {
+for (let i = 10; i <= 20; i++) {
   HOURS.push(`${i}:00`);
   HOURS.push(`${i}:30`);
 }
