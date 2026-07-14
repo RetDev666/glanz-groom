@@ -363,12 +363,23 @@ export default function CalendarPage() {
         (id: any) => id && !fetchedGroomers.find((g: any) => Number(g.id) === Number(id))
       );
 
+      const hasNullGroomer = validApts.some((a: any) => !a.groomerId);
+
       const missingGroomers = missingGroomerIds.map((id) => ({
         id: Number(id),
         name: `Майстер (ID ${id})`,
         color: '#666666',
         photoUrl: 'https://ui-avatars.com/api/?name=M&background=random'
       }));
+
+      if (hasNullGroomer) {
+        missingGroomers.push({
+          id: 0,
+          name: 'Без майстра',
+          color: '#aaaaaa',
+          photoUrl: 'https://ui-avatars.com/api/?name=Б&background=random'
+        });
+      }
 
       setAppointments(validApts);
       setGroomers([...fetchedGroomers, ...missingGroomers]);
@@ -569,8 +580,8 @@ export default function CalendarPage() {
           {/* Groomers Columns */}
           <div className="flex-1 grid" style={{ gridTemplateColumns: `repeat(${Math.max(groomers.length, 1)}, 1fr)` }}>
             {(groomers.length > 0 ? groomers : [{ id: 1 }]).map((g, i, arr) => {
-              const gApts = appointments.filter(a => a.groomerId === Number(g.id));
-              const gBreaks = breaks.filter(b => b.groomerId === Number(g.id));
+              const gApts = appointments.filter(a => Number(a.groomerId || 0) === Number(g.id));
+              const gBreaks = breaks.filter(b => Number(b.groomerId || 0) === Number(g.id));
 
               return (
                 <div
