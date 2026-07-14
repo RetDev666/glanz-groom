@@ -283,7 +283,20 @@ export function NewAppointmentModal({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block font-sans text-label-sm text-on-surface-variant mb-1">{t.calendar.dateTimeLabel}</label>
-              <input type="datetime-local" required value={form.date} onChange={e => setForm({...form, date: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none" />
+              <div className="relative z-[60]">
+                <DatePicker
+                  selected={form.date ? new Date(form.date) : null}
+                  onChange={(d: Date | null) => setForm({...form, date: d ? format(d, "yyyy-MM-dd'T'HH:mm") : ''})}
+                  showTimeSelect
+                  timeFormat="HH:mm"
+                  timeIntervals={15}
+                  timeCaption="Zeit"
+                  dateFormat="dd.MM.yyyy HH:mm"
+                  locale={de}
+                  className="w-full bg-surface border border-outline rounded-xl pl-4 pr-10 py-2 outline-none"
+                />
+                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-[18px]">calendar_today</span>
+              </div>
             </div>
             <div>
               <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Groomer</label>
