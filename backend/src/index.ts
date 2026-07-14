@@ -17,6 +17,7 @@ import reviewsRoutes from './routes/reviews';
 import systemRouter from './routes/system';
 import adminsRouter from './routes/admins';
 import portfolioRoutes from './routes/portfolio';
+import petsRouter from './routes/pets';
 
 dotenv.config();
 
@@ -41,6 +42,7 @@ app.use('/api/appointments', appointmentsRouter);
 app.use('/api/clients', clientsRouter);
 app.use('/api/services', servicesRouter);
 app.use('/api/groomers', groomersRouter);
+app.use('/api/pets', petsRouter);
 app.use('/api/contact', contactRouter);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/settings', settingsRoutes);

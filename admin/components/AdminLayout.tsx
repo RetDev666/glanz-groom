@@ -2,6 +2,7 @@ import Sidebar from './Sidebar';
 import Head from 'next/head';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
+import PWAInstallPrompt from './PWAInstallPrompt';
 
 // Custom hook for polling appointments
 function useAppointmentPolling() {
@@ -61,6 +62,67 @@ function useAppointmentPolling() {
   return { newAppt, setNewAppt, unreadCount };
 }
 
+// Custom hook for Push Notifications
+function usePushNotifications() {
+  useEffect(() => {
+    if ('serviceWorker' in navigator && 'PushManager' in window) {
+      navigator.serviceWorker.register('/admin/push-sw.js').then((registration) => {
+        // Request permission on first load if not granted
+        if (Notification.permission === 'default') {
+          Notification.requestPermission().then((permission) => {
+            if (permission === 'granted') {
+              subscribeUserToPush(registration);
+            }
+          });
+        } else if (Notification.permission === 'granted') {
+          subscribeUserToPush(registration);
+        }
+      });
+    }
+  }, []);
+
+  const subscribeUserToPush = async (registration: ServiceWorkerRegistration) => {
+    try {
+      const subscribeOptions = {
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array('BOeBfL8WWOtco1FaJqI8qPiNj9lcWRa5Y5KLvljQ3emLUZTug2v52heXplzA3wIheY8VPTdvjYAFY2H-B5XsnuQ')
+      };
+
+      const pushSubscription = await registration.pushManager.subscribe(subscribeOptions);
+      
+      const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+      const token = localStorage.getItem('admin_token');
+      if (token) {
+        await fetch(`${API}/system/push-subscribe`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(pushSubscription)
+        });
+      }
+    } catch (err) {
+      console.error('Failed to subscribe user:', err);
+    }
+  };
+}
+
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding)
+    .replace(/\-/g, '+')
+    .replace(/_/g, '/');
+
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
 interface AdminLayoutProps {
   children: React.ReactNode;
   title?: string;
@@ -68,6 +130,7 @@ interface AdminLayoutProps {
 
 export default function AdminLayout({ children, title = 'CRM' }: AdminLayoutProps) {
   const { newAppt, setNewAppt, unreadCount } = useAppointmentPolling();
+  usePushNotifications();
   const router = useRouter();
   
   const handleToastClick = () => {
@@ -112,6 +175,9 @@ export default function AdminLayout({ children, title = 'CRM' }: AdminLayoutProp
             </button>
           </div>
         </div>
+
+        {/* PWA Install Prompt */}
+        <PWAInstallPrompt />
       </main>
     </div>
   );

@@ -44,10 +44,20 @@ router.put('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
   }
 });
 
-router.delete('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
+router.patch('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
+  const { firstName, lastName, email, phone, notes } = req.body;
   try {
-    await prisma.client.delete({ where: { id: Number(req.params.id) } });
-    res.json({ success: true });
+    const data: Record<string, unknown> = {};
+    if (firstName !== undefined) data.firstName = firstName;
+    if (lastName !== undefined) data.lastName = lastName;
+    if (email !== undefined) data.email = email;
+    if (phone !== undefined) data.phone = phone;
+    if (notes !== undefined) data.notes = notes;
+    const client = await prisma.client.update({
+      where: { id: Number(req.params.id) },
+      data,
+    });
+    res.json(client);
   } catch {
     res.status(404).json({ error: 'Not found' });
   }

@@ -14,18 +14,55 @@ const STATUS_COLORS: Record<string, string> = {
 
 type Client = Record<string, unknown>;
 
-function ClientDetailModal({ clientId, onClose }: { clientId: number; onClose: () => void }) {
+function ClientDetailModal({ clientId, onClose, onRefresh }: { clientId: number; onClose: () => void; onRefresh: () => void }) {
   const router = useRouter();
   const { t } = useAdminLang();
   const [client, setClient] = useState<Record<string, unknown> | null>(null);
+  const [editingClient, setEditingClient] = useState(false);
+  const [editingPetId, setEditingPetId] = useState<number | null>(null);
+  const [clientForm, setClientForm] = useState({ firstName: '', lastName: '', phone: '', email: '' });
+  const [petForm, setPetForm] = useState({ name: '', breed: '', size: 'm' });
+  const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
+  const loadClient = () => {
     const token = localStorage.getItem('admin_token');
     fetch(`${API}/clients/${clientId}`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
-      .then(d => setClient(d))
+      .then(d => {
+        setClient(d);
+        setClientForm({ firstName: String(d.firstName || ''), lastName: String(d.lastName || ''), phone: String(d.phone || ''), email: String(d.email || '') });
+      })
       .catch(() => {});
-  }, [clientId]);
+  };
+
+  useEffect(() => { loadClient(); }, [clientId]);
+
+  const saveClient = async () => {
+    setSaving(true);
+    const token = localStorage.getItem('admin_token');
+    await fetch(`${API}/clients/${clientId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify(clientForm),
+    });
+    setSaving(false);
+    setEditingClient(false);
+    loadClient();
+    onRefresh();
+  };
+
+  const savePet = async (petId: number) => {
+    setSaving(true);
+    const token = localStorage.getItem('admin_token');
+    await fetch(`${API}/pets/${petId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify(petForm),
+    });
+    setSaving(false);
+    setEditingPetId(null);
+    loadClient();
+  };
 
   if (!client) {
     return (
@@ -50,14 +87,38 @@ function ClientDetailModal({ clientId, onClose }: { clientId: number; onClose: (
               {String(client.firstName || '?').charAt(0)}{String(client.lastName || '').charAt(0)}
             </div>
             <div>
-              <h3 className="font-display text-headline-sm text-on-surface">{String(client.firstName)} {String(client.lastName)}</h3>
-              <p className="font-sans text-label-md text-on-surface-variant">{String(client.email)}</p>
-              <p className="font-sans text-label-md text-on-surface-variant">{String(client.phone)}</p>
+              {editingClient ? (
+                <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <input className="border border-outline rounded-lg px-2 py-1 text-sm w-full" value={clientForm.firstName} onChange={e => setClientForm({...clientForm, firstName: e.target.value})} placeholder="Vorname" />
+                    <input className="border border-outline rounded-lg px-2 py-1 text-sm w-full" value={clientForm.lastName} onChange={e => setClientForm({...clientForm, lastName: e.target.value})} placeholder="Nachname" />
+                  </div>
+                  <input className="border border-outline rounded-lg px-2 py-1 text-sm w-full" value={clientForm.phone} onChange={e => setClientForm({...clientForm, phone: e.target.value})} placeholder="Telefon" />
+                  <input className="border border-outline rounded-lg px-2 py-1 text-sm w-full" value={clientForm.email} onChange={e => setClientForm({...clientForm, email: e.target.value})} placeholder="E-Mail" />
+                  <div className="flex gap-2 pt-1">
+                    <button onClick={saveClient} disabled={saving} className="px-3 py-1 bg-primary text-on-primary rounded-lg text-sm font-medium">{saving ? '...' : 'Speichern'}</button>
+                    <button onClick={() => setEditingClient(false)} className="px-3 py-1 border border-outline rounded-lg text-sm">Abbrechen</button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <h3 className="font-display text-headline-sm text-on-surface">{String(client.firstName)} {String(client.lastName)}</h3>
+                  <p className="font-sans text-label-md text-on-surface-variant">{String(client.email)}</p>
+                  <p className="font-sans text-label-md text-on-surface-variant">{String(client.phone)}</p>
+                </>
+              )}
             </div>
           </div>
-          <button onClick={onClose} className="p-2 rounded-full hover:bg-surface-container-high text-on-surface-variant transition-colors mt-1">
-            <span className="material-symbols-outlined">close</span>
-          </button>
+          <div className="flex items-center gap-2 mt-1">
+            {!editingClient && (
+              <button onClick={() => setEditingClient(true)} className="p-2 rounded-full hover:bg-surface-container text-primary transition-colors" title="Kundendaten bearbeiten">
+                <span className="material-symbols-outlined text-[20px]">edit</span>
+              </button>
+            )}
+            <button onClick={onClose} className="p-2 rounded-full hover:bg-surface-container-high text-on-surface-variant transition-colors">
+              <span className="material-symbols-outlined">close</span>
+            </button>
+          </div>
         </div>
 
         <div className="p-6 space-y-5">
@@ -67,12 +128,38 @@ function ClientDetailModal({ clientId, onClose }: { clientId: number; onClose: (
               <p className="font-sans text-label-sm text-on-surface-variant uppercase tracking-widest mb-3">{t.clients.petsLabel}</p>
               <div className="flex flex-wrap gap-2">
                 {pets.map((pet, i) => (
-                  <div key={i} className="bg-surface-container-low rounded-2xl px-4 py-3 flex items-center gap-2 border border-outline-variant">
-                    <span className="material-symbols-outlined fill text-primary text-[20px]">pets</span>
-                    <div>
-                      <p className="font-sans text-label-lg text-on-surface">{String(pet.name)}</p>
-                      <p className="font-sans text-label-sm text-on-surface-variant">{String(pet.breed)} · {String(pet.size || '').toUpperCase()}</p>
-                    </div>
+                  <div key={i} className="bg-surface-container-low rounded-2xl px-4 py-3 border border-outline-variant w-full">
+                    {editingPetId === Number(pet.id) ? (
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-3 gap-2">
+                          <input className="border border-outline rounded-lg px-2 py-1 text-sm" value={petForm.name} onChange={e => setPetForm({...petForm, name: e.target.value})} placeholder="Name" />
+                          <input className="border border-outline rounded-lg px-2 py-1 text-sm" value={petForm.breed} onChange={e => setPetForm({...petForm, breed: e.target.value})} placeholder="Rasse" />
+                          <select className="border border-outline rounded-lg px-2 py-1 text-sm" value={petForm.size} onChange={e => setPetForm({...petForm, size: e.target.value})}>
+                            <option value="xs">XS</option><option value="s">S</option><option value="m">M</option><option value="l">L</option><option value="xl">XL</option>
+                          </select>
+                        </div>
+                        <div className="flex gap-2">
+                          <button onClick={() => savePet(Number(pet.id))} disabled={saving} className="px-3 py-1 bg-primary text-on-primary rounded-lg text-sm font-medium">{saving ? '...' : 'Speichern'}</button>
+                          <button onClick={() => setEditingPetId(null)} className="px-3 py-1 border border-outline rounded-lg text-sm">Abbrechen</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="material-symbols-outlined fill text-primary text-[20px]">pets</span>
+                          <div>
+                            <p className="font-sans text-label-lg text-on-surface">{String(pet.name)}</p>
+                            <p className="font-sans text-label-sm text-on-surface-variant">{String(pet.breed || '—')} · {String(pet.size || '').toUpperCase()}</p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => { setEditingPetId(Number(pet.id)); setPetForm({ name: String(pet.name || ''), breed: String(pet.breed || ''), size: String(pet.size || 'm') }); }}
+                          className="p-1.5 rounded-full hover:bg-surface-container text-on-surface-variant transition-colors"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">edit</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -92,8 +179,8 @@ function ClientDetailModal({ clientId, onClose }: { clientId: number; onClose: (
                   const groomer = apt.groomer as Record<string, unknown>;
                   const services = apt.services as { service: Record<string, unknown> }[];
                   return (
-                    <div 
-                      key={i} 
+                    <div
+                      key={i}
                       onClick={() => router.push(`/calendar?date=${String(apt.date).split('T')[0]}`)}
                       className="bg-surface-container-low hover:bg-surface-container rounded-2xl p-4 border border-outline-variant cursor-pointer transition-colors"
                     >
@@ -101,10 +188,7 @@ function ClientDetailModal({ clientId, onClose }: { clientId: number; onClose: (
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1 flex-wrap">
                             <span className="font-sans text-label-lg text-on-surface font-semibold">
-                              {new Date(String(apt.date)).toLocaleString('de-DE', {
-                                day: 'numeric', month: 'short', year: 'numeric',
-                                hour: '2-digit', minute: '2-digit',
-                              })}
+                              {new Date(String(apt.date)).toLocaleString('de-DE', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                             </span>
                             <span className={`font-sans text-label-sm px-2 py-0.5 rounded-full ${STATUS_COLORS[String(apt.status)] || ''}`}>
                               {t.status[String(apt.status) as keyof typeof t.status] || String(apt.status)}
@@ -129,14 +213,9 @@ function ClientDetailModal({ clientId, onClose }: { clientId: number; onClose: (
                         <div className="text-right shrink-0">
                           <p className="font-display font-bold text-primary">{String(apt.totalPrice)}€</p>
                           <p className="font-sans text-label-sm text-on-surface-variant">{String(apt.duration)} Min</p>
-                          {/* Pet photo thumbnail */}
                           {Boolean(apt.petPhotoUrl) && (
-                            <img
-                              src={String(apt.petPhotoUrl)}
-                              alt="Foto"
-                              className="w-12 h-12 rounded-lg object-cover border border-outline-variant mt-2"
-                              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                            />
+                            <img src={String(apt.petPhotoUrl)} alt="Foto" className="w-12 h-12 rounded-lg object-cover border border-outline-variant mt-2"
+                              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                           )}
                         </div>
                       </div>
@@ -184,7 +263,7 @@ export default function ClientsPage() {
   return (
     <AdminLayout title={t.clients.title}>
       {selectedClientId !== null && (
-        <ClientDetailModal clientId={selectedClientId} onClose={() => setSelectedClientId(null)} />
+        <ClientDetailModal clientId={selectedClientId} onClose={() => setSelectedClientId(null)} onRefresh={fetchClients} />
       )}
 
       <header className="sticky top-0 bg-surface border-b border-outline-variant flex justify-between items-center px-6 h-16 shrink-0 z-40">

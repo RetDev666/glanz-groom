@@ -197,71 +197,32 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* REVIEWS */}
+      {/* WHY CHOOSE US */}
       <section className="py-xl px-6 md:px-12 bg-surface-container-lowest">
         <div className="max-w-7xl mx-auto">
-          <h2 className="font-display text-headline-lg text-on-surface mb-lg text-center">{t.home.reviewsTitle}</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {reviewsLoading ? (
-              // Skeleton
-              [1,2,3].map(i => (
-                <div key={i} className="bg-surface-container rounded-2xl p-6 border border-surface-variant shadow-sm animate-pulse">
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="w-12 h-12 rounded-full bg-surface-variant" />
-                    <div className="flex-1 space-y-2">
-                      <div className="h-3 bg-surface-variant rounded w-2/3" />
-                      <div className="h-3 bg-surface-variant rounded w-1/3" />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="h-3 bg-surface-variant rounded" />
-                    <div className="h-3 bg-surface-variant rounded w-5/6" />
-                    <div className="h-3 bg-surface-variant rounded w-4/6" />
-                  </div>
-                </div>
-              ))
-            ) : (
-              reviews.map((r, i) => (
-                <div key={r.id || i} className="bg-surface-container rounded-2xl p-6 border border-surface-variant shadow-sm hover:shadow-md transition-shadow flex flex-col">
-                  <div className="flex items-center gap-4 mb-4">
-                    {r.authorPhoto ? (
-                      <img
-                        src={r.authorPhoto}
-                        alt={r.authorName}
-                        className="w-12 h-12 rounded-full object-cover shadow-sm"
-                        onError={(e: any) => { e.target.style.display='none'; e.target.nextSibling.style.display='flex'; }}
-                      />
-                    ) : null}
-                    <div
-                      className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-on-primary font-bold text-lg flex-shrink-0"
-                      style={{ display: r.authorPhoto ? 'none' : 'flex' }}
-                    >
-                      {(r.authorName || '?')[0].toUpperCase()}
-                    </div>
-                    <div>
-                      <p className="font-sans text-label-md text-on-surface font-semibold">{r.authorName}</p>
-                      <div className="flex text-yellow-500 text-sm mt-0.5">
-                        {'★'.repeat(r.rating || 5)}{'☆'.repeat(5 - (r.rating || 5))}
-                      </div>
-                    </div>
-                  </div>
-                  <p className="font-sans text-body-md text-on-surface-variant italic leading-relaxed">
-                    «{(r.text || '').replace(/«|»|"/g, '').trim()}»
-                  </p>
-                </div>
-              ))
-            )}
-          </div>
-          <div className="text-center mt-10">
-            <a
-              href="https://maps.app.goo.gl/NDd5SztVC6zd6C9i7?g_st=it"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-primary font-sans text-label-lg hover:underline"
-            >
-              <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google" className="w-5 h-5" />
-              Weitere Bewertungen auf Google Maps lesen
-            </a>
+          <h2 className="font-display text-headline-lg text-on-surface mb-lg text-center">Warum uns wählen?</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="bg-surface-container rounded-3xl p-8 border border-surface-variant text-center flex flex-col items-center hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+              <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-6">
+                <span className="material-symbols-outlined text-[32px] text-primary">favorite</span>
+              </div>
+              <h3 className="font-display text-title-lg text-on-surface font-bold mb-3">Liebevolle Pflege</h3>
+              <p className="font-sans text-body-md text-on-surface-variant leading-relaxed">Wir behandeln jeden Hund mit größter Sorgfalt, Liebe und Geduld, als wäre es unser eigener.</p>
+            </div>
+            <div className="bg-surface-container rounded-3xl p-8 border border-surface-variant text-center flex flex-col items-center hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+              <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-6">
+                <span className="material-symbols-outlined text-[32px] text-primary">workspace_premium</span>
+              </div>
+              <h3 className="font-display text-title-lg text-on-surface font-bold mb-3">Professionelle Qualität</h3>
+              <p className="font-sans text-body-md text-on-surface-variant leading-relaxed">Unsere erfahrenen Groomer nutzen nur hochwertige Produkte und modernste Techniken.</p>
+            </div>
+            <div className="bg-surface-container rounded-3xl p-8 border border-surface-variant text-center flex flex-col items-center hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+              <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-6">
+                <span className="material-symbols-outlined text-[32px] text-primary">spa</span>
+              </div>
+              <h3 className="font-display text-title-lg text-on-surface font-bold mb-3">Stressfreies Erlebnis</h3>
+              <p className="font-sans text-body-md text-on-surface-variant leading-relaxed">Eine ruhige, entspannte Umgebung ohne Zeitdruck sorgt für das absolute Wohlbefinden Ihres Vierbeiners.</p>
+            </div>
           </div>
         </div>
       </section>

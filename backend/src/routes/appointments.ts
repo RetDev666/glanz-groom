@@ -307,6 +307,15 @@ router.post('/', async (req: Request, res: Response) => {
       appointment.client.notes = notes;
     }
 
+    try {
+      const { sendPushNotification } = require('./system');
+      await sendPushNotification({
+        title: 'Neuer Termin!',
+        body: `${client.firstName} ${client.lastName} hat für ${pet.name} gebucht.`,
+        url: '/admin/appointments'
+      });
+    } catch (e) {}
+
     res.status(201).json(appointment);
   } catch (err) {
     console.error(err);
