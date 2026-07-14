@@ -85,7 +85,7 @@ function GroomerModal({
         alert('Konto erfolgreich erstellt!');
         setAccountEmail('');
         setAccountPassword('');
-        onSave();
+        onClose();
       } else {
         const data = await res.json();
         alert(data.error || 'Fehler beim Erstellen des Kontos');
