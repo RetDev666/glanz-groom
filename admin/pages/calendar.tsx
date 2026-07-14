@@ -49,8 +49,8 @@ function AppointmentDetailModal({
   const sum = services?.reduce((acc: number, s: any) => acc + (s.price || 0), 0) || 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-surface-container-lowest rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm p-4 flex justify-center" onClick={onClose}>
+      <div className="bg-surface-container-lowest rounded-3xl shadow-2xl w-full max-w-lg relative my-auto h-auto overflow-visible" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between p-6 border-b border-outline-variant">
           <div>
             <h3 className="font-display text-headline-sm text-on-surface">{t.calendar.detailTitle}</h3>
@@ -254,8 +254,8 @@ export function NewAppointmentModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-surface-container-lowest rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm p-4 flex justify-center" onClick={onClose}>
+      <div className="bg-surface-container-lowest rounded-3xl shadow-2xl w-full max-w-lg relative my-auto h-auto overflow-visible" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between p-6 border-b border-outline-variant">
           <h3 className="font-display text-headline-sm text-on-surface">{editingApt ? 'Termin bearbeiten' : 'Neuer Termin'}</h3>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-surface-container-high text-on-surface-variant transition-colors">
