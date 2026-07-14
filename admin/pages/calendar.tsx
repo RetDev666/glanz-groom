@@ -539,7 +539,7 @@ export default function CalendarPage() {
             <button className="flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-xl transition-colors">
               <span className="material-symbols-outlined text-[18px] text-gray-600">group</span>
               <span className="text-sm font-medium text-gray-700">
-                {filterGroomerId ? groomers.find(g => Number(g.id) === filterGroomerId)?.name : 'Alle'}
+                {filterGroomerId ? String(groomers.find(g => Number(g.id) === filterGroomerId)?.name ?? 'Alle') : 'Alle'}
               </span>
             </button>
           </div>
@@ -771,12 +771,12 @@ export default function CalendarPage() {
                         >
                           <div className={`${theme.header} text-white px-1.5 py-0.5 flex justify-between items-center shrink-0`}>
                             <span className="text-[10px] font-medium leading-none">{timeRange}</span>
-                            <span className="text-[10px] font-bold uppercase truncate max-w-[50px]">{groomer?.name || 'O.G.'}</span>
+                            <span className="text-[10px] font-bold uppercase truncate max-w-[50px]">{String(groomer?.name || 'O.G.')}</span>
                           </div>
                           
                           <div className={`${theme.bg} flex-1 p-1 flex flex-col gap-0.5 overflow-hidden text-gray-800`}>
                             <div className="leading-tight text-[10px] font-semibold truncate">
-                              {client ? `${client.firstName} ${client.lastName}` : '—'}
+                              {client ? `${String(client.firstName)} ${String(client.lastName)}` : '—'}
                             </div>
                           </div>
                         </div>
