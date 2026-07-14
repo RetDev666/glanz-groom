@@ -121,7 +121,7 @@ function ClientDetailModal({ clientId, onClose }: { clientId: number; onClose: (
                           {Boolean(apt.notes) && (
                             <div className="mt-2 p-2 bg-amber-50/50 border border-amber-100 rounded-lg">
                               <p className="font-sans text-label-sm text-amber-900 line-clamp-3">
-                                <span className="font-semibold">Коментар:</span> {String(apt.notes)}
+                                <span className="font-semibold">Kommentar:</span> {String(apt.notes)}
                               </p>
                             </div>
                           )}
@@ -133,7 +133,7 @@ function ClientDetailModal({ clientId, onClose }: { clientId: number; onClose: (
                           {Boolean(apt.petPhotoUrl) && (
                             <img
                               src={String(apt.petPhotoUrl)}
-                              alt="фото"
+                              alt="Foto"
                               className="w-12 h-12 rounded-lg object-cover border border-outline-variant mt-2"
                               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                             />

@@ -184,7 +184,7 @@ function AppointmentDetailModal({
                 if (sumOfServices > aptTotalPrice) {
                   return (
                     <div className="flex justify-between text-green-600 pt-1">
-                      <span className="font-sans text-label-md font-semibold">Rabatt / Знижка</span>
+                      <span className="font-sans text-label-md font-semibold">Rabatt</span>
                       <span className="font-display font-bold">-{sumOfServices - aptTotalPrice}€</span>
                     </div>
                   );

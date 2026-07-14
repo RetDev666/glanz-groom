@@ -76,14 +76,15 @@ function BreedsConfigModal({ onClose, t }: { onClose: () => void; t: ReturnType<
         headers: { Authorization: `Bearer ${token}` },
         body: formData
       });
-      const data = await res.json();
-      if (res.ok) {
-        handleChange(sizeKey, index, 'img', data.url);
-      } else {
-        alert(data.error || 'Помилка завантаження фото');
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || 'Fehler beim Hochladen des Fotos');
+        return;
       }
+      const data = await res.json();
+      handleChange(sizeKey, index, 'img', data.url);
     } catch (err: any) {
-      alert(err.message || 'Сталася помилка при завантаженні');
+      alert(err.message || 'Ein Fehler ist aufgetreten');
     }
     setUploading(null);
     e.target.value = '';

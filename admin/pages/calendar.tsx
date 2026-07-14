@@ -110,7 +110,7 @@ function AppointmentDetailModal({
                 <input type="datetime-local" value={date} onChange={e => setDate(e.target.value)} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 text-sm outline-none" />
               </div>
               <div>
-                <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Коментар</label>
+                <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Kommentar</label>
                 <textarea value={notes} onChange={e => setNotes(e.target.value)} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 text-sm outline-none" rows={3}></textarea>
               </div>
             </div>
@@ -191,11 +191,11 @@ function NewAppointmentModal({
     e.preventDefault();
     if (!form.isBlock) {
       if (!form.clientPhone || !form.petName || !form.date || form.serviceIds.length === 0) {
-        return alert('Будь ласка, заповніть всі обов\'язкові поля');
+        return alert('Bitte füllen Sie alle erforderlichen Felder aus');
       }
     } else {
       if (!form.date || !form.duration) {
-        return alert('Будь ласка, вкажіть дату та тривалість');
+        return alert('Bitte Datum und Dauer angeben');
       }
     }
     
@@ -220,7 +220,7 @@ function NewAppointmentModal({
       onClose();
     } else {
       const data = await res.json();
-      alert(data.error || 'Помилка при створенні');
+      alert(data.error || 'Fehler beim Erstellen');
     }
   };
 
@@ -228,7 +228,7 @@ function NewAppointmentModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-surface-container-lowest rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between p-6 border-b border-outline-variant">
-          <h3 className="font-display text-headline-sm text-on-surface">Новий запис</h3>
+          <h3 className="font-display text-headline-sm text-on-surface">Neuer Termin</h3>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-surface-container-high text-on-surface-variant transition-colors">
             <span className="material-symbols-outlined">close</span>
           </button>
@@ -240,14 +240,14 @@ function NewAppointmentModal({
               className={`flex-1 py-2 text-sm font-sans rounded-lg transition-colors ${!form.isBlock ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container'}`}
               onClick={() => setForm({ ...form, isBlock: false })}
             >
-              Запис клієнта
+              Kundenbuchung
             </button>
             <button
               type="button"
               className={`flex-1 py-2 text-sm font-sans rounded-lg transition-colors ${form.isBlock ? 'bg-error text-on-error shadow-sm' : 'text-on-surface-variant hover:bg-surface-container'}`}
               onClick={() => setForm({ ...form, isBlock: true })}
             >
-              Заблокувати час
+              Zeit blockieren
             </button>
           </div>
 
@@ -268,33 +268,33 @@ function NewAppointmentModal({
             <>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Ім'я клієнта</label>
-                  <input type="text" value={form.clientFirstName} onChange={e => setForm({...form, clientFirstName: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none" placeholder="Ім'я" />
+                  <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Kundenname</label>
+                  <input type="text" value={form.clientFirstName} onChange={e => setForm({...form, clientFirstName: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none" placeholder="Name" />
                 </div>
                 <div>
-                  <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Телефон *</label>
-                  <input type="tel" required={!form.isBlock} value={form.clientPhone} onChange={e => setForm({...form, clientPhone: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none" placeholder="+380..." />
+                  <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Telefon *</label>
+                  <input type="tel" required={!form.isBlock} value={form.clientPhone} onChange={e => setForm({...form, clientPhone: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none" placeholder="+49..." />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Улюбленець *</label>
-                  <input type="text" required={!form.isBlock} value={form.petName} onChange={e => setForm({...form, petName: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none" placeholder="Кличка" />
+                  <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Tiername *</label>
+                  <input type="text" required={!form.isBlock} value={form.petName} onChange={e => setForm({...form, petName: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none" placeholder="Name" />
                 </div>
                 <div>
-                  <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Розмір</label>
+                  <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Größe</label>
                   <select value={form.petSize} onChange={e => setForm({...form, petSize: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none">
                     <option value="xs">XS</option><option value="s">S</option><option value="m">M</option><option value="l">L</option><option value="xl">XL</option>
                   </select>
                 </div>
               </div>
               <div>
-                <label className="block font-sans text-label-sm text-on-surface-variant mb-2">Послуги *</label>
+                <label className="block font-sans text-label-sm text-on-surface-variant mb-2">Leistungen *</label>
                 <div className="max-h-40 overflow-y-auto space-y-1 bg-surface-container-low p-2 rounded-xl border border-outline-variant">
                   {services.map(s => (
                     <label key={s.id} className="flex items-center gap-2 cursor-pointer p-1 hover:bg-surface-container rounded">
                       <input type="checkbox" checked={form.serviceIds.includes(s.id)} onChange={() => toggleService(s.id)} className="w-4 h-4 rounded text-primary border-outline-variant" />
-                      <span className="text-sm font-sans">{s.nameUk || s.name}</span>
+                      <span className="text-sm font-sans">{s.nameDe || s.name}</span>
                     </label>
                   ))}
                 </div>
@@ -303,27 +303,27 @@ function NewAppointmentModal({
           ) : (
             <div className="space-y-4">
               <div>
-                <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Тривалість (хвилин) *</label>
+                <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Dauer (Minuten) *</label>
                 <select value={form.duration} onChange={e => setForm({...form, duration: Number(e.target.value)})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none">
-                  <option value={15}>15 хв</option>
-                  <option value={30}>30 хв</option>
-                  <option value={60}>1 год</option>
-                  <option value={90}>1.5 год</option>
-                  <option value={120}>2 год</option>
-                  <option value={240}>Півдня (4 год)</option>
-                  <option value={480}>Весь день (8 год)</option>
+                  <option value={15}>15 Min</option>
+                  <option value={30}>30 Min</option>
+                  <option value={60}>1 Std</option>
+                  <option value={90}>1.5 Std</option>
+                  <option value={120}>2 Std</option>
+                  <option value={240}>Halber Tag (4 Std)</option>
+                  <option value={480}>Ganzer Tag (8 Std)</option>
                 </select>
               </div>
               <div>
-                <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Причина (коментар)</label>
-                <input type="text" value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none" placeholder="Обід, відпустка тощо..." />
+                <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Grund (Kommentar)</label>
+                <input type="text" value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none" placeholder="Mittagspause, Urlaub, etc..." />
               </div>
             </div>
           )}
           <div className="pt-4 flex gap-3 border-t border-outline-variant">
-            <button type="button" onClick={onClose} className="flex-1 py-2 rounded-full border border-outline hover:bg-surface-container transition-colors">Скасувати</button>
+            <button type="button" onClick={onClose} className="flex-1 py-2 rounded-full border border-outline hover:bg-surface-container transition-colors">Abbrechen</button>
             <button type="submit" disabled={loading} className="flex-1 py-2 rounded-full bg-primary text-on-primary hover:opacity-90 transition-opacity">
-              {loading ? 'Збереження...' : 'Зберегти'}
+              {loading ? 'Wird gespeichert...' : 'Speichern'}
             </button>
           </div>
         </form>
@@ -339,6 +339,9 @@ export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedApt, setSelectedApt] = useState<Appointment | null>(null);
   
+  const [viewMode, setViewMode] = useState<'day' | 'week'>('day');
+  const [contextMenu, setContextMenu] = useState<{ isOpen: boolean, x: number, y: number, apt: Appointment | null }>({ isOpen: false, x: 0, y: 0, apt: null });
+
   const [newAptModalData, setNewAptModalData] = useState<{isOpen: boolean, date?: Date, groomerId?: number}>({ isOpen: false });
 
   // Add a state to store breaks (currently simulated, as API doesn't have it yet)
@@ -360,7 +363,14 @@ export default function CalendarPage() {
       return r.json();
     };
 
-    const queryDate = `date=${toLocalDateString(currentDate)}`;
+    let queryDate = '';
+    if (viewMode === 'week') {
+      const start = startOfWeek(currentDate, { weekStartsOn: 1 });
+      const end = addDays(start, 6);
+      queryDate = `startDate=${toLocalDateString(start)}&endDate=${toLocalDateString(end)}`;
+    } else {
+      queryDate = `date=${toLocalDateString(currentDate)}`;
+    }
 
     Promise.all([
       fetch(`${API}/appointments?${queryDate}`, { headers: { Authorization: `Bearer ${token}` } }).then(handleResponse).catch(() => []),
@@ -374,24 +384,24 @@ export default function CalendarPage() {
 
       const missingGroomers = missingGroomerIds.map((id) => ({
         id: Number(id),
-        name: `Майстер (ID ${id})`,
+        name: `Groomer (ID ${id})`,
         color: '#666666',
-        photoUrl: 'https://ui-avatars.com/api/?name=M&background=random'
+        photoUrl: 'https://ui-avatars.com/api/?name=G&background=random'
       }));
 
       if (hasNullGroomer) {
         missingGroomers.push({
           id: 0,
-          name: 'Без майстра',
+          name: 'Ohne Groomer',
           color: '#aaaaaa',
-          photoUrl: 'https://ui-avatars.com/api/?name=Б&background=random'
+          photoUrl: 'https://ui-avatars.com/api/?name=O&background=random'
         });
       }
 
       setAppointments(validApts);
       setGroomers([...fetchedGroomers, ...missingGroomers]);
     });
-  }, [currentDate]);
+  }, [currentDate, viewMode]);
 
   const handleUpdateAppointment = async (id: number, data: any) => {
     const token = localStorage.getItem('admin_token');
@@ -499,12 +509,23 @@ export default function CalendarPage() {
         </div>
         
         <div className="flex items-center gap-3">
+          <div className="flex bg-gray-100 p-1 rounded-xl">
+            <button 
+              onClick={() => setViewMode('day')}
+              className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-all ${viewMode === 'day' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'}`}
+            >
+              Tag
+            </button>
+            <button 
+              onClick={() => setViewMode('week')}
+              className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-all ${viewMode === 'week' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'}`}
+            >
+              Woche
+            </button>
+          </div>
           <button className="flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-xl transition-colors">
             <span className="material-symbols-outlined text-[18px] text-gray-600">group</span>
             <span className="text-sm font-medium text-gray-700">Alle</span>
-          </button>
-          <button className="p-1.5 hover:bg-gray-100 rounded-xl transition-colors">
-            <span className="material-symbols-outlined text-gray-600 text-xl">tune</span>
           </button>
         </div>
       </header>
@@ -527,15 +548,15 @@ export default function CalendarPage() {
 
       <div className="flex-1 flex flex-col overflow-hidden bg-white relative">
         
-        {/* Horizontal Week Strip (Footer in Altegio, top here for desktop) */}
-        <div className="flex bg-[#2c2c2e] text-white shrink-0 overflow-x-auto no-scrollbar pb-1">
+        {/* Horizontal Week Strip */}
+        <div className="flex bg-primary text-white shrink-0 overflow-x-auto no-scrollbar pb-1">
           {weekDays.map((d, i) => {
             const isActive = isSameDay(d, currentDate);
             return (
               <div 
                 key={i} 
                 onClick={() => setCurrentDate(d)}
-                className={`flex-1 min-w-[60px] py-2 flex flex-col items-center justify-center cursor-pointer transition-colors rounded-b-xl ${isActive ? 'bg-[#ffcc00] text-gray-900 font-bold' : 'hover:bg-gray-700'}`}
+                className={`flex-1 min-w-[60px] py-2 flex flex-col items-center justify-center cursor-pointer transition-colors rounded-b-xl ${isActive ? 'bg-[#ffcc00] text-gray-900 font-bold shadow-md' : 'hover:bg-white/10 text-white/90'}`}
               >
                 <span className="text-[11px] uppercase tracking-wide opacity-80">{format(d, 'EE', { locale: de })}</span>
                 <span className="text-lg leading-tight">{format(d, 'd')}</span>
@@ -544,25 +565,34 @@ export default function CalendarPage() {
           })}
         </div>
 
-        {/* Column Headers (Groomers) */}
+        {/* Column Headers (Groomers or Days) */}
         <div className="flex border-b border-gray-100 shrink-0 mt-2">
           <div className="w-16 shrink-0 flex items-center justify-center">
              <button onClick={() => setNewAptModalData({ isOpen: true })} className="text-[#ffcc00] font-light text-2xl hover:scale-110 transition-transform">+</button>
           </div>
           
-          <div className="flex-1 grid" style={{ gridTemplateColumns: `repeat(${Math.max(groomers.length, 1)}, 1fr)` }}>
-            {(groomers.length > 0 ? groomers : [{ id: 1, name: '—' }]).map((g, i) => (
-              <div key={String(g.id)} className="py-3 flex flex-col items-center gap-1">
-                {g.photoUrl ? (
-                  <img src={String(g.photoUrl)} alt={String(g.name)} className="w-10 h-10 rounded-full object-cover shadow-sm" />
-                ) : (
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center font-display font-bold text-white shadow-sm" style={{ backgroundColor: String(g.color || '#ccc') }}>
-                    {String(g.name).charAt(0)}
-                  </div>
-                )}
-                <span className="font-sans text-[13px] font-medium text-gray-800">{String(g.name)}</span>
-              </div>
-            ))}
+          <div className="flex-1 grid" style={{ gridTemplateColumns: `repeat(${viewMode === 'day' ? Math.max(groomers.length, 1) : 7}, 1fr)` }}>
+            {viewMode === 'day' ? (
+              (groomers.length > 0 ? groomers : [{ id: 1, name: '—' }]).map((g, i) => (
+                <div key={String(g.id)} className="py-3 flex flex-col items-center gap-1">
+                  {g.photoUrl ? (
+                    <img src={String(g.photoUrl)} alt={String(g.name)} className="w-10 h-10 rounded-full object-cover shadow-sm" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center font-display font-bold text-white shadow-sm" style={{ backgroundColor: String(g.color || '#ccc') }}>
+                      {String(g.name).charAt(0)}
+                    </div>
+                  )}
+                  <span className="font-sans text-[13px] font-medium text-gray-800">{String(g.name)}</span>
+                </div>
+              ))
+            ) : (
+              weekDays.map((d, i) => (
+                <div key={i} className="py-3 flex flex-col items-center justify-center gap-0.5 border-r border-gray-100 last:border-0">
+                  <span className="font-display font-medium text-gray-800 capitalize">{format(d, 'EEEE', { locale: de })}</span>
+                  <span className="text-xs text-gray-500">{format(d, 'dd.MM')}</span>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
@@ -584,104 +614,230 @@ export default function CalendarPage() {
             })}
           </div>
 
-          {/* Groomers Columns */}
-          <div className="flex-1 grid" style={{ gridTemplateColumns: `repeat(${Math.max(groomers.length, 1)}, 1fr)` }}>
-            {(groomers.length > 0 ? groomers : [{ id: 1 }]).map((g, i, arr) => {
-              const gApts = appointments.filter(a => Number(a.groomerId || 0) === Number(g.id));
-              const gBreaks = breaks.filter(b => Number(b.groomerId || 0) === Number(g.id));
+          {/* Groomers or Days Columns */}
+          <div className="flex-1 grid" style={{ gridTemplateColumns: `repeat(${viewMode === 'day' ? Math.max(groomers.length, 1) : 7}, 1fr)` }}>
+            {viewMode === 'day' ? (
+              (groomers.length > 0 ? groomers : [{ id: 1 }]).map((g, i, arr) => {
+                const gApts = appointments.filter(a => Number(a.groomerId || 0) === Number(g.id) && isSameDay(new Date(String(a.date)), currentDate));
+                const gBreaks = breaks.filter(b => Number(b.groomerId || 0) === Number(g.id));
 
-              return (
-                <div
-                  key={String(g.id)}
-                  className={`relative ${i < arr.length - 1 ? 'border-r border-gray-100' : ''}`}
-                  onDragOver={e => e.preventDefault()}
-                  onDrop={e => handleDrop(e, Number(g.id))}
-                  onClick={(e) => handleGridClick(e, Number(g.id))}
-                >
-                  {/* Grid lines */}
-                  {HOURS.map((h) => {
-                    const isFullHour = h.endsWith(':00');
-                    return (
-                      <div key={h} className={`h-[60px] border-b ${isFullHour ? 'border-gray-200' : 'border-gray-100/50'}`} style={{ pointerEvents: 'none' }} />
-                    );
-                  })}
+                return (
+                  <div
+                    key={String(g.id)}
+                    className={`relative ${i < arr.length - 1 ? 'border-r border-gray-100' : ''}`}
+                    onDragOver={e => e.preventDefault()}
+                    onDrop={e => handleDrop(e, Number(g.id))}
+                    onClick={(e) => handleGridClick(e, Number(g.id))}
+                  >
+                    {/* Grid lines */}
+                    {HOURS.map((h) => {
+                      const isFullHour = h.endsWith(':00');
+                      return (
+                        <div key={h} className={`h-[60px] border-b ${isFullHour ? 'border-gray-200' : 'border-gray-100/50'}`} style={{ pointerEvents: 'none' }} />
+                      );
+                    })}
 
-                  {/* Hatched Break slots (Simulated) */}
-                  {gBreaks.map((b, idx) => {
-                    const top = getTopPosition(`2000-01-01T${b.start}`);
-                    const endTop = getTopPosition(`2000-01-01T${b.end}`);
-                    const height = endTop - top;
-                    return (
-                      <div key={idx} className="absolute left-0 right-0 bg-hatched opacity-50 z-0 border-y border-gray-200" style={{ top: `${top}px`, height: `${height}px`, pointerEvents: 'none' }}>
-                         <span className="absolute text-[10px] text-gray-400 bg-white/80 px-1 mt-1 ml-1">{b.start}-{b.end}</span>
-                      </div>
-                    );
-                  })}
-
-                  {/* Appointments */}
-                  {gApts.map(apt => {
-                    const client = apt.client as Record<string, any>;
-                    const servicesList = apt.services as { service: Record<string, any>; price: number }[];
-                    const serviceName = String(servicesList?.[0]?.service?.nameUk || servicesList?.[0]?.service?.name || '');
-                    const pet = apt.pet as Record<string, any>;
-                    const petSize = String(pet?.size || 'm').toUpperCase();
-                    
-                    const d = new Date(String(apt.date));
-                    const endD = new Date(d.getTime() + Number(apt.duration) * 60000);
-                    const timeRange = `${format(d, 'H:mm')} - ${format(endD, 'H:mm')}`;
-
-                    const top = getTopPosition(String(apt.date));
-                    const height = getHeight(Number(apt.duration));
-                    
-                    const theme = STATUS_THEMES[String(apt.status)] || STATUS_THEMES.confirmed;
-                    // Mock isNew for visual
-                    const isNew = Math.random() > 0.8;
-
-                    return (
-                      <div
-                        key={String(apt.id)}
-                        draggable
-                        onDragStart={e => {
-                          e.dataTransfer.setData('aptId', String(apt.id));
-                          e.dataTransfer.setData('offsetY', String(e.nativeEvent.offsetY));
-                        }}
-                        onClick={(e) => { e.stopPropagation(); setSelectedApt(apt); }}
-                        className={`absolute left-0.5 right-0.5 rounded-md flex flex-col z-10 shadow-sm cursor-move overflow-hidden border ${theme.border} hover:shadow-md transition-shadow`}
-                        style={{ top: `${top}px`, height: `${Math.max(height, 40)}px` }}
-                      >
-                        {/* Altegio Card Header */}
-                        <div className={`${theme.header} text-white px-1.5 py-0.5 flex justify-between items-center shrink-0`}>
-                          <span className="text-[10px] font-medium leading-none">{timeRange}</span>
-                          <span className="material-symbols-outlined text-[12px]">{getStatusIcon(String(apt.status))}</span>
+                    {/* Hatched Break slots */}
+                    {gBreaks.map((b, idx) => {
+                      const top = getTopPosition(`2000-01-01T${b.start}`);
+                      const endTop = getTopPosition(`2000-01-01T${b.end}`);
+                      const height = endTop - top;
+                      return (
+                        <div key={idx} className="absolute left-0 right-0 bg-hatched opacity-50 z-0 border-y border-gray-200" style={{ top: `${top}px`, height: `${height}px`, pointerEvents: 'none' }}>
+                           <span className="absolute text-[10px] text-gray-400 bg-white/80 px-1 mt-1 ml-1">{b.start}-{b.end}</span>
                         </div>
-                        
-                        {/* Altegio Card Body */}
-                        <div className={`${theme.bg} flex-1 p-1.5 flex flex-col gap-0.5 overflow-hidden text-gray-800`}>
-                          <div className="leading-tight text-[11px]">
-                            {client ? (
-                              <span className="font-semibold">{client.firstName} {client.lastName}</span>
-                            ) : '—'}
-                            {client?.phone && (
-                              <div className="opacity-80 text-[10px]">{client.phone}</div>
-                            )}
+                      );
+                    })}
+
+                    {/* Appointments */}
+                    {gApts.map(apt => {
+                      const client = apt.client as Record<string, any>;
+                      const servicesList = apt.services as { service: Record<string, any>; price: number }[];
+                      const serviceName = String(servicesList?.[0]?.service?.nameDe || servicesList?.[0]?.service?.name || '');
+                      const pet = apt.pet as Record<string, any>;
+                      const petSize = String(pet?.size || 'm').toUpperCase();
+                      
+                      const d = new Date(String(apt.date));
+                      const endD = new Date(d.getTime() + Number(apt.duration) * 60000);
+                      const timeRange = `${format(d, 'H:mm')} - ${format(endD, 'H:mm')}`;
+
+                      const top = getTopPosition(String(apt.date));
+                      const height = Math.max(getHeight(Number(apt.duration)), 40);
+                      
+                      const theme = STATUS_THEMES[String(apt.status)] || STATUS_THEMES.confirmed;
+
+                      return (
+                        <div
+                          key={String(apt.id)}
+                          draggable
+                          onDragStart={e => {
+                            e.dataTransfer.setData('aptId', String(apt.id));
+                            e.dataTransfer.setData('offsetY', String(e.nativeEvent.offsetY));
+                          }}
+                          onClick={(e) => { e.stopPropagation(); setSelectedApt(apt); }}
+                          onContextMenu={(e) => {
+                            e.preventDefault();
+                            setContextMenu({ isOpen: true, x: e.clientX, y: e.clientY, apt });
+                          }}
+                          className={`absolute left-0.5 right-0.5 rounded-md flex flex-col z-10 shadow-sm cursor-move overflow-hidden border ${theme.border} hover:shadow-md transition-shadow`}
+                          style={{ top: `${top}px`, height: `${height}px` }}
+                        >
+                          <div className={`${theme.header} text-white px-1.5 py-0.5 flex justify-between items-center shrink-0`}>
+                            <span className="text-[10px] font-medium leading-none">{timeRange}</span>
+                            <span className="material-symbols-outlined text-[12px]">{getStatusIcon(String(apt.status))}</span>
                           </div>
                           
-                          {serviceName && (
-                            <div className="text-[10px] leading-tight flex gap-1 items-start mt-auto pt-1">
-                              {isNew && <span className="bg-[#2c5b7c] text-white text-[8px] font-bold px-1 rounded-sm uppercase tracking-wider">New</span>}
-                              <span className="line-clamp-2">{petSize} - {serviceName}</span>
+                          <div className={`${theme.bg} flex-1 p-1.5 flex flex-col gap-0.5 overflow-hidden text-gray-800`}>
+                            <div className="leading-tight text-[11px]">
+                              {client ? <span className="font-semibold">{client.firstName} {client.lastName}</span> : '—'}
+                              {client?.phone && <div className="opacity-80 text-[10px]">{client.phone}</div>}
                             </div>
-                          )}
+                            
+                            {serviceName && (
+                              <div className="text-[10px] leading-tight flex gap-1 items-start mt-auto pt-1">
+                                <span className="line-clamp-2">{petSize} - {serviceName}</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })}
+                      );
+                    })}
+                  </div>
+                );
+              })
+            ) : (
+              weekDays.map((d, i, arr) => {
+                const dayApts = appointments.filter(a => isSameDay(new Date(String(a.date)), d));
+                
+                return (
+                  <div
+                    key={i}
+                    className={`relative ${i < arr.length - 1 ? 'border-r border-gray-100' : ''}`}
+                    onClick={(e) => {
+                      // Grid click logic in week view: sets current date to clicked day, and changes to day view
+                      if (e.target !== e.currentTarget) return;
+                      setCurrentDate(d);
+                      setViewMode('day');
+                    }}
+                  >
+                    {/* Grid lines */}
+                    {HOURS.map((h) => {
+                      const isFullHour = h.endsWith(':00');
+                      return (
+                        <div key={h} className={`h-[60px] border-b ${isFullHour ? 'border-gray-200' : 'border-gray-100/50'}`} style={{ pointerEvents: 'none' }} />
+                      );
+                    })}
+
+                    {/* Appointments */}
+                    {dayApts.map(apt => {
+                      const client = apt.client as Record<string, any>;
+                      const groomer = apt.groomer as Record<string, any>;
+                      
+                      const dStart = new Date(String(apt.date));
+                      const endD = new Date(dStart.getTime() + Number(apt.duration) * 60000);
+                      const timeRange = `${format(dStart, 'H:mm')} - ${format(endD, 'H:mm')}`;
+
+                      const top = getTopPosition(String(apt.date));
+                      const height = Math.max(getHeight(Number(apt.duration)), 40);
+                      
+                      const theme = STATUS_THEMES[String(apt.status)] || STATUS_THEMES.confirmed;
+
+                      return (
+                        <div
+                          key={String(apt.id)}
+                          onClick={(e) => { e.stopPropagation(); setSelectedApt(apt); }}
+                          onContextMenu={(e) => {
+                            e.preventDefault();
+                            setContextMenu({ isOpen: true, x: e.clientX, y: e.clientY, apt });
+                          }}
+                          className={`absolute left-0.5 right-0.5 rounded-md flex flex-col z-10 shadow-sm overflow-hidden border ${theme.border} hover:shadow-md transition-shadow`}
+                          style={{ top: `${top}px`, height: `${height}px` }}
+                        >
+                          <div className={`${theme.header} text-white px-1.5 py-0.5 flex justify-between items-center shrink-0`}>
+                            <span className="text-[10px] font-medium leading-none">{timeRange}</span>
+                            <span className="text-[10px] font-bold uppercase truncate max-w-[50px]">{groomer?.name || 'O.G.'}</span>
+                          </div>
+                          
+                          <div className={`${theme.bg} flex-1 p-1 flex flex-col gap-0.5 overflow-hidden text-gray-800`}>
+                            <div className="leading-tight text-[10px] font-semibold truncate">
+                              {client ? `${client.firstName} ${client.lastName}` : '—'}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
       </div>
+
+      {/* Context Menu Overlay */}
+      {contextMenu.isOpen && contextMenu.apt && (
+        <div 
+          className="fixed inset-0 z-[100]" 
+          onClick={() => setContextMenu({ ...contextMenu, isOpen: false })}
+          onContextMenu={(e) => { e.preventDefault(); setContextMenu({ ...contextMenu, isOpen: false }); }}
+        >
+          <div 
+            className="absolute bg-white rounded-xl shadow-2xl border border-gray-100 py-2 w-56 flex flex-col overflow-hidden animate-in fade-in zoom-in duration-150"
+            style={{ top: Math.min(contextMenu.y, window.innerHeight - 200), left: Math.min(contextMenu.x, window.innerWidth - 224) }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-4 py-2 border-b border-gray-100 bg-gray-50/50">
+              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Aktion wählen</span>
+            </div>
+            
+            <button 
+              className="px-4 py-2 text-sm text-left hover:bg-gray-50 flex items-center gap-2 text-gray-700 transition-colors"
+              onClick={() => {
+                setSelectedApt(contextMenu.apt);
+                setContextMenu({ ...contextMenu, isOpen: false });
+              }}
+            >
+              <span className="material-symbols-outlined text-[18px]">edit</span>
+              Bearbeiten
+            </button>
+            
+            <button 
+              className="px-4 py-2 text-sm text-left hover:bg-orange-50 flex items-center gap-2 text-orange-600 transition-colors"
+              onClick={() => {
+                handleUpdateAppointment(Number(contextMenu.apt!.id), { status: 'blocked' });
+                setContextMenu({ ...contextMenu, isOpen: false });
+              }}
+            >
+              <span className="material-symbols-outlined text-[18px]">person_off</span>
+              Kunde nicht erschienen
+            </button>
+
+            <button 
+              className="px-4 py-2 text-sm text-left hover:bg-red-50 flex items-center gap-2 text-red-600 transition-colors"
+              onClick={() => {
+                handleUpdateAppointment(Number(contextMenu.apt!.id), { status: 'cancelled' });
+                setContextMenu({ ...contextMenu, isOpen: false });
+              }}
+            >
+              <span className="material-symbols-outlined text-[18px]">cancel</span>
+              Stornieren
+            </button>
+
+            <div className="h-px bg-gray-100 my-1 mx-2" />
+            
+            <button 
+              className="px-4 py-2 text-sm text-left hover:bg-gray-50 flex items-center gap-2 text-gray-700 transition-colors"
+              onClick={() => {
+                setSelectedApt(contextMenu.apt);
+                setContextMenu({ ...contextMenu, isOpen: false });
+              }}
+            >
+              <span className="material-symbols-outlined text-[18px]">chat_bubble</span>
+              Kommentar hinterlassen
+            </button>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 }

@@ -49,15 +49,16 @@ function GroomerModal({
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
-      const data = await res.json();
-      if (res.ok) {
-        setPhotoUrl(data.url);
-        setPhotoPreview(data.url);
-      } else {
-        alert(data.error || 'Помилка завантаження фото');
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || 'Fehler beim Hochladen des Fotos');
+        return;
       }
+      const data = await res.json();
+      setPhotoUrl(data.url);
+      setPhotoPreview(data.url);
     } catch (err: any) {
-      alert(err.message || 'Сталася помилка при завантаженні');
+      alert(err.message || 'Ein Fehler ist beim Hochladen aufgetreten');
     }
     setUploading(false);
     e.target.value = ''; // Reset input so user can pick the same file again
@@ -81,14 +82,16 @@ function GroomerModal({
         body: JSON.stringify({ email: accountEmail, password: accountPassword }),
       });
       if (res.ok) {
-        alert('Акаунт успішно створено!');
-        onClose(); // Will refresh list
+        alert('Konto erfolgreich erstellt!');
+        setAccountEmail('');
+        setAccountPassword('');
+        onSave();
       } else {
         const data = await res.json();
-        alert(data.error || 'Помилка створення акаунта');
+        alert(data.error || 'Fehler beim Erstellen des Kontos');
       }
-    } catch (e) {
-      alert('Помилка сервера');
+    } catch (err: any) {
+      alert('Serverfehler');
     }
     setCreatingAccount(false);
   };
@@ -194,20 +197,20 @@ function GroomerModal({
 
           {groomer && !groomer.user && (
             <div className="pt-4 border-t border-outline-variant">
-              <h4 className="font-sans font-semibold text-on-surface mb-3">Створити акаунт (Доступ в CRM)</h4>
+              <h4 className="font-sans font-semibold text-on-surface mb-3">Konto erstellen (CRM-Zugang)</h4>
               <div className="space-y-3">
                 <input
                   type="email"
                   value={accountEmail}
                   onChange={e => setAccountEmail(e.target.value)}
-                  placeholder="Email для входу"
+                  placeholder="Anmelde-E-Mail"
                   className="w-full bg-surface border border-outline rounded-xl px-4 py-2.5 focus:border-primary focus:ring-1 outline-none font-sans"
                 />
                 <input
                   type="password"
                   value={accountPassword}
                   onChange={e => setAccountPassword(e.target.value)}
-                  placeholder="Пароль"
+                  placeholder="Passwort"
                   className="w-full bg-surface border border-outline rounded-xl px-4 py-2.5 focus:border-primary focus:ring-1 outline-none font-sans"
                 />
                 <button
@@ -215,7 +218,7 @@ function GroomerModal({
                   disabled={creatingAccount || !accountEmail || !accountPassword}
                   className="w-full border border-primary text-primary font-sans text-sm font-semibold py-2 rounded-xl hover:bg-primary hover:text-white transition-colors disabled:opacity-50"
                 >
-                  {creatingAccount ? 'Створення...' : 'Створити акаунт'}
+                  {creatingAccount ? 'Wird erstellt...' : 'Konto erstellen'}
                 </button>
               </div>
             </div>
@@ -223,9 +226,9 @@ function GroomerModal({
           
           {groomer && Boolean(groomer.user) && (
             <div className="pt-4 border-t border-outline-variant">
-              <h4 className="font-sans font-semibold text-on-surface mb-1">Акаунт (Доступ в CRM)</h4>
+              <h4 className="font-sans font-semibold text-on-surface mb-1">Konto (CRM-Zugang)</h4>
               <p className="font-sans text-sm text-on-surface-variant">
-                Грумер має доступ. Email: <span className="font-mono font-bold">{String((groomer.user as any).email)}</span>
+                Groomer hat Zugang. E-Mail: <span className="font-mono font-bold">{String((groomer.user as any).email)}</span>
               </p>
             </div>
           )}

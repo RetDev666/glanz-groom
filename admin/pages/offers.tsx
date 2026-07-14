@@ -64,12 +64,14 @@ export default function OffersAdminPage() {
       if (res.ok) {
         setEditingOffer(null);
         fetchOffers();
-      } else {
-        const errData = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-        setSaveError(errData.error || `Помилка ${res.status}`);
+      }
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        setSaveError(errData.error || `Fehler ${res.status}`);
+        return;
       }
     } catch (err: any) {
-      setSaveError(err.message || 'Помилка з\'єднання з сервером');
+      setSaveError(err.message || 'Verbindungsfehler mit dem Server');
       console.error(err);
     } finally {
       setSaving(false);
@@ -106,12 +108,14 @@ export default function OffersAdminPage() {
       if (res.ok) {
         const data = await res.json();
         setField('imageUrl', data.url);
-      } else {
-        const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-        alert(err.error || 'Помилка завантаження фото');
+      }
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || 'Fehler beim Hochladen des Fotos');
+        return;
       }
     } catch (err: any) {
-      alert(err.message || 'Помилка з\'єднання');
+      alert(err.message || 'Verbindungsfehler');
     } finally {
       setUploadingPhoto(false);
     }

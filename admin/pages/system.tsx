@@ -62,16 +62,16 @@ export default function SystemPage() {
         a.download = `dev-db-backup-${new Date().toISOString().split('T')[0]}.db`;
         a.click();
       })
-      .catch(() => alert('Помилка завантаження бекапу'));
+      .catch(() => alert('Fehler beim Herunterladen des Backups'));
   };
 
   if (userRole !== 'developer') return <AdminLayout><div className="p-6">Access denied</div></AdminLayout>;
 
   return (
-    <AdminLayout title="Система">
+    <AdminLayout title={t.system.title}>
       <div className="p-6 max-w-5xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="font-display text-2xl font-bold text-on-surface">Технічний розділ</h2>
+          <h2 className="font-display text-2xl font-bold text-on-surface">Systemprotokoll</h2>
           <button 
             onClick={handleBackup}
             className="bg-surface-container border border-outline px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-surface-container-high transition-colors"
