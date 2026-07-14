@@ -46,6 +46,7 @@ function AppointmentDetailModal({
   const pet = apt.pet as Record<string, any>;
   const groomer = apt.groomer as Record<string, any>;
   const services = apt.services as { service: Record<string, any>; price: number }[];
+  const sum = services?.reduce((acc: number, s: any) => acc + (s.price || 0), 0) || 0;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
