@@ -143,7 +143,7 @@ export function NewAppointmentModal({
     setForm(prev => ({
       ...prev,
       serviceIds: prev.serviceIds.includes(id) 
-        ? prev.serviceIds.filter(x => x !== id) 
+        ? prev.serviceIds.filter((x: number) => x !== id) 
         : [...prev.serviceIds, id]
     }));
   };
