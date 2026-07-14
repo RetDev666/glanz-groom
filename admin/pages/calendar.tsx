@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import AdminLayout from '@/components/AdminLayout';
 import { useAdminLang } from '../hooks/useAdminLang';
 import { format, addDays, startOfWeek, isSameDay } from 'date-fns';
-import { uk } from 'date-fns/locale';
+import { de } from 'date-fns/locale';
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
@@ -14,11 +14,11 @@ for (let i = 9; i <= 20; i++) {
 }
 
 const STATUS_THEMES: Record<string, { bg: string, header: string, border: string, text: string }> = {
-  pending: { bg: 'bg-blue-100', header: 'bg-blue-500', border: 'border-blue-500', text: 'text-blue-900' },
-  confirmed: { bg: 'bg-[#d8cbf5]', header: 'bg-[#8964d8]', border: 'border-[#8964d8]', text: 'text-gray-900' }, // Altegio Purple
-  completed: { bg: 'bg-[#b6e8c7]', header: 'bg-[#55b974]', border: 'border-[#55b974]', text: 'text-gray-900' }, // Altegio Green
-  cancelled: { bg: 'bg-red-100', header: 'bg-red-500', border: 'border-red-500', text: 'text-red-900' },
-  blocked: { bg: 'bg-red-50', header: 'bg-red-500', border: 'border-red-500', text: 'text-red-900' },
+  pending: { bg: 'bg-[#fff4ce]', header: 'bg-[#fdc003]', border: 'border-[#fdc003]', text: 'text-gray-900' }, 
+  confirmed: { bg: 'bg-[#ffe4e3]', header: 'bg-[#ae2f34]', border: 'border-[#ae2f34]', text: 'text-gray-900' },
+  completed: { bg: 'bg-[#d4e4fb]', header: 'bg-[#506073]', border: 'border-[#506073]', text: 'text-gray-900' }, 
+  cancelled: { bg: 'bg-gray-200', header: 'bg-gray-500', border: 'border-gray-500', text: 'text-gray-900' },
+  blocked: { bg: 'bg-gray-100', header: 'bg-gray-400', border: 'border-gray-400', text: 'text-gray-800' },
 };
 
 const toLocalDateString = (d: Date) => {
@@ -350,15 +350,22 @@ export default function CalendarPage() {
 
   useEffect(() => {
     const token = localStorage.getItem('admin_token');
+    
+    const handleResponse = async (r: Response) => {
+      if (r.status === 401) {
+        localStorage.removeItem('admin_token');
+        window.location.href = '/admin/login';
+        throw new Error('Unauthorized');
+      }
+      return r.json();
+    };
+
     const queryDate = `date=${toLocalDateString(currentDate)}`;
 
     Promise.all([
-      fetch(`${API}/appointments?${queryDate}`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).catch(() => []),
-      fetch(`${API}/groomers/all`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).catch(() => []),
-    ]).then(([apts, grs]) => {
-      const validApts = Array.isArray(apts) ? apts : [];
-      const fetchedGroomers = Array.isArray(grs) ? grs : [];
-
+      fetch(`${API}/appointments?${queryDate}`, { headers: { Authorization: `Bearer ${token}` } }).then(handleResponse).catch(() => []),
+      fetch(`${API}/groomers/all`, { headers: { Authorization: `Bearer ${token}` } }).then(handleResponse).catch(() => []),
+    ]).then(([validApts, fetchedGroomers]) => {
       const missingGroomerIds = Array.from(new Set(validApts.map((a: any) => a.groomerId))).filter(
         (id: any) => id && !fetchedGroomers.find((g: any) => Number(g.id) === Number(id))
       );
@@ -486,7 +493,7 @@ export default function CalendarPage() {
       <header className="bg-white border-b border-gray-200 px-4 py-3 shrink-0 z-40 flex justify-between items-center">
         <div className="flex items-center gap-1 cursor-pointer hover:bg-gray-50 p-1.5 rounded-lg transition-colors group">
           <span className="font-display font-semibold text-xl text-gray-900 group-hover:text-primary transition-colors capitalize">
-            {format(currentDate, 'd MMMM', { locale: uk })}
+            {format(currentDate, 'd MMMM', { locale: de })}
           </span>
           <span className="material-symbols-outlined text-gray-400 group-hover:text-primary">expand_more</span>
         </div>
@@ -494,7 +501,7 @@ export default function CalendarPage() {
         <div className="flex items-center gap-3">
           <button className="flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-xl transition-colors">
             <span className="material-symbols-outlined text-[18px] text-gray-600">group</span>
-            <span className="text-sm font-medium text-gray-700">Все</span>
+            <span className="text-sm font-medium text-gray-700">Alle</span>
           </button>
           <button className="p-1.5 hover:bg-gray-100 rounded-xl transition-colors">
             <span className="material-symbols-outlined text-gray-600 text-xl">tune</span>
@@ -508,7 +515,7 @@ export default function CalendarPage() {
           onClick={() => setCurrentDate(new Date())}
           className="bg-white px-5 py-3 rounded-full shadow-lg border border-gray-100 font-medium text-gray-700 hover:bg-gray-50 transition-colors"
         >
-          Сегодня
+          Heute
         </button>
         <button 
           onClick={() => setNewAptModalData({ isOpen: true })}
@@ -530,7 +537,7 @@ export default function CalendarPage() {
                 onClick={() => setCurrentDate(d)}
                 className={`flex-1 min-w-[60px] py-2 flex flex-col items-center justify-center cursor-pointer transition-colors rounded-b-xl ${isActive ? 'bg-[#ffcc00] text-gray-900 font-bold' : 'hover:bg-gray-700'}`}
               >
-                <span className="text-[11px] uppercase tracking-wide opacity-80">{format(d, 'EE', { locale: uk })}</span>
+                <span className="text-[11px] uppercase tracking-wide opacity-80">{format(d, 'EE', { locale: de })}</span>
                 <span className="text-lg leading-tight">{format(d, 'd')}</span>
               </div>
             );
