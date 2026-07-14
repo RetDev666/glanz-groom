@@ -502,7 +502,7 @@ export default function CalendarPage() {
         <div className="flex items-center gap-1 cursor-pointer hover:bg-gray-50 p-1.5 rounded-lg transition-colors group relative">
           <DatePicker
             selected={currentDate}
-            onChange={(date: Date) => date && setCurrentDate(date)}
+            onChange={(date: Date | null) => date && setCurrentDate(date)}
             locale="de"
             customInput={
               <div className="flex items-center gap-1 cursor-pointer">
