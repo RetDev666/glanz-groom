@@ -18,11 +18,11 @@ for (let i = 10; i <= 20; i++) {
 }
 
 const STATUS_THEMES: Record<string, { bg: string, header: string, border: string, text: string }> = {
-  pending: { bg: 'bg-[#fff4ce]', header: 'bg-[#fdc003]', border: 'border-[#fdc003]', text: 'text-gray-900' }, 
-  confirmed: { bg: 'bg-[#ffe4e3]', header: 'bg-[#ae2f34]', border: 'border-[#ae2f34]', text: 'text-gray-900' },
-  completed: { bg: 'bg-[#d4e4fb]', header: 'bg-[#506073]', border: 'border-[#506073]', text: 'text-gray-900' }, 
-  cancelled: { bg: 'bg-gray-200', header: 'bg-gray-500', border: 'border-gray-500', text: 'text-gray-900' },
-  blocked: { bg: 'bg-gray-100', header: 'bg-gray-400', border: 'border-gray-400', text: 'text-gray-800' },
+  pending: { bg: 'bg-amber-100', header: 'bg-amber-500', border: 'border-amber-500', text: 'text-gray-900' }, 
+  confirmed: { bg: 'bg-blue-100', header: 'bg-blue-500', border: 'border-blue-500', text: 'text-gray-900' },
+  completed: { bg: 'bg-green-100', header: 'bg-green-500', border: 'border-green-500', text: 'text-gray-900' }, 
+  cancelled: { bg: 'bg-red-100', header: 'bg-red-500', border: 'border-red-500', text: 'text-gray-900' },
+  blocked: { bg: 'bg-gray-200', header: 'bg-gray-500', border: 'border-gray-500', text: 'text-gray-800' },
 };
 
 const toLocalDateString = (d: Date) => {
