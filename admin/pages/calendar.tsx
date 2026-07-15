@@ -518,9 +518,9 @@ export default function CalendarPage() {
     const y = e.clientY - rect.top - offsetY;
 
     // Row height is 60px for 30 minutes. 1px = 0.5 minutes
-    // Total hours from 9:00
+    // Total hours from 10:00
     const minutesFromStart = Math.max(0, y * 0.5);
-    const totalMinutes = 9 * 60 + minutesFromStart;
+    const totalMinutes = 10 * 60 + minutesFromStart;
     
     // Snap to 15 min intervals
     const snappedMinutes = Math.round(totalMinutes / 15) * 15;
@@ -546,7 +546,7 @@ export default function CalendarPage() {
     
     // 60px = 30 minutes -> 1px = 0.5 minutes
     const minutesFromStart = Math.max(0, y * 0.5);
-    const totalMinutes = 9 * 60 + minutesFromStart;
+    const totalMinutes = 10 * 60 + minutesFromStart;
     const snappedMinutes = Math.round(totalMinutes / 30) * 30; // snap to 30 min on click
     
     const hours = Math.floor(snappedMinutes / 60);
@@ -558,10 +558,10 @@ export default function CalendarPage() {
     setNewAptModalData({ isOpen: true, date: newDate, groomerId });
   };
 
-  // 1 hour = 120px height, 30 min = 60px height. Base is 9:00.
+  // 1 hour = 120px height, 30 min = 60px height. Base is 10:00.
   const getTopPosition = (dateStr: string) => {
     const d = new Date(dateStr);
-    const minutesDiff = (d.getHours() - 9) * 60 + d.getMinutes();
+    const minutesDiff = (d.getHours() - 10) * 60 + d.getMinutes();
     return minutesDiff * 2; // 2px per minute
   };
 

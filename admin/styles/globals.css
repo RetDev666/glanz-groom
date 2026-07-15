@@ -45,3 +45,7 @@ h1, h2, h3, h4, h5 { font-family: 'Plus Jakarta Sans', sans-serif; }
 .react-datepicker-wrapper {
   width: 100%;
 }
+.react-datepicker__time-list {
+  max-height: 250px !important;
+  overflow-y: auto !important;
+}
