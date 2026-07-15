@@ -108,7 +108,7 @@ router.get('/latest', requireAuth, async (req: AuthRequest, res: Response) => {
 // POST /api/appointments/admin-create
 router.post('/admin-create', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    const { groomerId, date, duration, notes, petName, petSize, clientFirstName, clientPhone, isBlock, serviceIds } = req.body;
+    const { groomerId, date, duration, notes, petName, petSize, clientFirstName, clientPhone, isBlock, serviceIds, discount } = req.body;
 
     let finalDuration = Number(duration) || 0;
     const finalGroomerId = Number(groomerId);
@@ -180,8 +180,9 @@ router.post('/admin-create', requireAuth, async (req: AuthRequest, res: Response
       }
     }
 
-    // Calculate duration from services if not provided explicitly
+    // Calculate duration and price from services if not provided explicitly
     let calculatedDuration = 0;
+    let calculatedPrice = 0;
     let servicesData: any[] = [];
     if (serviceIds && Array.isArray(serviceIds) && serviceIds.length > 0) {
       const services = await prisma.service.findMany({ where: { id: { in: serviceIds.map(Number) } } });
@@ -191,6 +192,7 @@ router.post('/admin-create', requireAuth, async (req: AuthRequest, res: Response
       const pField = priceMap[pet.size] as keyof typeof services[0] || 'priceM';
       
       calculatedDuration = services.reduce((sum, s) => sum + (Number(s[dField]) || 0), 0);
+      calculatedPrice = services.reduce((sum, s) => sum + (Number(s[pField]) || 0), 0);
       servicesData = services.map(s => ({ serviceId: s.id, price: Number(s[pField]) || 0 }));
     }
 
@@ -206,7 +208,7 @@ router.post('/admin-create', requireAuth, async (req: AuthRequest, res: Response
       data: {
         date: new Date(date),
         duration: finalDuration,
-        totalPrice: 0,
+        totalPrice: Math.max(0, calculatedPrice - (Number(discount) || 0)),
         notes: notes || '',
         status: 'confirmed',
         clientId: client.id,
