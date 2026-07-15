@@ -195,7 +195,7 @@ router.post('/admin-create', requireAuth, async (req: AuthRequest, res: Response
     }
 
     if (!isBlock) {
-      finalDuration = calculatedDuration; // Force recalculation for normal appointments
+      finalDuration = finalDuration || calculatedDuration; // Respect frontend duration if provided
     } else if (!finalDuration) {
       finalDuration = calculatedDuration;
     }
