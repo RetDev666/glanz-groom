@@ -21,8 +21,8 @@ const STATUS_THEMES: Record<string, { bg: string, header: string, border: string
   pending: { bg: 'bg-amber-100', header: 'bg-amber-500', border: 'border-amber-500', text: 'text-gray-900' }, 
   confirmed: { bg: 'bg-blue-100', header: 'bg-blue-500', border: 'border-blue-500', text: 'text-gray-900' },
   completed: { bg: 'bg-green-100', header: 'bg-green-500', border: 'border-green-500', text: 'text-gray-900' }, 
-  cancelled: { bg: 'bg-red-100', header: 'bg-red-500', border: 'border-red-500', text: 'text-gray-900' },
-  blocked: { bg: 'bg-gray-200', header: 'bg-gray-500', border: 'border-gray-500', text: 'text-gray-800' },
+  cancelled: { bg: 'bg-gray-200', header: 'bg-gray-500', border: 'border-gray-500', text: 'text-gray-800' },
+  blocked: { bg: 'bg-red-100', header: 'bg-red-500', border: 'border-red-500', text: 'text-gray-900' },
 };
 
 const toLocalDateString = (d: Date) => {
