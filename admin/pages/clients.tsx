@@ -20,7 +20,7 @@ function ClientDetailModal({ clientId, onClose, onRefresh }: { clientId: number;
   const [client, setClient] = useState<Record<string, unknown> | null>(null);
   const [editingClient, setEditingClient] = useState(false);
   const [editingPetId, setEditingPetId] = useState<number | null>(null);
-  const [clientForm, setClientForm] = useState({ firstName: '', lastName: '', phone: '', email: '' });
+  const [clientForm, setClientForm] = useState({ firstName: '', lastName: '', phone: '', email: '', notes: '' });
   const [petForm, setPetForm] = useState({ name: '', breed: '', size: 'm' });
   const [saving, setSaving] = useState(false);
 
@@ -30,7 +30,7 @@ function ClientDetailModal({ clientId, onClose, onRefresh }: { clientId: number;
       .then(r => r.json())
       .then(d => {
         setClient(d);
-        setClientForm({ firstName: String(d.firstName || ''), lastName: String(d.lastName || ''), phone: String(d.phone || ''), email: String(d.email || '') });
+        setClientForm({ firstName: String(d.firstName || ''), lastName: String(d.lastName || ''), phone: String(d.phone || ''), email: String(d.email || ''), notes: String(d.notes || '') });
       })
       .catch(() => {});
   };
@@ -95,6 +95,7 @@ function ClientDetailModal({ clientId, onClose, onRefresh }: { clientId: number;
                   </div>
                   <input className="border border-outline rounded-lg px-2 py-1 text-sm w-full" value={clientForm.phone} onChange={e => setClientForm({...clientForm, phone: e.target.value})} placeholder="Telefon" />
                   <input className="border border-outline rounded-lg px-2 py-1 text-sm w-full" value={clientForm.email} onChange={e => setClientForm({...clientForm, email: e.target.value})} placeholder="E-Mail" />
+                  <textarea className="border border-outline rounded-lg px-2 py-1 text-sm w-full" rows={2} value={clientForm.notes} onChange={e => setClientForm({...clientForm, notes: e.target.value})} placeholder="Notizen (nur intern)" />
                   <div className="flex gap-2 pt-1">
                     <button onClick={saveClient} disabled={saving} className="px-3 py-1 bg-primary text-on-primary rounded-lg text-sm font-medium">{saving ? '...' : 'Speichern'}</button>
                     <button onClick={() => setEditingClient(false)} className="px-3 py-1 border border-outline rounded-lg text-sm">Abbrechen</button>
@@ -105,6 +106,7 @@ function ClientDetailModal({ clientId, onClose, onRefresh }: { clientId: number;
                   <h3 className="font-display text-headline-sm text-on-surface">{String(client.firstName)} {String(client.lastName)}</h3>
                   <p className="font-sans text-label-md text-on-surface-variant">{String(client.email)}</p>
                   <p className="font-sans text-label-md text-on-surface-variant">{String(client.phone)}</p>
+                  {client.notes && <p className="font-sans text-label-md text-primary mt-1 bg-primary/10 p-2 rounded-lg">{String(client.notes)}</p>}
                 </>
               )}
             </div>
