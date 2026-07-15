@@ -9,7 +9,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 const DE_DAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 const DE_MONTHS = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
 
-function MiniCalendar({ value, onChange }: { value: string; onChange: (date: string) => void }) {
+function MiniCalendar({ value, onChange, filterDate }: { value: string; onChange: (date: string) => void; filterDate?: (dateStr: string) => boolean }) {
   const today = new Date();
   today.setHours(0,0,0,0);
   const [viewYear, setViewYear] = useState(value ? new Date(value).getFullYear() : today.getFullYear());
@@ -69,17 +69,18 @@ function MiniCalendar({ value, onChange }: { value: string; onChange: (date: str
           const isToday = date.getTime() === today.getTime();
           const isSelected = selectedDate && date.getTime() === selectedDate.getTime();
           const dateStr = `${viewYear}-${String(viewMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+          const isFilteredOut = filterDate ? !filterDate(dateStr) : false;
           return (
             <button
               key={day}
-              disabled={isPast || isSunday}
+              disabled={isPast || isSunday || isFilteredOut}
               onClick={() => onChange(dateStr)}
               className={`aspect-square w-full flex items-center justify-center rounded-xl text-sm font-sans transition-all ${
                 isSelected
                   ? 'bg-primary text-on-primary font-bold shadow-sm scale-105'
-                  : isToday
+                  : isToday && !isFilteredOut
                   ? 'border-2 border-primary text-primary font-bold'
-                  : isPast || isSunday
+                  : isPast || isSunday || isFilteredOut
                   ? 'text-on-surface-variant/30 cursor-not-allowed bg-surface-container-lowest'
                   : 'hover:bg-primary/10 text-on-surface'
               }`}
@@ -290,24 +291,27 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
 
   const [busySlotsDate, setBusySlotsDate] = useState('');
 
-  // Fetch busy slots when date changes
+  // Fetch busy slots for 60 days when entering step 2
   useEffect(() => {
-    if (booking.date) {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-      fetch(`${apiUrl}/appointments/availability?date=${booking.date}`)
+    if (step === 2) {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://glanz-groom.netlify.app/api';
+      
+      const d = new Date();
+      const startDate = d.toISOString().split('T')[0];
+      d.setDate(d.getDate() + 60);
+      const endDate = d.toISOString().split('T')[0];
+
+      fetch(`${apiUrl}/appointments/availability?startDate=${startDate}&endDate=${endDate}`)
         .then(r => r.json())
         .then(data => {
           if (Array.isArray(data)) {
             setBusySlots(data);
-            setBusySlotsDate(booking.date);
+            setBusySlotsDate('fetched-60-days');
           }
         })
         .catch(console.error);
-    } else {
-      setBusySlots([]);
-      setBusySlotsDate('');
     }
-  }, [booking.date]);
+  }, [step]);
 
   const packages = services.filter(s => s.category === 'package');
   const addons = services.filter(s => s.category === 'addon');
@@ -327,8 +331,9 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
       .reduce((sSum, s) => sSum + (Number(s![durationKey]) || 0), 0);
   }, 0);
 
-  const getAvailableTimes = () => {
-    if (!booking.date) return [];
+  const getAvailableTimes = (targetDate?: string) => {
+    const dateToCheck = targetDate || booking.date;
+    if (!dateToCheck) return [];
     
     const timeToMins = (t: string) => {
       const [h, m] = t.split(':').map(Number);
@@ -343,6 +348,9 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
 
     const groomerBusyRanges: Record<number, {start: number, end: number}[]> = {};
     busySlots.forEach(slot => {
+      const slotDateStr = slot.date.split('T')[0];
+      if (slotDateStr !== dateToCheck) return;
+
       const d = new Date(slot.date);
       const startMins = d.getHours() * 60 + d.getMinutes(); 
       const endMins = startMins + slot.duration;
@@ -380,7 +388,7 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
 
   // Auto-jump to next day if no slots available
   useEffect(() => {
-    if (step === 2 && booking.date && busySlotsDate === booking.date && booking.groomerId !== -1) {
+    if (step === 2 && booking.date && busySlotsDate && booking.groomerId !== -1) {
       if (getAvailableTimes().length === 0) {
         // Prevent infinite loop if something goes wrong, only auto-jump up to 30 times
         const jumpLimit = sessionStorage.getItem('jumpLimit') ? Number(sessionStorage.getItem('jumpLimit')) : 0;
@@ -865,6 +873,7 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
             <MiniCalendar
               value={booking.date}
               onChange={date => setBooking({ ...booking, date, time: '' })}
+              filterDate={(dateStr) => busySlotsDate === '' || getAvailableTimes(dateStr).length > 0}
             />
 
             {/* Time slots */}

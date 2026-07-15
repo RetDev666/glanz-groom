@@ -5,7 +5,7 @@ export default function Document(props: any) {
   const currentLocale = props.__NEXT_DATA__?.locale || 'de';
   
   return (
-    <Html lang={currentLocale}>
+    <Html lang={currentLocale} translate="no">
       <Head>
         {/* Prevent Google Chrome from auto-translating the page, which was turning German into Ukrainian */}
         <meta name="google" content="notranslate" />

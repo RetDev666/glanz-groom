@@ -47,16 +47,24 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
 // GET /api/appointments/availability — public endpoint to check busy slots
 router.get('/availability', async (req: Request, res: Response) => {
   try {
-    const { date } = req.query;
-    if (!date) return res.status(400).json({ error: 'Date is required' });
+    const { date, startDate, endDate } = req.query;
+    if (!date && (!startDate || !endDate)) {
+      return res.status(400).json({ error: 'Date or startDate/endDate is required' });
+    }
 
-    const d = new Date(date as string);
-    const nextDay = new Date(d);
-    nextDay.setDate(nextDay.getDate() + 1);
+    let dateWhere: any = {};
+    if (startDate && endDate) {
+      dateWhere = { gte: new Date(startDate as string), lt: new Date(endDate as string) };
+    } else {
+      const d = new Date(date as string);
+      const nextDay = new Date(d);
+      nextDay.setDate(nextDay.getDate() + 1);
+      dateWhere = { gte: d, lt: nextDay };
+    }
 
     const appointments = await prisma.appointment.findMany({
       where: {
-        date: { gte: d, lt: nextDay },
+        date: dateWhere,
         status: { not: 'cancelled' } // Cancelled appointments don't take up time
       },
       select: {
