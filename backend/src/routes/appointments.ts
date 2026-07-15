@@ -153,6 +153,23 @@ router.post('/admin-create', requireAuth, async (req: AuthRequest, res: Response
       pet = await prisma.pet.create({
         data: { name: petName || 'Dog', breed: 'Unknown', size: petSize || 'm', clientId: client.id }
       });
+    } else {
+      let petUpdated = false;
+      const petUpdateData: any = {};
+      if (petBreed && petBreed !== pet.breed) {
+        petUpdateData.breed = petBreed;
+        petUpdated = true;
+      }
+      if (petSize && petSize !== pet.size) {
+        petUpdateData.size = petSize;
+        petUpdated = true;
+      }
+      if (petUpdated) {
+        pet = await prisma.pet.update({
+          where: { id: pet.id },
+          data: petUpdateData
+        });
+      }
     }
 
     // Calculate duration from services if not provided explicitly
@@ -169,7 +186,12 @@ router.post('/admin-create', requireAuth, async (req: AuthRequest, res: Response
       servicesData = services.map(s => ({ serviceId: s.id, price: Number(s[pField]) || 0 }));
     }
 
-    if (!finalDuration) finalDuration = calculatedDuration;
+    if (!isBlock) {
+      finalDuration = calculatedDuration; // Force recalculation for normal appointments
+    } else if (!finalDuration) {
+      finalDuration = calculatedDuration;
+    }
+    
     if (finalDuration === 0) finalDuration = 60; // fallback
 
     const appointment = await prisma.appointment.create({
@@ -245,11 +267,23 @@ router.post('/', async (req: Request, res: Response) => {
       pet = await prisma.pet.create({
         data: { name: petName, breed: petBreed || 'Unknown', size: petSize || 'm', clientId: client.id },
       });
-    } else if (petBreed && petBreed !== pet.breed) {
-      pet = await prisma.pet.update({
-        where: { id: pet.id },
-        data: { breed: petBreed }
-      });
+    } else {
+      let petUpdated = false;
+      const petUpdateData: any = {};
+      if (petBreed && petBreed !== pet.breed) {
+        petUpdateData.breed = petBreed;
+        petUpdated = true;
+      }
+      if (petSize && petSize !== pet.size) {
+        petUpdateData.size = petSize;
+        petUpdated = true;
+      }
+      if (petUpdated) {
+        pet = await prisma.pet.update({
+          where: { id: pet.id },
+          data: petUpdateData
+        });
+      }
     }
 
     // Find groomer

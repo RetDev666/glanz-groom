@@ -220,6 +220,7 @@ export function NewAppointmentModal({
       ...form,
       serviceIds: serviceIdsToSend,
       petBreed: form.petBreed,
+      petSize: form.petSize,
       clientEmail: form.clientEmail || `${Date.now()}@no-email.local`,
       date: new Date(form.date).toISOString(),
       groomerId: Number(form.groomerId) || Number(groomers[0]?.id) || 0,
@@ -419,6 +420,9 @@ export default function CalendarPage() {
   // Add a state to store breaks (currently simulated, as API doesn't have it yet)
   const [breaks] = useState([{ groomerId: 1, start: '13:15', end: '13:45' }]);
 
+  const resizeRef = useRef(resizeState);
+  resizeRef.current = resizeState;
+
   useEffect(() => {
     if (!resizeState) return;
     const handleMouseMove = (e: MouseEvent) => {
@@ -429,8 +433,9 @@ export default function CalendarPage() {
       setResizeState(prev => prev ? { ...prev, currentDuration: newDuration } : null);
     };
     const handleMouseUp = async () => {
-      if (resizeState.currentDuration !== resizeState.startDuration) {
-        await handleUpdateAppointment(Number(resizeState.aptId), { duration: resizeState.currentDuration });
+      const current = resizeRef.current;
+      if (current && current.currentDuration !== current.startDuration) {
+        await handleUpdateAppointment(Number(current.aptId), { duration: current.currentDuration });
       }
       setResizeState(null);
     };
@@ -839,7 +844,7 @@ export default function CalendarPage() {
                     {gApts.map(apt => {
                       const client = apt.client as Record<string, any>;
                       const servicesList = apt.services as { service: Record<string, any>; price: number }[];
-                      const serviceName = String(servicesList?.[0]?.service?.nameDe || servicesList?.[0]?.service?.name || '');
+                      const serviceName = String(servicesList?.[0]?.service?.nameUk || servicesList?.[0]?.service?.name || '');
                       const pet = apt.pet as Record<string, any>;
                       const petSize = String(pet?.size || 'm').toUpperCase();
                       
@@ -939,6 +944,10 @@ export default function CalendarPage() {
                     {dayApts.map(apt => {
                       const client = apt.client as Record<string, any>;
                       const groomer = apt.groomer as Record<string, any>;
+                      const servicesList = apt.services as { service: Record<string, any>; price: number }[];
+                      const serviceName = String(servicesList?.[0]?.service?.nameUk || servicesList?.[0]?.service?.name || '');
+                      const pet = apt.pet as Record<string, any>;
+                      const petSize = String(pet?.size || 'm').toUpperCase();
                       
                       const dStart = new Date(String(apt.date));
                       const isResizing = resizeState?.aptId === String(apt.id);
@@ -973,9 +982,16 @@ export default function CalendarPage() {
                                 {String(apt.notes || 'Blockiert')}
                               </div>
                             ) : (
-                              <div className="leading-tight text-[10px] font-semibold truncate">
-                                {client ? `${String(client.firstName)} ${String(client.lastName)}` : '—'}
-                              </div>
+                              <>
+                                <div className="leading-tight text-[10px] font-semibold truncate">
+                                  {client ? `${String(client.firstName)} ${String(client.lastName)}` : '—'}
+                                </div>
+                                {serviceName && (
+                                  <div className="text-[9px] leading-tight flex gap-1 items-start mt-auto pt-1">
+                                    <span className="line-clamp-2 text-on-surface-variant">{petSize} - {serviceName}</span>
+                                  </div>
+                                )}
+                              </>
                             )}
                           </div>
                           {/* Resize Handle */}
