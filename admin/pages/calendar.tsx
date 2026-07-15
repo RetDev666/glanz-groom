@@ -194,7 +194,7 @@ export function NewAppointmentModal({
     if (form.isBlock) return;
     if (services.length > 0 && form.serviceIds.length > 0) {
       let total = 0;
-      form.serviceIds.forEach(id => {
+      form.serviceIds.forEach((id: number) => {
         const s = services.find(srv => srv.id === id);
         if (s) {
           total += form.petSize === 's' ? (s.durationS || s.durationM) : form.petSize === 'm' ? (s.durationM || 60) : (s.durationL || s.durationM);
