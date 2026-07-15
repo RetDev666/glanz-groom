@@ -248,7 +248,7 @@ export function NewAppointmentModal({
     if (res.ok) {
       try {
         let url = 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3';
-        switch (payload.status) {
+        switch ((payload as any).status) {
           case 'confirmed': url = 'https://assets.mixkit.co/active_storage/sfx/2870/2870-preview.mp3'; break;
           case 'completed': url = 'https://assets.mixkit.co/active_storage/sfx/2871/2871-preview.mp3'; break;
           case 'cancelled': url = 'https://assets.mixkit.co/active_storage/sfx/2872/2872-preview.mp3'; break;
