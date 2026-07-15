@@ -608,10 +608,11 @@ export default function CalendarPage() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'completed': return 'check_circle';
-      case 'confirmed': return 'schedule';
-      case 'pending': return 'schedule';
+      case 'confirmed': return 'check_circle';
+      case 'completed': return 'task_alt';
       case 'cancelled': return 'cancel';
+      case 'blocked': return 'block';
+      case 'pending': return 'schedule';
       default: return 'schedule';
     }
   };
