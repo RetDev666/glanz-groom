@@ -246,6 +246,15 @@ export function NewAppointmentModal({
     setLoading(false);
     
     if (res.ok) {
+      try {
+        let url = 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3';
+        switch (payload.status) {
+          case 'confirmed': url = 'https://assets.mixkit.co/active_storage/sfx/2870/2870-preview.mp3'; break;
+          case 'completed': url = 'https://assets.mixkit.co/active_storage/sfx/2871/2871-preview.mp3'; break;
+          case 'cancelled': url = 'https://assets.mixkit.co/active_storage/sfx/2872/2872-preview.mp3'; break;
+        }
+        new Audio(url).play().catch(() => {});
+      } catch(e) {}
       onSave();
       onClose();
     } else {
@@ -510,6 +519,15 @@ export default function CalendarPage() {
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify(data),
     });
+    if (data.status) {
+      try {
+        let url = 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3';
+        if (data.status === 'confirmed') url = 'https://assets.mixkit.co/active_storage/sfx/2870/2870-preview.mp3';
+        if (data.status === 'completed') url = 'https://assets.mixkit.co/active_storage/sfx/2871/2871-preview.mp3';
+        if (data.status === 'cancelled') url = 'https://assets.mixkit.co/active_storage/sfx/2872/2872-preview.mp3';
+        new Audio(url).play().catch(() => {});
+      } catch(e) {}
+    }
     fetchAppointments();
   };
 

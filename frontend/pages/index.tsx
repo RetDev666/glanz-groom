@@ -182,8 +182,8 @@ export default function HomePage() {
                     />
                   ) : (
                     <div className="flex flex-col gap-3">
-                      <div className="w-full aspect-[4/3] rounded-3xl overflow-hidden shadow-sm border border-outline-variant">
-                        <img src={item.afterUrl} alt={item.title || "Grooming"} className="w-full h-full object-cover" />
+                      <div className="w-full aspect-[4/5] rounded-3xl overflow-hidden shadow-sm border border-outline-variant bg-surface-container-low">
+                        <img src={item.afterUrl} alt={item.title || "Grooming"} className="w-full h-full object-contain" />
                       </div>
                       {item.title && (
                         <h4 className="font-display font-bold text-center text-on-surface text-lg">{item.title}</h4>

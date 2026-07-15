@@ -57,7 +57,7 @@ export default function BeforeAfterSlider({ beforeUrl, afterUrl, title }: Before
     <div className="flex flex-col gap-3">
       <div 
         ref={containerRef}
-        className="relative w-full aspect-[4/3] rounded-3xl overflow-hidden select-none cursor-ew-resize bg-surface-container"
+        className="relative w-full aspect-[4/5] rounded-3xl overflow-hidden select-none cursor-ew-resize bg-surface-container-low"
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchDown}
       >
@@ -65,7 +65,7 @@ export default function BeforeAfterSlider({ beforeUrl, afterUrl, title }: Before
         <img 
           src={afterUrl} 
           alt="Nachher" 
-          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+          className="absolute inset-0 w-full h-full object-contain pointer-events-none"
         />
         
         {/* BEFORE IMAGE (Clipped foreground) */}
@@ -76,7 +76,7 @@ export default function BeforeAfterSlider({ beforeUrl, afterUrl, title }: Before
           <img 
             src={beforeUrl} 
             alt="Vorher" 
-            className="absolute inset-0 w-full h-full object-cover max-w-none pointer-events-none"
+            className="absolute inset-0 w-full h-full object-contain max-w-none pointer-events-none"
             style={{ width: '100%', height: '100%' }}
           />
         </div>

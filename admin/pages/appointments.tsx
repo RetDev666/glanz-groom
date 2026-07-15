@@ -300,6 +300,13 @@ export default function AppointmentsPage() {
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ status }),
     });
+    try {
+      let url = 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3';
+      if (status === 'confirmed') url = 'https://assets.mixkit.co/active_storage/sfx/2870/2870-preview.mp3';
+      if (status === 'completed') url = 'https://assets.mixkit.co/active_storage/sfx/2871/2871-preview.mp3';
+      if (status === 'cancelled') url = 'https://assets.mixkit.co/active_storage/sfx/2872/2872-preview.mp3';
+      new Audio(url).play().catch(() => {});
+    } catch(e) {}
     setAppointments(prev => prev.map(a => a.id === id ? { ...a, status } : a));
     if (selectedApt && selectedApt.id === id) {
       setSelectedApt(prev => prev ? { ...prev, status } : null);
