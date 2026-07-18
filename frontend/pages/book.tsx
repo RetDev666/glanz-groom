@@ -497,13 +497,15 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
           }
         }
 
-        const durationKey = SIZE_DURATION_KEY[pet.petSize];
+        // Always lowercase size so backend maps to durationXs (not L)
+        const sizeKey = String(pet.petSize || 'm').trim().toLowerCase();
+        const durationKey = SIZE_DURATION_KEY[sizeKey] || 'durationM';
         const petDuration = pet.selectedServices
           .map(id => services.find(s => s.id === id))
           .filter(Boolean)
           .reduce((sum, s) => sum + (Number(s![durationKey]) || 0), 0);
         
-        const priceKey = SIZE_PRICE_KEY[pet.petSize];
+        const priceKey = SIZE_PRICE_KEY[sizeKey] || 'priceM';
         const petPrice = pet.selectedServices
           .map(id => services.find(s => s.id === id))
           .filter(Boolean)
@@ -519,7 +521,7 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
             clientPhone: booking.phone,
             petName: pet.petName,
             petBreed: pet.petBreed,
-            petSize: pet.petSize,
+            petSize: sizeKey,
             petPhotoUrl,
             notes: booking.notes,
             groomerId: booking.groomerId,

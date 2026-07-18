@@ -1,0 +1,11 @@
+{
+    "schema_version": 2,
+    "commit": "d17c3a4d83e404604ee7cdd2fe82f5b0294996fc",
+    "indexed_at": "2026-07-18T09:29:39Z",
+    "project": "glanz-groom",
+    "nodes": 2221,
+    "edges": 7438,
+    "original_size": 6225920,
+    "compressed_size": 1355334,
+    "compression_level": 9
+}

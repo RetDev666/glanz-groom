@@ -4,6 +4,31 @@ import { requireAuth, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
+type SizeKey = 'xs' | 's' | 'm' | 'l' | 'xl';
+type DurationField = 'durationXs' | 'durationS' | 'durationM' | 'durationL' | 'durationXl';
+type PriceField = 'priceXs' | 'priceS' | 'priceM' | 'priceL' | 'priceXl';
+
+const DURATION_FIELD: Record<SizeKey, DurationField> = {
+  xs: 'durationXs', s: 'durationS', m: 'durationM', l: 'durationL', xl: 'durationXl',
+};
+const PRICE_FIELD: Record<SizeKey, PriceField> = {
+  xs: 'priceXs', s: 'priceS', m: 'priceM', l: 'priceL', xl: 'priceXl',
+};
+
+/** Normalize pet size so "XS" / " Xs " never falls back to M/L by accident. */
+function normalizeSize(size: unknown): SizeKey {
+  const s = String(size ?? 'm').trim().toLowerCase();
+  if (s === 'xs' || s === 's' || s === 'm' || s === 'l' || s === 'xl') return s;
+  return 'm';
+}
+
+function sumServiceField(
+  services: Array<Record<string, unknown>>,
+  field: DurationField | PriceField
+): number {
+  return services.reduce((sum, svc) => sum + (Number(svc[field]) || 0), 0);
+}
+
 // GET /api/appointments
 router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
@@ -108,10 +133,14 @@ router.get('/latest', requireAuth, async (req: AuthRequest, res: Response) => {
 // POST /api/appointments/admin-create
 router.post('/admin-create', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    const { groomerId, date, duration, notes, petName, petSize, clientFirstName, clientPhone, isBlock, serviceIds, discount } = req.body;
+    const {
+      groomerId, date, duration, notes, petName, petBreed, petSize,
+      clientFirstName, clientPhone, isBlock, serviceIds, discount,
+    } = req.body;
 
     let finalDuration = Number(duration) || 0;
     const finalGroomerId = Number(groomerId);
+    const size = normalizeSize(petSize);
 
     // If it's a block, we don't need a real client or pet, and status is "blocked"
     if (isBlock) {
@@ -159,20 +188,18 @@ router.post('/admin-create', requireAuth, async (req: AuthRequest, res: Response
     let pet = await prisma.pet.findFirst({ where: { clientId: client.id, name: petName || 'Dog' } });
     if (!pet) {
       pet = await prisma.pet.create({
-        data: { name: petName || 'Dog', breed: 'Unknown', size: petSize || 'm', clientId: client.id }
+        data: {
+          name: petName || 'Dog',
+          breed: petBreed || 'Unknown',
+          size,
+          clientId: client.id,
+        }
       });
     } else {
-      let petUpdated = false;
-      const petUpdateData: any = {};
-      if (petBreed && petBreed !== pet.breed) {
-        petUpdateData.breed = petBreed;
-        petUpdated = true;
-      }
-      if (petSize && petSize !== pet.size) {
-        petUpdateData.size = petSize;
-        petUpdated = true;
-      }
-      if (petUpdated) {
+      const petUpdateData: { breed?: string; size?: string } = {};
+      if (petBreed && petBreed !== pet.breed) petUpdateData.breed = petBreed;
+      if (size !== pet.size) petUpdateData.size = size;
+      if (Object.keys(petUpdateData).length > 0) {
         pet = await prisma.pet.update({
           where: { id: pet.id },
           data: petUpdateData
@@ -180,28 +207,22 @@ router.post('/admin-create', requireAuth, async (req: AuthRequest, res: Response
       }
     }
 
-    // Calculate duration and price from services if not provided explicitly
+    // Calculate duration and price from services (size-aware: XS must use durationXs, not L)
     let calculatedDuration = 0;
     let calculatedPrice = 0;
     let servicesData: any[] = [];
     if (serviceIds && Array.isArray(serviceIds) && serviceIds.length > 0) {
       const services = await prisma.service.findMany({ where: { id: { in: serviceIds.map(Number) } } });
-      const durationMap: Record<string, string> = { xs: 'durationXs', s: 'durationS', m: 'durationM', l: 'durationL', xl: 'durationXl' };
-      const priceMap: Record<string, string> = { xs: 'priceXs', s: 'priceS', m: 'priceM', l: 'priceL', xl: 'priceXl' };
-      const dField = durationMap[pet.size] as keyof typeof services[0] || 'durationM';
-      const pField = priceMap[pet.size] as keyof typeof services[0] || 'priceM';
+      const dField = DURATION_FIELD[normalizeSize(pet.size)];
+      const pField = PRICE_FIELD[normalizeSize(pet.size)];
       
-      calculatedDuration = services.reduce((sum, s) => sum + (Number(s[dField]) || 0), 0);
-      calculatedPrice = services.reduce((sum, s) => sum + (Number(s[pField]) || 0), 0);
+      calculatedDuration = sumServiceField(services as any[], dField);
+      calculatedPrice = sumServiceField(services as any[], pField);
       servicesData = services.map(s => ({ serviceId: s.id, price: Number(s[pField]) || 0 }));
     }
 
-    if (!isBlock) {
-      finalDuration = finalDuration || calculatedDuration; // Respect frontend duration if provided
-    } else if (!finalDuration) {
-      finalDuration = calculatedDuration;
-    }
-    
+    // Prefer explicit duration from admin UI when provided; otherwise use calculated
+    finalDuration = finalDuration > 0 ? finalDuration : calculatedDuration;
     if (finalDuration === 0) finalDuration = 60; // fallback
 
     const appointment = await prisma.appointment.create({
@@ -271,24 +292,18 @@ router.post('/', async (req: Request, res: Response) => {
       });
     }
 
-    // Create or find pet
+    // Create or find pet (always store normalized size: xs|s|m|l|xl)
+    const size = normalizeSize(petSize);
     let pet = await prisma.pet.findFirst({ where: { clientId: client.id, name: petName } });
     if (!pet) {
       pet = await prisma.pet.create({
-        data: { name: petName, breed: petBreed || 'Unknown', size: petSize || 'm', clientId: client.id },
+        data: { name: petName, breed: petBreed || 'Unknown', size, clientId: client.id },
       });
     } else {
-      let petUpdated = false;
-      const petUpdateData: any = {};
-      if (petBreed && petBreed !== pet.breed) {
-        petUpdateData.breed = petBreed;
-        petUpdated = true;
-      }
-      if (petSize && petSize !== pet.size) {
-        petUpdateData.size = petSize;
-        petUpdated = true;
-      }
-      if (petUpdated) {
+      const petUpdateData: { breed?: string; size?: string } = {};
+      if (petBreed && petBreed !== pet.breed) petUpdateData.breed = petBreed;
+      if (size !== pet.size) petUpdateData.size = size;
+      if (Object.keys(petUpdateData).length > 0) {
         pet = await prisma.pet.update({
           where: { id: pet.id },
           data: petUpdateData
@@ -308,22 +323,22 @@ router.post('/', async (req: Request, res: Response) => {
 
     if (!groomer) return res.status(400).json({ error: 'No groomer available' });
 
-    // Calculate price and duration
+    // Calculate price and duration from pet size + services (server is source of truth)
     const services = await prisma.service.findMany({ where: { id: { in: serviceIds.map(Number) } } });
-    const sizeMap: Record<string, 'priceXs' | 'priceS' | 'priceM' | 'priceL' | 'priceXl'> = {
-      xs: 'priceXs', s: 'priceS', m: 'priceM', l: 'priceL', xl: 'priceXl',
-    };
-    const durationMap: Record<string, 'durationXs' | 'durationS' | 'durationM' | 'durationL' | 'durationXl'> = {
-      xs: 'durationXs', s: 'durationS', m: 'durationM', l: 'durationL', xl: 'durationXl',
-    };
-    const priceField = sizeMap[pet.size] || 'priceM';
-    const durationField = durationMap[pet.size] || 'durationM';
+    const petSizeKey = normalizeSize(pet.size);
+    const priceField = PRICE_FIELD[petSizeKey];
+    const durationField = DURATION_FIELD[petSizeKey];
 
-    const calculatedPrice = services.reduce((sum, s) => sum + Number(s[priceField]), 0);
-    const calculatedDuration = services.reduce((sum, s) => sum + Number(s[durationField]), 0);
+    const calculatedPrice = sumServiceField(services as any[], priceField);
+    const calculatedDuration = sumServiceField(services as any[], durationField);
 
-    const finalPrice = totalPrice !== undefined ? Number(totalPrice) : calculatedPrice;
-    const finalDuration = duration !== undefined ? Number(duration) : calculatedDuration;
+    // Prefer server-side duration/price so client bugs (wrong size map) cannot inflate slots
+    const finalPrice = calculatedPrice > 0
+      ? calculatedPrice
+      : (totalPrice !== undefined ? Number(totalPrice) : 0);
+    const finalDuration = calculatedDuration > 0
+      ? calculatedDuration
+      : Math.max(Number(duration) || 60, 15);
 
     const appointment = await prisma.appointment.create({
       data: {
@@ -430,27 +445,28 @@ router.patch('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
 
     // Update Pet if provided
     if (petName !== undefined || petBreed !== undefined || petSize !== undefined) {
+      const nextSize = petSize !== undefined ? normalizeSize(petSize) : appointment.pet.size;
       await prisma.pet.update({
         where: { id: appointment.petId },
         data: {
           name: petName !== undefined ? petName : appointment.pet.name,
           breed: petBreed !== undefined ? petBreed : appointment.pet.breed,
-          size: petSize !== undefined ? petSize : appointment.pet.size,
+          size: nextSize,
         }
       });
       // update local reference to ensure pricing uses new size if updated
-      if (petSize !== undefined) appointment.pet.size = petSize;
+      if (petSize !== undefined) appointment.pet.size = nextSize;
     }
+
+    const sizeKey = normalizeSize(appointment.pet.size);
 
     if (serviceIds && Array.isArray(serviceIds)) {
       // Delete old services
       await prisma.appointmentService.deleteMany({ where: { appointmentId: Number(id) } });
       
       const services = await prisma.service.findMany({ where: { id: { in: serviceIds.map(Number) } } });
-      const sizeMap: Record<string, 'priceXs' | 'priceS' | 'priceM' | 'priceL' | 'priceXl'> = {
-        xs: 'priceXs', s: 'priceS', m: 'priceM', l: 'priceL', xl: 'priceXl',
-      };
-      const priceField = sizeMap[appointment.pet.size] || 'priceM';
+      const priceField = PRICE_FIELD[sizeKey];
+      const durationField = DURATION_FIELD[sizeKey];
       
       data.services = {
         create: services.map(s => ({ serviceId: s.id, price: s[priceField] })),
@@ -458,8 +474,15 @@ router.patch('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
 
       // Recalculate totalPrice if not explicitly provided, taking discount into account
       if (totalPrice === undefined) {
-        const sum = services.reduce((acc, s) => acc + s[priceField], 0);
+        const sum = sumServiceField(services as any[], priceField);
         data.totalPrice = Math.max(0, sum - (Number(discount) || 0));
+      }
+
+      // Recalculate duration when services change unless caller set an explicit duration
+      // (calendar resize sends only { duration } without serviceIds — that path is untouched)
+      if (duration === undefined) {
+        const sumDur = sumServiceField(services as any[], durationField);
+        if (sumDur > 0) data.duration = sumDur;
       }
     } else if (discount !== undefined && totalPrice === undefined) {
        // If services didn't change but discount changed, recalculate

@@ -30,6 +30,19 @@ const toLocalDateString = (d: Date) => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 };
 
+/** Map pet size → service duration field. XS/XL must NOT fall through to L. */
+function durationForSize(service: any, petSize: string): number {
+  const size = String(petSize || 'm').trim().toLowerCase();
+  const map: Record<string, number> = {
+    xs: Number(service.durationXs ?? service.durationS ?? service.durationM) || 0,
+    s: Number(service.durationS ?? service.durationM) || 0,
+    m: Number(service.durationM) || 0,
+    l: Number(service.durationL ?? service.durationM) || 0,
+    xl: Number(service.durationXl ?? service.durationL ?? service.durationM) || 0,
+  };
+  return map[size] ?? (Number(service.durationM) || 60);
+}
+
 type Appointment = Record<string, unknown>;
 
 function AppointmentDetailModal({
@@ -196,9 +209,7 @@ export function NewAppointmentModal({
       let total = 0;
       form.serviceIds.forEach((id: number) => {
         const s = services.find(srv => srv.id === id);
-        if (s) {
-          total += form.petSize === 's' ? (s.durationS || s.durationM) : form.petSize === 'm' ? (s.durationM || 60) : (s.durationL || s.durationM);
-        }
+        if (s) total += durationForSize(s, form.petSize);
       });
       if (total > 0 && form.duration !== total) {
         setForm(prev => ({ ...prev, duration: total }));
@@ -436,6 +447,8 @@ export default function CalendarPage() {
   const [filterGroomerId, setFilterGroomerId] = useState<number | null>(null);
   const [isGroomerDropdownOpen, setIsGroomerDropdownOpen] = useState(false);
   const [resizeState, setResizeState] = useState<{ aptId: string | number; startY: number; startDuration: number; currentDuration: number } | null>(null);
+  // Block HTML5 drag while resizing — otherwise the card "jumps" and duration saves only half the time
+  const isResizingRef = useRef(false);
   
   const [viewMode, setViewMode] = useState<'day' | 'week'>('day');
   const [contextMenu, setContextMenu] = useState<{ isOpen: boolean, x: number, y: number, apt: Appointment | null }>({ isOpen: false, x: 0, y: 0, apt: null });
@@ -450,30 +463,40 @@ export default function CalendarPage() {
 
   useEffect(() => {
     if (!resizeState) return;
+    isResizingRef.current = true;
+
     const handleMouseMove = (e: MouseEvent) => {
+      e.preventDefault();
       const diffY = e.clientY - resizeState.startY;
-      const diffMinutes = Math.round(diffY / 2);
+      const diffMinutes = Math.round(diffY / 2); // 2px = 1 minute
       const snappedDiff = Math.round(diffMinutes / 5) * 5; // Snap to 5 mins
       const newDuration = Math.max(15, resizeState.startDuration + snappedDiff);
       setResizeState(prev => prev ? { ...prev, currentDuration: newDuration } : null);
     };
     const handleMouseUp = async () => {
       const current = resizeRef.current;
+      setResizeState(null);
+      // Small delay before re-enabling drag so the browser doesn't treat mouseup as a drop
+      setTimeout(() => { isResizingRef.current = false; }, 50);
       if (current && current.currentDuration !== current.startDuration) {
         await handleUpdateAppointment(Number(current.aptId), { duration: current.currentDuration });
       }
-      setResizeState(null);
     };
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
+    // Prevent text selection / accidental drags while resizing
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'ns-resize';
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
     };
   }, [resizeState?.startY, resizeState?.startDuration]);
 
   const fetchAppointments = () => {
-    setCurrentDate(new Date(currentDate)); // Trigger effect
+    setCurrentDate(d => new Date(d.getTime())); // Trigger effect without stale closure
   };
 
   useEffect(() => {
@@ -530,25 +553,42 @@ export default function CalendarPage() {
 
   const handleUpdateAppointment = async (id: number, data: any) => {
     const token = localStorage.getItem('admin_token');
-    await fetch(`${API}/appointments/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify(data),
-    });
-    if (data.status) {
-      try {
-        let url = 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3';
-        if (data.status === 'confirmed') url = 'https://assets.mixkit.co/active_storage/sfx/2870/2870-preview.mp3';
-        if (data.status === 'completed') url = 'https://assets.mixkit.co/active_storage/sfx/2871/2871-preview.mp3';
-        if (data.status === 'cancelled') url = 'https://assets.mixkit.co/active_storage/sfx/2872/2872-preview.mp3';
-        new Audio(url).play().catch(() => {});
-      } catch(e) {}
+    // Optimistic UI update so resize/move doesn't snap back if refetch is slow
+    setAppointments(prev => prev.map(a =>
+      Number(a.id) === id ? { ...a, ...data } : a
+    ));
+
+    try {
+      const res = await fetch(`${API}/appointments/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        // Revert by refetching on failure
+        fetchAppointments();
+        return;
+      }
+      if (data.status) {
+        try {
+          let url = 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3';
+          if (data.status === 'confirmed') url = 'https://assets.mixkit.co/active_storage/sfx/2870/2870-preview.mp3';
+          if (data.status === 'completed') url = 'https://assets.mixkit.co/active_storage/sfx/2871/2871-preview.mp3';
+          if (data.status === 'cancelled') url = 'https://assets.mixkit.co/active_storage/sfx/2872/2872-preview.mp3';
+          new Audio(url).play().catch(() => {});
+        } catch(e) {}
+      }
+      // Background refresh for nested relations (client/pet/groomer stay in sync)
+      fetchAppointments();
+    } catch {
+      fetchAppointments();
     }
-    fetchAppointments();
   };
 
   const handleDrop = async (e: React.DragEvent, newGroomerId: number) => {
     e.preventDefault();
+    // Ignore drops that came from a resize interaction
+    if (isResizingRef.current) return;
     const aptId = e.dataTransfer.getData('aptId');
     if (!aptId) return;
 
@@ -897,17 +937,25 @@ export default function CalendarPage() {
                       return (
                         <div
                           key={String(apt.id)}
-                          draggable
+                          draggable={!isResizing}
                           onDragStart={e => {
+                            if (isResizingRef.current || isResizing) {
+                              e.preventDefault();
+                              return;
+                            }
                             e.dataTransfer.setData('aptId', String(apt.id));
                             e.dataTransfer.setData('offsetY', String(e.nativeEvent.offsetY));
                           }}
-                          onClick={(e) => { e.stopPropagation(); setSelectedApt(apt); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (isResizingRef.current) return;
+                            setSelectedApt(apt);
+                          }}
                           onContextMenu={(e) => {
                             e.preventDefault();
                             setContextMenu({ isOpen: true, x: e.clientX, y: e.clientY, apt });
                           }}
-                          className={`absolute left-0.5 right-0.5 rounded-md flex flex-col z-10 shadow-sm cursor-move overflow-hidden border ${theme.border} hover:shadow-md transition-shadow`}
+                          className={`absolute left-0.5 right-0.5 rounded-md flex flex-col z-10 shadow-sm overflow-hidden border ${theme.border} hover:shadow-md transition-shadow ${isResizing ? 'cursor-ns-resize' : 'cursor-move'}`}
                           style={{ top: `${top}px`, height: `${height}px` }}
                         >
                           <div className={`${theme.header} text-white px-1.5 py-0.5 flex justify-between items-center shrink-0`}>
@@ -936,13 +984,22 @@ export default function CalendarPage() {
                               </>
                             )}
                           </div>
-                          {/* Resize Handle */}
+                          {/* Resize Handle — larger hit area; must not start HTML5 drag */}
                           <div 
-                            className="absolute bottom-0 left-0 right-0 h-2 cursor-ns-resize hover:bg-black/10 transition-colors z-20 group flex items-end justify-center pb-[2px]"
+                            className="absolute bottom-0 left-0 right-0 h-4 cursor-ns-resize hover:bg-black/10 transition-colors z-20 group flex items-end justify-center pb-[2px]"
+                            draggable={false}
                             onMouseDown={(e) => {
+                              e.preventDefault();
                               e.stopPropagation();
-                              setResizeState({ aptId: String(apt.id), startY: e.clientY, startDuration: Number(apt.duration), currentDuration: Number(apt.duration) });
+                              isResizingRef.current = true;
+                              setResizeState({
+                                aptId: String(apt.id),
+                                startY: e.clientY,
+                                startDuration: Number(apt.duration) || 15,
+                                currentDuration: Number(apt.duration) || 15,
+                              });
                             }}
+                            onDragStart={(e) => { e.preventDefault(); e.stopPropagation(); }}
                           >
                             <div className="w-8 h-1 bg-black/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
                           </div>
@@ -1029,13 +1086,22 @@ export default function CalendarPage() {
                               </>
                             )}
                           </div>
-                          {/* Resize Handle */}
+                          {/* Resize Handle — larger hit area; must not start HTML5 drag */}
                           <div 
-                            className="absolute bottom-0 left-0 right-0 h-2 cursor-ns-resize hover:bg-black/10 transition-colors z-20 group flex items-end justify-center pb-[2px]"
+                            className="absolute bottom-0 left-0 right-0 h-4 cursor-ns-resize hover:bg-black/10 transition-colors z-20 group flex items-end justify-center pb-[2px]"
+                            draggable={false}
                             onMouseDown={(e) => {
+                              e.preventDefault();
                               e.stopPropagation();
-                              setResizeState({ aptId: String(apt.id), startY: e.clientY, startDuration: Number(apt.duration), currentDuration: Number(apt.duration) });
+                              isResizingRef.current = true;
+                              setResizeState({
+                                aptId: String(apt.id),
+                                startY: e.clientY,
+                                startDuration: Number(apt.duration) || 15,
+                                currentDuration: Number(apt.duration) || 15,
+                              });
                             }}
+                            onDragStart={(e) => { e.preventDefault(); e.stopPropagation(); }}
                           >
                             <div className="w-8 h-1 bg-black/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
                           </div>
