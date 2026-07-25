@@ -254,6 +254,15 @@ export default function AppointmentsPage() {
     }
   }, []);
 
+  // Groomers list is independent of filters — load once
+  useEffect(() => {
+    const token = localStorage.getItem('admin_token');
+    fetch(`${API}/groomers`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(grs => { if (Array.isArray(grs)) setGroomers(grs); })
+      .catch(() => {});
+  }, []);
+
   const fetchAppointments = useCallback(async () => {
     const token = localStorage.getItem('admin_token');
     const params = new URLSearchParams();
@@ -261,16 +270,13 @@ export default function AppointmentsPage() {
     if (filterStatus && filterStatus !== 'all') params.set('status', filterStatus);
 
     try {
-      const [aptsRes, groomersRes] = await Promise.all([
-        fetch(`${API}/appointments?${params}`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${API}/groomers`, { headers: { Authorization: `Bearer ${token}` } })
-      ]);
+      const aptsRes = await fetch(`${API}/appointments?${params}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       const data = await aptsRes.json();
-      const grs = await groomersRes.json();
       
       const arr = Array.isArray(data) ? data : [];
       setAppointments(arr);
-      setGroomers(Array.isArray(grs) ? grs : []);
 
       if (arr.length > 0) {
         const maxId = Math.max(...arr.map((a: any) => a.id));

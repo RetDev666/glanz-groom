@@ -22,13 +22,19 @@ export default function DashboardPage() {
     const token = localStorage.getItem('admin_token');
     
     const fetchData = () => {
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/appointments`, {
+      // Only load from today onward (same UI as before — was client-filtered after full fetch)
+      const today = new Date();
+      const pad = (n: number) => n.toString().padStart(2, '0');
+      const startDate = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/appointments?startDate=${startDate}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
         .then(r => r.json())
         .then(data => {
           const arr = Array.isArray(data) ? data : [];
-          const upcoming = arr.filter(a => new Date(String(a.date)) >= new Date(new Date().setHours(0,0,0,0)));
+          const startOfToday = new Date(new Date().setHours(0, 0, 0, 0));
+          const upcoming = arr.filter(a => new Date(String(a.date)) >= startOfToday);
           setAppointments(upcoming);
           setStats({
             total: upcoming.length,

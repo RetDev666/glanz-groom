@@ -12,6 +12,38 @@ router.get('/', requireAuth, async (_req: AuthRequest, res: Response) => {
   res.json(clients);
 });
 
+/** Quick lookup for calendar booking — match phone / name / email */
+router.get('/search', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const q = String(req.query.q || '').trim();
+    if (q.length < 2) {
+      return res.json([]);
+    }
+
+    // Digits-only form helps match phones typed with spaces (+49 176 …)
+    const digits = q.replace(/\D/g, '');
+    const or: Array<Record<string, unknown>> = [
+      { firstName: { contains: q } },
+      { lastName: { contains: q } },
+      { email: { contains: q } },
+      { phone: { contains: q } },
+    ];
+    if (digits.length >= 3) {
+      or.push({ phone: { contains: digits } });
+    }
+
+    const clients = await prisma.client.findMany({
+      where: { OR: or },
+      include: { pets: true },
+      take: 10,
+      orderBy: { updatedAt: 'desc' },
+    });
+    res.json(clients);
+  } catch {
+    res.status(500).json({ error: 'Search failed' });
+  }
+});
+
 router.get('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
   const client = await prisma.client.findUnique({
     where: { id: Number(req.params.id) },

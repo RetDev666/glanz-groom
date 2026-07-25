@@ -1,15 +1,27 @@
 import { Router } from 'express';
 import prisma from '../lib/prisma';
 import { requireAuth } from '../middleware/auth';
+import { cacheGet, cacheSet, cacheInvalidate, TTL } from '../lib/cache';
 
 const router = Router();
 
 // Get all portfolio items
 router.get('/', async (req, res) => {
   try {
+    const cached = cacheGet<unknown[]>('portfolio:all');
+    if (cached) {
+      res.setHeader('Cache-Control', 'public, max-age=20, s-maxage=60, stale-while-revalidate=120');
+      res.setHeader('X-Cache', 'HIT');
+      return res.json(cached);
+    }
+
     const items = await prisma.portfolio.findMany({
       orderBy: { id: 'desc' }
     });
+
+    cacheSet('portfolio:all', items, TTL.LONG);
+    res.setHeader('Cache-Control', 'public, max-age=20, s-maxage=60, stale-while-revalidate=120');
+    res.setHeader('X-Cache', 'MISS');
     res.json(items);
   } catch (error) {
     console.error('Portfolio GET error:', error);
@@ -32,6 +44,7 @@ router.post('/', requireAuth, async (req, res) => {
         isActive: isActive !== undefined ? Boolean(isActive) : true
       }
     });
+    cacheInvalidate('portfolio:');
     res.status(201).json(newItem);
   } catch (error: any) {
     console.error('Portfolio POST error:', error?.message || error);
@@ -57,6 +70,7 @@ router.put('/:id', requireAuth, async (req, res) => {
         isActive: isActive !== undefined ? Boolean(isActive) : true
       }
     });
+    cacheInvalidate('portfolio:');
     res.json(updatedItem);
   } catch (error: any) {
     console.error('Portfolio PUT error:', error?.message || error);
@@ -71,6 +85,7 @@ router.delete('/:id', requireAuth, async (req, res) => {
     await prisma.portfolio.delete({
       where: { id }
     });
+    cacheInvalidate('portfolio:');
     res.json({ success: true });
   } catch (error) {
     console.error('Portfolio DELETE error:', error);

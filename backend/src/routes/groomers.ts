@@ -2,16 +2,32 @@ import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import prisma from '../lib/prisma';
 import { requireAuth, AuthRequest } from '../middleware/auth';
+import { cacheGet, cacheSet, cacheInvalidate, TTL } from '../lib/cache';
 
 const router = Router();
 
 // Public: GET all active groomers (except system)
 router.get('/', async (_req: Request, res: Response) => {
-  const groomers = await prisma.groomer.findMany({
-    where: { isActive: true, role: { not: 'system' } },
-    orderBy: { id: 'asc' },
-  });
-  res.json(groomers);
+  try {
+    const cached = cacheGet<unknown[]>('groomers:active');
+    if (cached) {
+      res.setHeader('Cache-Control', 'public, max-age=15, s-maxage=30, stale-while-revalidate=60');
+      res.setHeader('X-Cache', 'HIT');
+      return res.json(cached);
+    }
+
+    const groomers = await prisma.groomer.findMany({
+      where: { isActive: true, role: { not: 'system' } },
+      orderBy: { id: 'asc' },
+    });
+
+    cacheSet('groomers:active', groomers, TTL.MEDIUM);
+    res.setHeader('Cache-Control', 'public, max-age=15, s-maxage=30, stale-while-revalidate=60');
+    res.setHeader('X-Cache', 'MISS');
+    res.json(groomers);
+  } catch {
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // GET all groomers (admin) — including inactive
@@ -20,6 +36,7 @@ router.get('/all', requireAuth, async (_req: AuthRequest, res: Response) => {
     orderBy: { id: 'asc' },
     include: { user: { select: { email: true } } }
   });
+  res.setHeader('Cache-Control', 'private, no-store');
   res.json(groomers);
 });
 
@@ -33,6 +50,7 @@ router.post('/', requireAuth, async (req: AuthRequest, res: Response) => {
     const groomer = await prisma.groomer.create({
       data: { name, role, color: color || '#f56a6a', photoUrl: photoUrl || null, isActive: true },
     });
+    cacheInvalidate('groomers:');
     res.status(201).json(groomer);
   } catch (err) {
     res.status(500).json({ error: 'Internal server error' });
@@ -47,6 +65,7 @@ router.put('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
       where: { id: Number(req.params.id) },
       data: { name, role, color, isActive, photoUrl },
     });
+    cacheInvalidate('groomers:');
     res.json(groomer);
   } catch {
     res.status(404).json({ error: 'Not found' });
@@ -60,6 +79,7 @@ router.delete('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
       where: { id: Number(req.params.id) },
       data: { isActive: false },
     });
+    cacheInvalidate('groomers:');
     res.json({ success: true });
   } catch {
     res.status(404).json({ error: 'Not found' });

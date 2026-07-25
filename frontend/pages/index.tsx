@@ -23,37 +23,26 @@ export default function HomePage() {
 
   useEffect(() => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api';
-    fetch(`${apiUrl}/reviews`)
-      .then(r => r.ok ? r.json() : [])
-      .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
-          setReviews(data);
-        } else {
-          // Fallback: locale статичні відгуки
-          setReviews([
-            { id: '1', authorName: t.home.reviews[1].author, text: t.home.reviews[1].text, rating: 5, authorPhoto: '/review-1.jpg' },
-            { id: '2', authorName: t.home.reviews[2].author, text: t.home.reviews[2].text, rating: 5, authorPhoto: '/review-2.jpg' },
-            { id: '3', authorName: t.home.reviews[3].author, text: t.home.reviews[3].text, rating: 5, authorPhoto: '/review-3.jpg' },
-          ]);
-        }
-      })
-      .catch(() => {
-        setReviews([
-          { id: '1', authorName: t.home.reviews[1].author, text: t.home.reviews[1].text, rating: 5, authorPhoto: '/review-1.jpg' },
-          { id: '2', authorName: t.home.reviews[2].author, text: t.home.reviews[2].text, rating: 5, authorPhoto: '/review-2.jpg' },
-          { id: '3', authorName: t.home.reviews[3].author, text: t.home.reviews[3].text, rating: 5, authorPhoto: '/review-3.jpg' },
-        ]);
-      })
-      .finally(() => setReviewsLoading(false));
+    const fallbackReviews = [
+      { id: '1', authorName: t.home.reviews[1].author, text: t.home.reviews[1].text, rating: 5, authorPhoto: '/review-1.jpg' },
+      { id: '2', authorName: t.home.reviews[2].author, text: t.home.reviews[2].text, rating: 5, authorPhoto: '/review-2.jpg' },
+      { id: '3', authorName: t.home.reviews[3].author, text: t.home.reviews[3].text, rating: 5, authorPhoto: '/review-3.jpg' },
+    ];
 
-    fetch(`${apiUrl}/portfolio`)
-      .then(r => r.ok ? r.json() : [])
-      .then(data => {
-        if (Array.isArray(data)) {
-          setPortfolioItems(data.filter(item => item.isActive));
-        }
-      })
-      .catch(console.error);
+    // Parallel fetch — same data as before, one round-trip wait
+    Promise.all([
+      fetch(`${apiUrl}/reviews`).then(r => (r.ok ? r.json() : [])).catch(() => []),
+      fetch(`${apiUrl}/portfolio`).then(r => (r.ok ? r.json() : [])).catch(() => []),
+    ]).then(([reviewData, portfolioData]) => {
+      if (Array.isArray(reviewData) && reviewData.length > 0) {
+        setReviews(reviewData);
+      } else {
+        setReviews(fallbackReviews);
+      }
+      if (Array.isArray(portfolioData)) {
+        setPortfolioItems(portfolioData.filter((item: { isActive?: boolean }) => item.isActive));
+      }
+    }).finally(() => setReviewsLoading(false));
   }, []);
 
   const stats = [
@@ -77,6 +66,8 @@ export default function HomePage() {
             src="/img-hero.png"
             alt="Glanz & Groom"
             className="w-full h-full object-cover"
+            fetchPriority="high"
+            decoding="async"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-on-background/90 via-on-background/40 to-transparent" />
         </div>

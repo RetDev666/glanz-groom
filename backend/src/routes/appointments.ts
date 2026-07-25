@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../lib/prisma';
 import { requireAuth, AuthRequest } from '../middleware/auth';
+import { cacheGet, cacheSet, cacheInvalidate, TTL } from '../lib/cache';
 
 const router = Router();
 
@@ -45,6 +46,10 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
     
     if (startDate && endDate) {
       where.date = { gte: new Date(startDate as string), lte: new Date(endDate as string) };
+    } else if (startDate) {
+      where.date = { gte: new Date(startDate as string) };
+    } else if (endDate) {
+      where.date = { lte: new Date(endDate as string) };
     } else if (date) {
       const d = new Date(date as string);
       const nextDay = new Date(d);
@@ -63,6 +68,8 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
       orderBy: { date: 'asc' },
     });
 
+    // Short private cache — admin calendar/lists re-fetch often
+    res.setHeader('Cache-Control', 'private, no-store');
     res.json(appointments);
   } catch (err) {
     res.status(500).json({ error: 'Internal server error' });
@@ -75,6 +82,14 @@ router.get('/availability', async (req: Request, res: Response) => {
     const { date, startDate, endDate } = req.query;
     if (!date && (!startDate || !endDate)) {
       return res.status(400).json({ error: 'Date or startDate/endDate is required' });
+    }
+
+    const cacheKey = `avail:${String(date || '')}:${String(startDate || '')}:${String(endDate || '')}`;
+    const cached = cacheGet<unknown[]>(cacheKey);
+    if (cached) {
+      res.setHeader('Cache-Control', 'public, max-age=5, s-maxage=10');
+      res.setHeader('X-Cache', 'HIT');
+      return res.json(cached);
     }
 
     let dateWhere: any = {};
@@ -99,6 +114,9 @@ router.get('/availability', async (req: Request, res: Response) => {
       }
     });
 
+    cacheSet(cacheKey, appointments, TTL.SHORT);
+    res.setHeader('Cache-Control', 'public, max-age=5, s-maxage=10');
+    res.setHeader('X-Cache', 'MISS');
     res.json(appointments);
   } catch (err) {
     res.status(500).json({ error: 'Internal server error' });
@@ -109,22 +127,37 @@ router.get('/availability', async (req: Request, res: Response) => {
 router.get('/latest', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
     const { sinceId } = req.query;
-    
-    const latest = await prisma.appointment.findFirst({
-      orderBy: { id: 'desc' },
-      include: { client: true }
-    });
 
-    let newCount = 0;
-    if (sinceId && !isNaN(Number(sinceId))) {
-      newCount = await prisma.appointment.count({
-        where: { id: { gt: Number(sinceId) } }
-      });
+    const where: Record<string, unknown> = {};
+    if (req.userRole === 'groomer' && req.groomerId) {
+      where.groomerId = req.groomerId;
     }
 
+    // Parallel: latest row (slim) + optional count for badge
+    const sinceNum = sinceId && !isNaN(Number(sinceId)) ? Number(sinceId) : null;
+
+    const [latest, newCount] = await Promise.all([
+      prisma.appointment.findFirst({
+        where,
+        orderBy: { id: 'desc' },
+        select: {
+          id: true,
+          date: true,
+          status: true,
+          client: { select: { firstName: true, lastName: true } },
+        },
+      }),
+      sinceNum !== null
+        ? prisma.appointment.count({
+            where: { ...where, id: { gt: sinceNum } },
+          })
+        : Promise.resolve(0),
+    ]);
+
+    res.setHeader('Cache-Control', 'private, no-store');
     res.json({
       ...(latest || { id: 0 }),
-      newCount
+      newCount,
     });
   } catch (err) {
     res.status(500).json({ error: 'Internal server error' });
@@ -135,7 +168,7 @@ router.post('/admin-create', requireAuth, async (req: AuthRequest, res: Response
   try {
     const {
       groomerId, date, duration, notes, petName, petBreed, petSize,
-      clientFirstName, clientPhone, isBlock, serviceIds, discount,
+      clientFirstName, clientLastName, clientPhone, isBlock, serviceIds, discount,
     } = req.body;
 
     let finalDuration = Number(duration) || 0;
@@ -169,11 +202,14 @@ router.post('/admin-create', requireAuth, async (req: AuthRequest, res: Response
           groomerId: finalGroomerId,
         }
       });
+      cacheInvalidate('avail:');
       return res.json(appointment);
     }
 
-    // Normal admin appointment creation
-    let client = await prisma.client.findFirst({ where: { phone: clientPhone } });
+    // Normal admin appointment creation — reuse existing client by phone when possible
+    let client = clientPhone
+      ? await prisma.client.findFirst({ where: { phone: clientPhone } })
+      : null;
     if (!client) {
       client = await prisma.client.create({
         data: { 
@@ -183,6 +219,17 @@ router.post('/admin-create', requireAuth, async (req: AuthRequest, res: Response
           phone: clientPhone || '000000000' 
         }
       });
+    } else if (clientFirstName || clientLastName !== undefined || notes) {
+      // Keep profile fresh when re-booking a known client
+      const patch: Record<string, string> = {};
+      if (clientFirstName && clientFirstName !== client.firstName) patch.firstName = clientFirstName;
+      if (clientLastName !== undefined && String(clientLastName) !== client.lastName) {
+        patch.lastName = String(clientLastName || '');
+      }
+      if (notes && notes !== client.notes) patch.notes = notes;
+      if (Object.keys(patch).length > 0) {
+        client = await prisma.client.update({ where: { id: client.id }, data: patch });
+      }
     }
 
     let pet = await prisma.pet.findFirst({ where: { clientId: client.id, name: petName || 'Dog' } });
@@ -241,6 +288,7 @@ router.post('/admin-create', requireAuth, async (req: AuthRequest, res: Response
       }
     });
 
+    cacheInvalidate('avail:');
     res.json(appointment);
   } catch (err) {
     console.error(err);
@@ -366,6 +414,8 @@ router.post('/', async (req: Request, res: Response) => {
       appointment.client.notes = notes;
     }
 
+    cacheInvalidate('avail:');
+
     try {
       const { sendPushNotification } = require('./system');
       await sendPushNotification({
@@ -398,6 +448,7 @@ router.patch('/:id/status', requireAuth, async (req: AuthRequest, res: Response)
       data: { status },
       include: { client: true, pet: true, groomer: true, services: { include: { service: true } } },
     });
+    cacheInvalidate('avail:');
     res.json(updated);
   } catch {
     res.status(404).json({ error: 'Appointment not found' });
@@ -505,6 +556,7 @@ router.patch('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
       updated.client.notes = notes;
     }
 
+    cacheInvalidate('avail:');
     res.json(updated);
   } catch (err) {
     console.error(err);
@@ -518,6 +570,7 @@ router.delete('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
     const id = Number(req.params.id);
     const appointment = await prisma.appointment.findUnique({ where: { id }, include: { client: true, pet: true } });
     await prisma.appointment.delete({ where: { id } });
+    cacheInvalidate('avail:');
     
     // Import dynamically or ensure it's imported at top. Actually let's just require it here to avoid import issues at top
     const { logAudit } = require('../utils/audit');

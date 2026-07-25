@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import prisma from '../lib/prisma';
 import { requireAuth } from '../middleware/auth';
+import { cacheGet, cacheSet, cacheInvalidate, TTL } from '../lib/cache';
 
 const router = Router();
 
@@ -27,6 +28,13 @@ const fetchGoogleReviews = async (): Promise<any[]> => {
 // ─── GET /api/reviews — публічний, повертає кешовані відгуки ─────────────────
 router.get('/', async (req, res) => {
   try {
+    const cached = cacheGet<unknown[]>('reviews:visible');
+    if (cached) {
+      res.setHeader('Cache-Control', 'public, max-age=30, s-maxage=120, stale-while-revalidate=300');
+      res.setHeader('X-Cache', 'HIT');
+      return res.json(cached);
+    }
+
     const reviews = await prisma.googleReview.findMany({
       where: { isVisible: true },
       orderBy: { time: 'desc' },
@@ -34,6 +42,8 @@ router.get('/', async (req, res) => {
     });
 
     if (reviews.length > 0) {
+      cacheSet('reviews:visible', reviews, TTL.LONG);
+      res.setHeader('Cache-Control', 'public, max-age=30, s-maxage=120, stale-while-revalidate=300');
       return res.json(reviews);
     }
 
@@ -41,6 +51,8 @@ router.get('/', async (req, res) => {
     try {
       const googleReviews = await fetchGoogleReviews();
       const saved = await syncReviewsToDB(googleReviews);
+      cacheSet('reviews:visible', saved, TTL.LONG);
+      res.setHeader('Cache-Control', 'public, max-age=30, s-maxage=120, stale-while-revalidate=300');
       return res.json(saved);
     } catch (googleErr: any) {
       console.warn('Google API not available, returning empty:', googleErr.message);
@@ -57,6 +69,7 @@ router.post('/sync', requireAuth, async (req, res) => {
   try {
     const googleReviews = await fetchGoogleReviews();
     const saved = await syncReviewsToDB(googleReviews);
+    cacheInvalidate('reviews:');
     res.json({ synced: saved.length, reviews: saved });
   } catch (err: any) {
     console.error('Reviews sync error:', err.message);
@@ -73,6 +86,7 @@ router.put('/:id/visibility', requireAuth, async (req, res) => {
       where: { id },
       data: { isVisible: Boolean(isVisible) }
     });
+    cacheInvalidate('reviews:');
     res.json(updated);
   } catch (err: any) {
     console.error('Review visibility error:', err.message);

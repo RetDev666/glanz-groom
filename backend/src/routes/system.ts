@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import prisma from '../lib/prisma';
 import { requireAuth } from '../middleware/auth';
+import { cacheInvalidate } from '../lib/cache';
 
 const router = Router();
 
@@ -72,6 +73,7 @@ router.post('/push-subscribe', async (req: Request, res: Response) => {
         update: { value: JSON.stringify(subs) },
         create: { key: 'push_subscriptions', value: JSON.stringify(subs) }
       });
+      cacheInvalidate('settings:');
     }
     res.status(201).json({});
   } catch (e) {

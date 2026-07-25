@@ -23,19 +23,44 @@ export default function Layout({ children, showFab = true }: LayoutProps) {
 
   useEffect(() => {
     let cancelled = false;
+    const CACHE_KEY = 'gg_settings_cache_v1';
+    const CACHE_TTL_MS = 60_000;
+
+    const apply = (raw: Record<string, string>) => {
+      const legal = mergeLegalSettings(raw);
+      setTracking({
+        bannerEnabled: legal.cookieBannerEnabled,
+        googleAnalyticsId: legal.analyticsEnabled ? legal.googleAnalyticsId : '',
+        metaPixelId: legal.marketingEnabled ? legal.metaPixelId : '',
+      });
+    };
+
+    // Instant paint from session cache, then revalidate
+    try {
+      const cached = sessionStorage.getItem(CACHE_KEY);
+      if (cached) {
+        const parsed = JSON.parse(cached) as { ts: number; data: Record<string, string> };
+        if (parsed?.data && Date.now() - parsed.ts < CACHE_TTL_MS) {
+          apply(parsed.data);
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+
     (async () => {
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://glanz-groom.netlify.app/api';
         const res = await fetch(`${apiUrl}/settings`);
         if (!res.ok || cancelled) return;
         const raw = await res.json();
-        const legal = mergeLegalSettings(raw);
         if (cancelled) return;
-        setTracking({
-          bannerEnabled: legal.cookieBannerEnabled,
-          googleAnalyticsId: legal.analyticsEnabled ? legal.googleAnalyticsId : '',
-          metaPixelId: legal.marketingEnabled ? legal.metaPixelId : '',
-        });
+        apply(raw);
+        try {
+          sessionStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data: raw }));
+        } catch {
+          /* ignore quota */
+        }
       } catch {
         /* keep defaults */
       }

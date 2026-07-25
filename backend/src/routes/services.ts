@@ -1,16 +1,32 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../lib/prisma';
 import { requireAuth, AuthRequest } from '../middleware/auth';
+import { cacheGet, cacheSet, cacheInvalidate, TTL } from '../lib/cache';
 
 const router = Router();
 
 // Public: GET all active services
 router.get('/', async (_req: Request, res: Response) => {
-  const services = await prisma.service.findMany({
-    where: { isActive: true },
-    orderBy: [{ category: 'asc' }, { priceM: 'asc' }],
-  });
-  res.json(services);
+  try {
+    const cached = cacheGet<unknown[]>('services:active');
+    if (cached) {
+      res.setHeader('Cache-Control', 'public, max-age=15, s-maxage=30, stale-while-revalidate=60');
+      res.setHeader('X-Cache', 'HIT');
+      return res.json(cached);
+    }
+
+    const services = await prisma.service.findMany({
+      where: { isActive: true },
+      orderBy: [{ category: 'asc' }, { priceM: 'asc' }],
+    });
+
+    cacheSet('services:active', services, TTL.MEDIUM);
+    res.setHeader('Cache-Control', 'public, max-age=15, s-maxage=30, stale-while-revalidate=60');
+    res.setHeader('X-Cache', 'MISS');
+    res.json(services);
+  } catch {
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // Admin: GET all services (including inactive)
@@ -18,6 +34,7 @@ router.get('/all', requireAuth, async (_req: AuthRequest, res: Response) => {
   const services = await prisma.service.findMany({
     orderBy: [{ category: 'asc' }, { priceM: 'asc' }],
   });
+  res.setHeader('Cache-Control', 'private, no-store');
   res.json(services);
 });
 
@@ -40,6 +57,7 @@ router.post('/', requireAuth, async (req: AuthRequest, res: Response) => {
         isActive: true,
       },
     });
+    cacheInvalidate('services:');
     res.status(201).json(service);
   } catch (err) {
     console.error(err);
@@ -77,6 +95,7 @@ router.put('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
       where: { id: Number(req.params.id) },
       data,
     });
+    cacheInvalidate('services:');
     res.json(s);
   } catch {
     res.status(404).json({ error: 'Not found' });
@@ -87,6 +106,7 @@ router.put('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
 router.delete('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
     await prisma.service.update({ where: { id: Number(req.params.id) }, data: { isActive: false } });
+    cacheInvalidate('services:');
     res.json({ success: true });
   } catch {
     res.status(404).json({ error: 'Not found' });

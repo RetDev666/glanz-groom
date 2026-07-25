@@ -4,6 +4,21 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import PWAInstallPrompt from './PWAInstallPrompt';
 
+// Reuse one Audio instance — avoid re-downloading the sound on every poll hit
+let notifyAudio: HTMLAudioElement | null = null;
+function playNotifySound() {
+  try {
+    if (!notifyAudio) {
+      notifyAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+      notifyAudio.preload = 'auto';
+    }
+    notifyAudio.currentTime = 0;
+    notifyAudio.play().catch(() => {});
+  } catch {
+    /* ignore */
+  }
+}
+
 // Custom hook for polling appointments
 function useAppointmentPolling() {
   const lastKnownIdRef = useRef<number | null>(null);
@@ -15,8 +30,14 @@ function useAppointmentPolling() {
     if (!token) return;
 
     const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-    
+    let interval: ReturnType<typeof setInterval> | null = null;
+    let inFlight = false;
+
     const checkLatest = async () => {
+      // Pause network work when the tab is in the background
+      if (typeof document !== 'undefined' && document.hidden) return;
+      if (inFlight) return;
+      inFlight = true;
       try {
         const lastViewedId = localStorage.getItem('last_viewed_appointment_id') || '0';
         const res = await fetch(`${API}/appointments/latest?sinceId=${lastViewedId}`, {
@@ -35,26 +56,46 @@ function useAppointmentPolling() {
             window.dispatchEvent(new Event('new-appointment'));
             
             setNewAppt(data);
-            
-            try {
-              const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-              audio.play().catch(e => console.log('Audio play prevented', e));
-            } catch (e) {}
+            playNotifySound();
           }
         }
       } catch (e) {
         console.error('Polling error', e);
+      } finally {
+        inFlight = false;
       }
     };
 
-    checkLatest();
-    const interval = setInterval(checkLatest, 10000);
+    const startPolling = () => {
+      if (interval) return;
+      checkLatest();
+      interval = setInterval(checkLatest, 10000);
+    };
+
+    const stopPolling = () => {
+      if (interval) {
+        clearInterval(interval);
+        interval = null;
+      }
+    };
+
+    const onVisibility = () => {
+      if (document.hidden) {
+        stopPolling();
+      } else {
+        startPolling();
+      }
+    };
+
+    if (!document.hidden) startPolling();
+    document.addEventListener('visibilitychange', onVisibility);
 
     const clearBadge = () => setUnreadCount(0);
     window.addEventListener('clear-unread-badge', clearBadge);
 
     return () => {
-      clearInterval(interval);
+      stopPolling();
+      document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('clear-unread-badge', clearBadge);
     };
   }, []);

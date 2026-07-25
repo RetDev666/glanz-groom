@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import AdminLayout from '@/components/AdminLayout';
 import { useAdminLang } from '../hooks/useAdminLang';
 import { format, addDays, startOfWeek, isSameDay } from 'date-fns';
@@ -9,6 +9,27 @@ import 'react-datepicker/dist/react-datepicker.css';
 registerLocale('de', de);
 
 const API = process.env.NEXT_PUBLIC_API_URL;
+
+/**
+ * Hide finished appointments so the calendar stays scannable.
+ * - completed / cancelled: always hidden unless showFinished
+ * - today: also hide slots whose end time is already past
+ */
+function isAppointmentVisible(apt: Record<string, unknown>, showFinished: boolean): boolean {
+  if (showFinished) return true;
+  const status = String(apt.status || '');
+  if (status === 'completed' || status === 'cancelled') return false;
+
+  const start = new Date(String(apt.date));
+  if (Number.isNaN(start.getTime())) return true;
+  const end = new Date(start.getTime() + (Number(apt.duration) || 0) * 60_000);
+  const now = new Date();
+
+  if (isSameDay(start, now) && end.getTime() <= now.getTime()) {
+    return false;
+  }
+  return true;
+}
 
 // Generate 30-minute intervals from 10:00 to 20:00
 const HOURS: string[] = [];
@@ -195,12 +216,70 @@ export function NewAppointmentModal({
   });
   const [services, setServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [clientSuggestions, setClientSuggestions] = useState<any[]>([]);
+  const [showClientSuggestions, setShowClientSuggestions] = useState(false);
+  const [matchedPets, setMatchedPets] = useState<any[]>([]);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem('admin_token');
     fetch(`${API}/services/all`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(d => setServices(Array.isArray(d) ? d.filter((s:any) => s.isActive) : []));
+  }, []);
+
+  const searchClients = useCallback((query: string) => {
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    const q = query.trim();
+    if (q.length < 2) {
+      setClientSuggestions([]);
+      return;
+    }
+    searchTimerRef.current = setTimeout(async () => {
+      try {
+        const token = localStorage.getItem('admin_token');
+        const res = await fetch(`${API}/clients/search?q=${encodeURIComponent(q)}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        setClientSuggestions(Array.isArray(data) ? data : []);
+        setShowClientSuggestions(true);
+      } catch {
+        setClientSuggestions([]);
+      }
+    }, 280);
+  }, []);
+
+  const applyClient = (c: any, pet?: any) => {
+    const pets = Array.isArray(c.pets) ? c.pets : [];
+    const chosen = pet || (pets.length === 1 ? pets[0] : null);
+    setForm(prev => ({
+      ...prev,
+      clientFirstName: c.firstName || '',
+      clientLastName: c.lastName || '',
+      clientPhone: c.phone || '',
+      clientEmail: c.email && !String(c.email).includes('@no-email') && !String(c.email).includes('@local')
+        ? c.email
+        : prev.clientEmail,
+      notes: c.notes && !prev.notes ? c.notes : prev.notes,
+      ...(chosen
+        ? {
+            petName: chosen.name || '',
+            petBreed: chosen.breed || '',
+            petSize: chosen.size || 'm',
+          }
+        : {}),
+    }));
+    setMatchedPets(pets);
+    setShowClientSuggestions(false);
+    setClientSuggestions([]);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    };
   }, []);
 
   useEffect(() => {
@@ -348,15 +427,109 @@ export function NewAppointmentModal({
           {!form.isBlock ? (
             <>
               <div className="grid grid-cols-2 gap-4">
-                <div>
+                <div className="relative">
                   <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Kundenname</label>
-                  <input type="text" value={form.clientFirstName} onChange={e => setForm({...form, clientFirstName: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none" placeholder="Name" />
+                  <input
+                    type="text"
+                    value={form.clientFirstName}
+                    onChange={e => {
+                      setForm({ ...form, clientFirstName: e.target.value });
+                      searchClients(e.target.value);
+                    }}
+                    onFocus={() => clientSuggestions.length > 0 && setShowClientSuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowClientSuggestions(false), 200)}
+                    className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none"
+                    placeholder="Name suchen..."
+                    autoComplete="off"
+                  />
+                  {showClientSuggestions && clientSuggestions.length > 0 && (
+                    <ul className="absolute z-[70] w-full mt-1 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-lg max-h-52 overflow-y-auto">
+                      {clientSuggestions.map(c => (
+                        <li
+                          key={c.id}
+                          onMouseDown={e => e.preventDefault()}
+                          onClick={() => applyClient(c)}
+                          className="px-3 py-2 hover:bg-surface-container cursor-pointer border-b border-outline-variant last:border-0"
+                        >
+                          <div className="font-sans text-sm text-on-surface font-medium">
+                            {c.firstName} {c.lastName}
+                          </div>
+                          <div className="font-sans text-xs text-on-surface-variant">
+                            {c.phone}
+                            {Array.isArray(c.pets) && c.pets.length > 0
+                              ? ` · ${c.pets.map((p: any) => p.name).join(', ')}`
+                              : ''}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
-                <div>
+                <div className="relative">
                   <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Telefon *</label>
-                  <input type="tel" required={!form.isBlock} value={form.clientPhone} onChange={e => setForm({...form, clientPhone: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none" placeholder="+49..." />
+                  <input
+                    type="tel"
+                    required={!form.isBlock}
+                    value={form.clientPhone}
+                    onChange={e => {
+                      setForm({ ...form, clientPhone: e.target.value });
+                      searchClients(e.target.value);
+                    }}
+                    onFocus={() => clientSuggestions.length > 0 && setShowClientSuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowClientSuggestions(false), 200)}
+                    className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none"
+                    placeholder="+49..."
+                    autoComplete="off"
+                  />
+                  {showClientSuggestions && clientSuggestions.length > 0 && form.clientPhone.trim().length >= 2 && (
+                    <ul className="absolute z-[70] w-full mt-1 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-lg max-h-52 overflow-y-auto">
+                      {clientSuggestions.map(c => (
+                        <li
+                          key={c.id}
+                          onMouseDown={e => e.preventDefault()}
+                          onClick={() => applyClient(c)}
+                          className="px-3 py-2 hover:bg-surface-container cursor-pointer border-b border-outline-variant last:border-0"
+                        >
+                          <div className="font-sans text-sm text-on-surface font-medium">
+                            {c.firstName} {c.lastName}
+                          </div>
+                          <div className="font-sans text-xs text-on-surface-variant">{c.phone}</div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               </div>
+              {matchedPets.length > 1 && (
+                <div>
+                  <label className="block font-sans text-label-sm text-on-surface-variant mb-1.5">Haustier wählen</label>
+                  <div className="flex flex-wrap gap-2">
+                    {matchedPets.map((p: any) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() =>
+                          setForm(prev => ({
+                            ...prev,
+                            petName: p.name || '',
+                            petBreed: p.breed || '',
+                            petSize: p.size || 'm',
+                          }))
+                        }
+                        className={`px-3 py-1.5 rounded-full text-sm font-sans border transition-colors ${
+                          form.petName === p.name
+                            ? 'bg-primary text-on-primary border-primary'
+                            : 'bg-surface border-outline text-on-surface hover:bg-surface-container'
+                        }`}
+                      >
+                        {p.name}
+                        {p.breed ? ` (${p.breed})` : ''}
+                        {p.size ? ` · ${String(p.size).toUpperCase()}` : ''}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Tiername *</label>
@@ -446,6 +619,9 @@ export default function CalendarPage() {
   const [selectedApt, setSelectedApt] = useState<Appointment | null>(null);
   const [filterGroomerId, setFilterGroomerId] = useState<number | null>(null);
   const [isGroomerDropdownOpen, setIsGroomerDropdownOpen] = useState(false);
+  /** When false: hide completed/cancelled + today's already-ended slots */
+  const [showFinished, setShowFinished] = useState(false);
+  const [nowTick, setNowTick] = useState(0);
   const [resizeState, setResizeState] = useState<{ aptId: string | number; startY: number; startDuration: number; currentDuration: number } | null>(null);
   // Block HTML5 drag while resizing — otherwise the card "jumps" and duration saves only half the time
   const isResizingRef = useRef(false);
@@ -460,6 +636,22 @@ export default function CalendarPage() {
 
   const resizeRef = useRef(resizeState);
   resizeRef.current = resizeState;
+
+  // Re-evaluate "ended" appointments every minute while hiding finished
+  useEffect(() => {
+    if (showFinished) return;
+    const id = setInterval(() => setNowTick(n => n + 1), 60_000);
+    return () => clearInterval(id);
+  }, [showFinished]);
+
+  const visibleAppointments = useMemo(
+    () => appointments.filter(a => isAppointmentVisible(a, showFinished)),
+    // nowTick forces re-filter as the day progresses
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [appointments, showFinished, nowTick]
+  );
+
+  const hiddenCount = appointments.length - visibleAppointments.length;
 
   useEffect(() => {
     if (!resizeState) return;
@@ -499,6 +691,26 @@ export default function CalendarPage() {
     setCurrentDate(d => new Date(d.getTime())); // Trigger effect without stale closure
   };
 
+  // Groomers rarely change — load once (not on every date/view switch)
+  useEffect(() => {
+    const token = localStorage.getItem('admin_token');
+    const handleResponse = async (r: Response) => {
+      if (r.status === 401) {
+        localStorage.removeItem('admin_token');
+        window.location.href = '/admin/login';
+        throw new Error('Unauthorized');
+      }
+      return r.json();
+    };
+
+    fetch(`${API}/groomers/all`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(handleResponse)
+      .then((fetchedGroomers) => {
+        if (Array.isArray(fetchedGroomers)) setGroomers(fetchedGroomers);
+      })
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     const token = localStorage.getItem('admin_token');
     
@@ -520,35 +732,40 @@ export default function CalendarPage() {
       queryDate = `date=${toLocalDateString(currentDate)}`;
     }
 
-    Promise.all([
-      fetch(`${API}/appointments?${queryDate}`, { headers: { Authorization: `Bearer ${token}` } }).then(handleResponse).catch(() => []),
-      fetch(`${API}/groomers/all`, { headers: { Authorization: `Bearer ${token}` } }).then(handleResponse).catch(() => []),
-    ]).then(([validApts, fetchedGroomers]) => {
-      const missingGroomerIds = Array.from(new Set(validApts.map((a: any) => a.groomerId))).filter(
-        (id: any) => id && !fetchedGroomers.find((g: any) => Number(g.id) === Number(id))
-      );
+    fetch(`${API}/appointments?${queryDate}`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(handleResponse)
+      .then((validApts) => {
+        if (!Array.isArray(validApts)) {
+          setAppointments([]);
+          return;
+        }
 
-      const hasNullGroomer = validApts.some((a: any) => !a.groomerId);
+        setAppointments(validApts);
 
-      const missingGroomers = missingGroomerIds.map((id) => ({
-        id: Number(id),
-        name: `Groomer (ID ${id})`,
-        color: '#666666',
-        photoUrl: 'https://ui-avatars.com/api/?name=G&background=random'
-      }));
-
-      if (hasNullGroomer) {
-        missingGroomers.push({
-          id: 0,
-          name: 'Ohne Groomer',
-          color: '#aaaaaa',
-          photoUrl: 'https://ui-avatars.com/api/?name=O&background=random'
+        // Merge any missing groomer placeholders without re-fetching the full list
+        setGroomers(prev => {
+          const missingGroomerIds = Array.from(new Set(validApts.map((a: any) => a.groomerId))).filter(
+            (id: any) => id && !prev.find((g: any) => Number(g.id) === Number(id))
+          );
+          const hasNullGroomer = validApts.some((a: any) => !a.groomerId);
+          const extras: any[] = missingGroomerIds.map((id) => ({
+            id: Number(id),
+            name: `Groomer (ID ${id})`,
+            color: '#666666',
+            photoUrl: 'https://ui-avatars.com/api/?name=G&background=random'
+          }));
+          if (hasNullGroomer && !prev.find((g: any) => Number(g.id) === 0)) {
+            extras.push({
+              id: 0,
+              name: 'Ohne Groomer',
+              color: '#aaaaaa',
+              photoUrl: 'https://ui-avatars.com/api/?name=O&background=random'
+            });
+          }
+          return extras.length ? [...prev, ...extras] : prev;
         });
-      }
-
-      setAppointments(validApts);
-      setGroomers([...fetchedGroomers, ...missingGroomers]);
-    });
+      })
+      .catch(() => setAppointments([]));
   }, [currentDate, viewMode]);
 
   const handleUpdateAppointment = async (id: number, data: any) => {
@@ -748,6 +965,23 @@ export default function CalendarPage() {
 
         {/* Right: Groomer filter + actions */}
         <div className="flex items-center gap-2">
+          {/* Hide/show finished appointments */}
+          <button
+            onClick={() => setShowFinished(v => !v)}
+            title={showFinished ? 'Erledigte ausblenden' : 'Erledigte anzeigen'}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-colors text-white ${
+              showFinished ? 'bg-white/25' : 'bg-white/10 hover:bg-white/20'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[16px]">
+              {showFinished ? 'visibility' : 'visibility_off'}
+            </span>
+            <span className="text-sm font-medium hidden sm:inline">
+              {showFinished ? 'Alle' : 'Aktiv'}
+              {!showFinished && hiddenCount > 0 ? ` (−${hiddenCount})` : ''}
+            </span>
+          </button>
+
           {/* Groomer filter */}
           <div className="relative flex items-center">
             <button 
@@ -812,7 +1046,7 @@ export default function CalendarPage() {
         <div className="flex bg-primary/5 shrink-0 overflow-x-auto no-scrollbar border-b border-gray-100">
           {weekDays.map((d, i) => {
             const isActive = isSameDay(d, currentDate);
-            const hasApts = appointments.filter(a => isSameDay(new Date(String(a.date)), d)).length;
+            const hasApts = visibleAppointments.filter(a => isSameDay(new Date(String(a.date)), d)).length;
             return (
               <div
                 key={i}
@@ -884,7 +1118,7 @@ export default function CalendarPage() {
           <div className="flex-1 grid" style={{ gridTemplateColumns: `repeat(${viewMode === 'day' ? Math.max((filterGroomerId ? groomers.filter(g => Number(g.id) === filterGroomerId) : groomers).length, 1) : 7}, 1fr)` }}>
             {viewMode === 'day' ? (
               ((filterGroomerId ? groomers.filter(g => Number(g.id) === filterGroomerId) : groomers).length > 0 ? (filterGroomerId ? groomers.filter(g => Number(g.id) === filterGroomerId) : groomers) : [{ id: 1 }]).map((g, i, arr) => {
-                const gApts = appointments.filter(a => Number(a.groomerId || 0) === Number(g.id) && isSameDay(new Date(String(a.date)), currentDate));
+                const gApts = visibleAppointments.filter(a => Number(a.groomerId || 0) === Number(g.id) && isSameDay(new Date(String(a.date)), currentDate));
                 const gBreaks = breaks.filter(b => Number(b.groomerId || 0) === Number(g.id));
 
                 return (
@@ -1011,7 +1245,7 @@ export default function CalendarPage() {
               })
             ) : (
               weekDays.map((d, i, arr) => {
-                const dayApts = appointments.filter(a => isSameDay(new Date(String(a.date)), d));
+                const dayApts = visibleAppointments.filter(a => isSameDay(new Date(String(a.date)), d));
                 
                 return (
                   <div
