@@ -1,4 +1,5 @@
 import Head from 'next/head';
+import Link from 'next/link';
 import Layout from '@/components/Layout';
 
 type TermSection = {
@@ -147,6 +148,17 @@ export default function TermsPage() {
                     {p}
                   </p>
                 ))}
+                {section.num === '9' && (
+                  <p className="font-sans text-body-md text-on-surface-variant leading-relaxed">
+                    <Link href="/datenschutz" className="text-primary underline underline-offset-2 hover:opacity-80">
+                      Zur Datenschutzerklärung
+                    </Link>
+                    {' · '}
+                    <Link href="/impressum" className="text-primary underline underline-offset-2 hover:opacity-80">
+                      Impressum
+                    </Link>
+                  </p>
+                )}
               </div>
             </section>
           ))}

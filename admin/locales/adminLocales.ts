@@ -41,6 +41,7 @@ const de = {
     groomers: 'Groomer',
     offers: 'Aktionen',
     settings: 'Einstellungen',
+    legal: 'Rechtliches & Cookies',
     admins: 'Administratoren',
     system: 'Systemprotokoll',
     logout: 'Abmelden',
@@ -268,6 +269,43 @@ const de = {
       facebook: 'Facebook',
     },
   },
+
+  legal: {
+    title: 'Rechtliches & Cookies',
+    tabImpressum: 'Impressum',
+    tabCookies: 'Cookies & Tracking',
+    impressumTitle: 'Impressum-Daten',
+    impressumHint:
+      'Diese Angaben erscheinen auf /impressum und in der Datenschutzerklärung. USt-ID und W-IdNr. nur ausfüllen, wenn vorhanden — leere Felder werden auf der Website nicht angezeigt.',
+    cookiesTitle: 'Cookie-Banner & Tracking',
+    cookiesHint:
+      'Steuern Sie den Cookie-Banner und optionale Tracking-Dienste. Skripte werden auf der Website nur nach Einwilligung des Besuchers geladen.',
+    saveBtn: 'Rechtliches speichern',
+    savedMsg: 'Gespeichert!',
+    fields: {
+      ownerName: 'Vollständiger Name (Inhaber)',
+      businessName: 'Handelsname / Marke',
+      legalForm: 'Rechtsform',
+      address: 'Vollständige Anschrift',
+      phone: 'Telefon',
+      email: 'E-Mail',
+      ustId: 'USt-IdNr. (§ 27a UStG)',
+      ustIdPh: 'z. B. DE123456789 — leer lassen, wenn keine',
+      wIdNr: 'Wirtschafts-Identifikationsnummer',
+      wIdNrPh: 'leer lassen, wenn noch nicht erteilt',
+      mapsUrl: 'Google-Maps-Link',
+      instagram: 'Instagram-URL',
+      bannerEnabled: 'Cookie-Banner auf der Website anzeigen',
+      analyticsEnabled: 'Google Analytics freischalten (nach Einwilligung)',
+      marketingEnabled: 'Meta Pixel freischalten (nach Einwilligung)',
+      gaId: 'Google Analytics Mess-ID',
+      gaIdPh: 'G-XXXXXXXXXX',
+      pixelId: 'Meta Pixel ID',
+      pixelIdPh: 'z. B. 1234567890',
+    },
+    securityNote:
+      'Sicherheit: Die Einwilligung wird als First-Party-Cookie (gg_cookie_consent) mit SameSite=Lax und Secure (HTTPS) gespeichert. Analyse- und Marketing-Skripte laden erst nach Opt-in.',
+  },
 };
 
 const en: typeof de = {
@@ -308,6 +346,7 @@ const en: typeof de = {
     groomers: 'Groomers',
     offers: 'Offers',
     settings: 'Settings',
+    legal: 'Legal & Cookies',
     admins: 'Administrators',
     system: 'System Log',
     logout: 'Log Out',
@@ -524,6 +563,43 @@ const en: typeof de = {
       facebook: 'Facebook',
     },
   },
+
+  legal: {
+    title: 'Legal & Cookies',
+    tabImpressum: 'Imprint',
+    tabCookies: 'Cookies & Tracking',
+    impressumTitle: 'Imprint data',
+    impressumHint:
+      'These details appear on /impressum and in the privacy policy. Leave VAT ID / economic ID empty if not available — empty fields are hidden on the site.',
+    cookiesTitle: 'Cookie banner & tracking',
+    cookiesHint:
+      'Control the cookie banner and optional tracking. Scripts load on the site only after visitor consent.',
+    saveBtn: 'Save legal settings',
+    savedMsg: 'Saved!',
+    fields: {
+      ownerName: 'Full legal name (owner)',
+      businessName: 'Trade name / brand',
+      legalForm: 'Legal form',
+      address: 'Full address',
+      phone: 'Phone',
+      email: 'Email',
+      ustId: 'VAT ID (§ 27a UStG)',
+      ustIdPh: 'e.g. DE123456789 — leave empty if none',
+      wIdNr: 'Economic identification number',
+      wIdNrPh: 'leave empty if not yet issued',
+      mapsUrl: 'Google Maps link',
+      instagram: 'Instagram URL',
+      bannerEnabled: 'Show cookie banner on website',
+      analyticsEnabled: 'Enable Google Analytics (after consent)',
+      marketingEnabled: 'Enable Meta Pixel (after consent)',
+      gaId: 'Google Analytics measurement ID',
+      gaIdPh: 'G-XXXXXXXXXX',
+      pixelId: 'Meta Pixel ID',
+      pixelIdPh: 'e.g. 1234567890',
+    },
+    securityNote:
+      'Security: Consent is stored as a first-party cookie (gg_cookie_consent) with SameSite=Lax and Secure (HTTPS). Analytics and marketing scripts load only after opt-in.',
+  },
 };
 
 const ru: typeof de = {
@@ -564,6 +640,7 @@ const ru: typeof de = {
     groomers: 'Грумеры',
     offers: 'Акции',
     settings: 'Настройки',
+    legal: 'Правовое & Cookies',
     admins: 'Администраторы',
     system: 'Системный лог',
     logout: 'Выйти',
@@ -779,6 +856,43 @@ const ru: typeof de = {
       instagram: 'Instagram',
       facebook: 'Facebook',
     },
+  },
+
+  legal: {
+    title: 'Правовое & Cookies',
+    tabImpressum: 'Impressum',
+    tabCookies: 'Cookies & Tracking',
+    impressumTitle: 'Данные Impressum',
+    impressumHint:
+      'Эти данные отображаются на /impressum и в политике конфиденциальности. USt-ID и W-IdNr. заполняйте только при наличии — пустые поля на сайте скрыты.',
+    cookiesTitle: 'Cookie-баннер и трекинг',
+    cookiesHint:
+      'Управление баннером cookies и опциональным трекингом. Скрипты загружаются только после согласия посетителя.',
+    saveBtn: 'Сохранить правовые настройки',
+    savedMsg: 'Сохранено!',
+    fields: {
+      ownerName: 'Полное юридическое имя (владелец)',
+      businessName: 'Торговое имя / бренд',
+      legalForm: 'Правовая форма',
+      address: 'Полный адрес',
+      phone: 'Телефон',
+      email: 'Email',
+      ustId: 'USt-IdNr. (§ 27a UStG)',
+      ustIdPh: 'напр. DE123456789 — оставьте пустым, если нет',
+      wIdNr: 'Wirtschafts-Identifikationsnummer',
+      wIdNrPh: 'оставьте пустым, если ещё не выдана',
+      mapsUrl: 'Ссылка Google Maps',
+      instagram: 'URL Instagram',
+      bannerEnabled: 'Показывать cookie-баннер на сайте',
+      analyticsEnabled: 'Включить Google Analytics (после согласия)',
+      marketingEnabled: 'Включить Meta Pixel (после согласия)',
+      gaId: 'Google Analytics Measurement ID',
+      gaIdPh: 'G-XXXXXXXXXX',
+      pixelId: 'Meta Pixel ID',
+      pixelIdPh: 'напр. 1234567890',
+    },
+    securityNote:
+      'Безопасность: согласие хранится в first-party cookie (gg_cookie_consent) с SameSite=Lax и Secure (HTTPS). Аналитика и маркетинг загружаются только после opt-in.',
   },
 };
 

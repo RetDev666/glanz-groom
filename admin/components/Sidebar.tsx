@@ -101,12 +101,20 @@ export default function Sidebar({ unreadCount = 0 }: { unreadCount?: number }) {
         <ul className="flex flex-col gap-0.5">
           {/* Language switcher removed */}
           {userRole !== 'groomer' && (
-            <li>
-              <Link href="/settings" className={`flex items-center gap-3 px-4 py-3 rounded-full hover:bg-surface-container-high transition-colors ${router.pathname === '/settings' ? 'text-primary font-semibold' : 'text-on-surface-variant'}`}>
-                <span className="material-symbols-outlined">settings</span>
-                <span className="font-sans text-sm">{t.sidebar.settings}</span>
-              </Link>
-            </li>
+            <>
+              <li>
+                <Link href="/settings" className={`flex items-center gap-3 px-4 py-3 rounded-full hover:bg-surface-container-high transition-colors ${router.pathname === '/settings' ? 'text-primary font-semibold' : 'text-on-surface-variant'}`}>
+                  <span className="material-symbols-outlined">settings</span>
+                  <span className="font-sans text-sm">{t.sidebar.settings}</span>
+                </Link>
+              </li>
+              <li>
+                <Link href="/legal" className={`flex items-center gap-3 px-4 py-3 rounded-full hover:bg-surface-container-high transition-colors ${router.pathname === '/legal' ? 'text-primary font-semibold' : 'text-on-surface-variant'}`}>
+                  <span className="material-symbols-outlined">policy</span>
+                  <span className="font-sans text-sm">{t.sidebar.legal}</span>
+                </Link>
+              </li>
+            </>
           )}
           {userRole === 'developer' && (
             <>

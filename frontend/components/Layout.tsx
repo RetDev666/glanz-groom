@@ -1,8 +1,11 @@
+import { useEffect, useState } from 'react';
 import Navbar from './Navbar';
 import Footer from './Footer';
 import BottomNav from './BottomNav';
+import CookieConsent, { ConsentAwareTracking } from './CookieConsent';
 import Link from 'next/link';
 import { useTranslation } from '@/hooks/useTranslation';
+import { mergeLegalSettings } from '@/lib/legalDefaults';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -12,6 +15,35 @@ interface LayoutProps {
 
 export default function Layout({ children, showFab = true }: LayoutProps) {
   const { t } = useTranslation();
+  const [tracking, setTracking] = useState({
+    bannerEnabled: true,
+    googleAnalyticsId: '',
+    metaPixelId: '',
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://glanz-groom.netlify.app/api';
+        const res = await fetch(`${apiUrl}/settings`);
+        if (!res.ok || cancelled) return;
+        const raw = await res.json();
+        const legal = mergeLegalSettings(raw);
+        if (cancelled) return;
+        setTracking({
+          bannerEnabled: legal.cookieBannerEnabled,
+          googleAnalyticsId: legal.analyticsEnabled ? legal.googleAnalyticsId : '',
+          metaPixelId: legal.marketingEnabled ? legal.metaPixelId : '',
+        });
+      } catch {
+        /* keep defaults */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -21,6 +53,12 @@ export default function Layout({ children, showFab = true }: LayoutProps) {
       </main>
       <Footer />
       <BottomNav />
+
+      <CookieConsent bannerEnabled={tracking.bannerEnabled} />
+      <ConsentAwareTracking
+        googleAnalyticsId={tracking.googleAnalyticsId}
+        metaPixelId={tracking.metaPixelId}
+      />
 
       {/* Floating Action Button (mobile) */}
       {showFab && (
