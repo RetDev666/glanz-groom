@@ -77,7 +77,7 @@ export default function CookieConsent({ bannerEnabled = true }: CookieConsentPro
                 <p id="cookie-consent-desc" className="font-sans text-sm text-on-surface-variant leading-relaxed">
                   Wir verwenden technisch notwendige Cookies, um die Website zu betreiben.
                   Optionale Cookies (Funktional, Analyse, Marketing) setzen wir nur mit Ihrer Einwilligung
-                  gemäß DSGVO und TTDSG. Details finden Sie in unserer{' '}
+                  gemäß DSGVO und TDDDG. Details finden Sie in unserer{' '}
                   <Link href="/datenschutz" className="text-primary underline underline-offset-2 hover:opacity-80">
                     Datenschutzerklärung
                   </Link>

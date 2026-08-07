@@ -17,7 +17,7 @@ export default function ImpressumPage({ legal }: { legal: LegalSettings }) {
         <title>Impressum — Glanz & Groom</title>
         <meta
           name="description"
-          content="Impressum und Anbieterkennzeichnung gemäß § 5 TMG / § 18 MStV für Glanz & Groom."
+          content="Impressum und Anbieterkennzeichnung gemäß § 5 DDG / § 18 MStV für Glanz & Groom."
         />
         <meta name="robots" content="index, follow" />
       </Head>
@@ -26,7 +26,7 @@ export default function ImpressumPage({ legal }: { legal: LegalSettings }) {
         <div className="mb-10 text-center md:text-left border-b border-surface-variant pb-8">
           <h1 className="font-display text-headline-xl text-on-surface mb-3">Impressum</h1>
           <p className="font-sans text-body-md text-on-surface-variant">
-            Angaben gemäß § 5 TMG und § 18 Abs. 1 MStV
+            Angaben gemäß § 5 DDG
           </p>
         </div>
 
@@ -38,7 +38,7 @@ export default function ImpressumPage({ legal }: { legal: LegalSettings }) {
             )}
             {legal.businessName && (
               <p className="font-sans text-body-md text-on-surface-variant">
-                Handelnd unter: <strong className="text-on-surface">{legal.businessName}</strong>
+                handelnd unter <strong className="text-on-surface">{legal.businessName}</strong>
               </p>
             )}
           </Section>
@@ -84,34 +84,32 @@ export default function ImpressumPage({ legal }: { legal: LegalSettings }) {
             </Section>
           ) : null}
 
-          <Section icon="gavel" title="Verantwortlich für den Inhalt">
+          <Section icon="gavel" title="Verantwortlich für journalistisch-redaktionelle Inhalte">
             <p className="font-sans text-body-md text-on-surface-variant">
-              Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV:{' '}
-              <strong className="text-on-surface">{legal.ownerName}</strong>, {legal.address}.
+              Verantwortlich für journalistisch-redaktionelle Inhalte gemäß § 18 Abs. 2 MStV, soweit vorhanden:{' '}
+              <strong className="text-on-surface">{legal.ownerName}</strong>
+            </p>
+            <p className="font-sans text-body-md text-on-surface-variant mt-2 whitespace-pre-line">
+              {legal.address}
             </p>
           </Section>
 
-          <Section icon="policy" title="Haftungsausschluss">
+          <Section icon="policy" title="Haftung für externe Links">
             <div className="space-y-3 font-sans text-body-md text-on-surface-variant leading-relaxed">
               <p>
-                <strong className="text-on-surface">Haftung für Inhalte:</strong> Als Diensteanbieter sind wir
-                gemäß § 7 Abs. 1 TMG für eigene Inhalte auf diesen Seiten nach den allgemeinen Gesetzen
-                verantwortlich. Nach §§ 8 bis 10 TMG sind wir als Diensteanbieter jedoch nicht verpflichtet,
-                übermittelte oder gespeicherte fremde Informationen zu überwachen oder nach Umständen zu
-                forschen, die auf eine rechtswidrige Tätigkeit hinweisen.
+                Unsere Website enthält gegebenenfalls Links zu externen Websites Dritter, auf deren Inhalte wir
+                keinen Einfluss haben. Für die Inhalte der verlinkten Seiten ist der jeweilige Anbieter oder
+                Betreiber verantwortlich.
               </p>
+            </div>
+          </Section>
+
+          <Section icon="copyright" title="Urheberrecht">
+            <div className="space-y-3 font-sans text-body-md text-on-surface-variant leading-relaxed">
               <p>
-                <strong className="text-on-surface">Haftung für Links:</strong> Unser Angebot enthält Links zu
-                externen Websites Dritter, auf deren Inhalte wir keinen Einfluss haben. Deshalb können wir für
-                diese fremden Inhalte auch keine Gewähr übernehmen. Für die Inhalte der verlinkten Seiten ist
-                stets der jeweilige Anbieter oder Betreiber der Seiten verantwortlich.
-              </p>
-              <p>
-                <strong className="text-on-surface">Urheberrecht:</strong> Die durch die Seitenbetreiber
-                erstellten Inhalte und Werke auf diesen Seiten unterliegen dem deutschen Urheberrecht.
-                Beiträge Dritter sind als solche gekennzeichnet. Die Vervielfältigung, Bearbeitung, Verbreitung
-                und jede Art der Verwertung außerhalb der Grenzen des Urheberrechtes bedürfen der
-                schriftlichen Zustimmung des jeweiligen Autors bzw. Erstellers.
+                Die auf dieser Website erstellten Inhalte und Werke unterliegen dem deutschen Urheberrecht. Eine
+                Vervielfältigung, Bearbeitung, Verbreitung oder sonstige Verwertung außerhalb der gesetzlichen
+                Grenzen des Urheberrechts bedarf der vorherigen Zustimmung des jeweiligen Rechteinhabers.
               </p>
             </div>
           </Section>

@@ -297,6 +297,22 @@ router.post('/admin-create', requireAuth, async (req: AuthRequest, res: Response
 });
 
 
+// GET /api/appointments/notify-config — is SMTP ready? (must be before /:id)
+router.get('/notify-config', requireAuth, async (_req: AuthRequest, res: Response) => {
+  try {
+    const { isMailConfigured, salonContact } = require('../utils/mail');
+    const salon = salonContact();
+    res.json({
+      smtpConfigured: isMailConfigured(),
+      salonEmail: salon.email,
+      salonPhone: salon.phone,
+      whatsappApiReady: false,
+    });
+  } catch {
+    res.json({ smtpConfigured: false, whatsappApiReady: false });
+  }
+});
+
 // GET /api/appointments/:id
 router.get('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
@@ -425,7 +441,26 @@ router.post('/', async (req: Request, res: Response) => {
       });
     } catch (e) {}
 
-    res.status(201).json(appointment);
+    // Client e-mail confirmation + salon inbox (await with timeout so Netlify doesn't kill it)
+    let notifyMeta: Record<string, unknown> | null = null;
+    try {
+      const { notifyBookingCreated, safeNotify } = require('../utils/bookingNotify');
+      notifyMeta = await safeNotify('create', () => notifyBookingCreated(appointment));
+    } catch (e) {
+      console.error('[bookingNotify] import/create error:', e);
+    }
+
+    // Re-read so clientNotify* fields are present for the client
+    let payload: any = appointment;
+    try {
+      const refreshed = await prisma.appointment.findUnique({
+        where: { id: appointment.id },
+        include: { client: true, pet: true, groomer: true, services: { include: { service: true } } },
+      });
+      if (refreshed) payload = refreshed;
+    } catch { /* ok */ }
+
+    res.status(201).json({ ...payload, _notify: notifyMeta });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal server error' });
@@ -443,15 +478,90 @@ router.patch('/:id/status', requireAuth, async (req: AuthRequest, res: Response)
   }
 
   try {
+    const existing = await prisma.appointment.findUnique({
+      where: { id: Number(id) },
+      select: { status: true },
+    });
+    if (!existing) return res.status(404).json({ error: 'Appointment not found' });
+
     const updated = await prisma.appointment.update({
       where: { id: Number(id) },
       data: { status },
       include: { client: true, pet: true, groomer: true, services: { include: { service: true } } },
     });
     cacheInvalidate('avail:');
+
+    if (status === 'confirmed' || status === 'cancelled') {
+      try {
+        const { notifyStatusChange, safeNotify } = require('../utils/bookingNotify');
+        await safeNotify('status', () => notifyStatusChange(updated, status, existing.status));
+      } catch (e) {
+        console.error('[bookingNotify] status import error:', e);
+      }
+    }
+
+    try {
+      const refreshed = await prisma.appointment.findUnique({
+        where: { id: Number(id) },
+        include: { client: true, pet: true, groomer: true, services: { include: { service: true } } },
+      });
+      if (refreshed) return res.json(refreshed);
+    } catch { /* ok */ }
+
     res.json(updated);
   } catch {
     res.status(404).json({ error: 'Appointment not found' });
+  }
+});
+
+// POST /api/appointments/:id/notify — resend client e-mail + return WhatsApp deep-link
+router.post('/:id/notify', requireAuth, async (req: AuthRequest, res: Response) => {
+  const id = Number(req.params.id);
+  const kind = (req.body?.kind as string) || 'booking';
+  const allowed = ['booking', 'confirmed', 'cancelled'];
+  if (!allowed.includes(kind)) {
+    return res.status(400).json({ error: 'Invalid kind. Use booking | confirmed | cancelled' });
+  }
+
+  try {
+    const apt = await prisma.appointment.findUnique({
+      where: { id },
+      include: { client: true, pet: true, groomer: true, services: { include: { service: true } } },
+    });
+    if (!apt) return res.status(404).json({ error: 'Appointment not found' });
+
+    const {
+      resendClientNotify,
+      buildClientWhatsAppUrl,
+      safeNotify,
+    } = require('../utils/bookingNotify');
+    const { isMailConfigured } = require('../utils/mail');
+
+    const result = await safeNotify('resend', () => resendClientNotify(apt, kind));
+    const wa =
+      result?.clientWhatsAppUrl ||
+      buildClientWhatsAppUrl(apt, kind === 'booking' ? 'booking' : kind);
+
+    const refreshed = await prisma.appointment.findUnique({
+      where: { id },
+      include: { client: true, pet: true, groomer: true, services: { include: { service: true } } },
+    });
+
+    res.json({
+      ok: result?.status === 'sent',
+      notify: result || {
+        status: 'failed',
+        detail: 'Timeout oder Fehler',
+        clientWhatsAppUrl: wa,
+        smtpConfigured: isMailConfigured(),
+      },
+      whatsappUrl: wa,
+      smtpConfigured: isMailConfigured(),
+      appointment: refreshed || apt,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Notify failed' });
   }
 });
 
@@ -480,6 +590,7 @@ router.patch('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
     });
 
     if (!appointment) return res.status(404).json({ error: 'Appointment not found' });
+    const previousStatus = appointment.status;
 
     // Update Client if provided
     if (clientFirstName !== undefined || clientLastName !== undefined || clientPhone !== undefined || clientEmail !== undefined) {
@@ -557,6 +668,21 @@ router.patch('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
     }
 
     cacheInvalidate('avail:');
+
+    // E-mail client when status changes via full PATCH (calendar / detail modal)
+    if (
+      status !== undefined &&
+      status !== previousStatus &&
+      (status === 'confirmed' || status === 'cancelled')
+    ) {
+      try {
+        const { notifyStatusChange, safeNotify } = require('../utils/bookingNotify');
+        await safeNotify('patch-status', () => notifyStatusChange(updated, status, previousStatus));
+      } catch (e) {
+        console.error('[bookingNotify] patch status import error:', e);
+      }
+    }
+
     res.json(updated);
   } catch (err) {
     console.error(err);

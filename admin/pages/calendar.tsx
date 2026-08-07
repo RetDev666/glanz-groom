@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import AdminLayout from '@/components/AdminLayout';
+import ClientNotifyPanel from '@/components/ClientNotifyPanel';
 import { useAdminLang } from '../hooks/useAdminLang';
 import { format, addDays, startOfWeek, isSameDay } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -66,14 +67,32 @@ function durationForSize(service: any, petSize: string): number {
 
 type Appointment = Record<string, unknown>;
 
+/** Build "HH:mm" slots every `step` minutes from open to close (inclusive open, exclusive past last valid). */
+function buildTimeSlots(stepMin = 15, fromHour = 8, toHour = 22): string[] {
+  const slots: string[] = [];
+  for (let m = fromHour * 60; m <= toHour * 60; m += stepMin) {
+    const h = Math.floor(m / 60);
+    const min = m % 60;
+    slots.push(`${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`);
+  }
+  return slots;
+}
+
+const TIME_SLOTS = buildTimeSlots(15, 8, 22);
+
+function formatHm(d: Date): string {
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
 function AppointmentDetailModal({
-  apt, groomers, onClose, onSave, onEditFull, t
+  apt, groomers, onClose, onSave, onEditFull, onAptPatch, t
 }: {
   apt: Appointment;
   groomers: Record<string, unknown>[];
   onClose: () => void;
   onSave: (id: number, data: any) => Promise<void>;
   onEditFull?: (apt: Appointment) => void;
+  onAptPatch?: (next: Appointment) => void;
   t: ReturnType<typeof useAdminLang>['t'];
 }) {
   const client = apt.client as Record<string, any>;
@@ -81,6 +100,79 @@ function AppointmentDetailModal({
   const groomer = apt.groomer as Record<string, any>;
   const services = apt.services as { service: Record<string, any>; price: number }[];
   const sum = services?.reduce((acc: number, s: any) => acc + (s.price || 0), 0) || 0;
+  const status = String(apt.status || 'pending');
+  const isBlocked = status === 'blocked';
+
+  const startDate = useMemo(() => new Date(String(apt.date)), [apt.date]);
+  const [duration, setDuration] = useState(() => Math.max(15, Number(apt.duration) || 60));
+  const [savingTime, setSavingTime] = useState(false);
+  const [timeSaved, setTimeSaved] = useState(false);
+
+  // Keep local duration in sync when opening another appointment
+  useEffect(() => {
+    setDuration(Math.max(15, Number(apt.duration) || 60));
+    setTimeSaved(false);
+  }, [apt.id, apt.duration, apt.date]);
+
+  const endDate = useMemo(
+    () => new Date(startDate.getTime() + duration * 60_000),
+    [startDate, duration]
+  );
+  const startHm = formatHm(startDate);
+  const endHm = formatHm(endDate);
+  const durationDirty = duration !== Math.max(15, Number(apt.duration) || 60);
+
+  // End-time options: after start, up to end of day slots
+  const endOptions = useMemo(() => {
+    const startMinutes = startDate.getHours() * 60 + startDate.getMinutes();
+    return TIME_SLOTS.filter(slot => {
+      const [h, m] = slot.split(':').map(Number);
+      const slotMin = h * 60 + m;
+      return slotMin >= startMinutes + 15;
+    });
+  }, [startDate]);
+
+  const setEndFromSlot = (slot: string) => {
+    const [h, m] = slot.split(':').map(Number);
+    const end = new Date(startDate);
+    end.setHours(h, m, 0, 0);
+    // if end is somehow before start (shouldn't), add a day is wrong for salon — clamp min 15
+    let mins = Math.round((end.getTime() - startDate.getTime()) / 60_000);
+    if (mins < 15) mins = 15;
+    // snap to 5 min
+    mins = Math.round(mins / 5) * 5;
+    setDuration(mins);
+    setTimeSaved(false);
+  };
+
+  const applyQuickDuration = (mins: number) => {
+    setDuration(Math.max(15, mins));
+    setTimeSaved(false);
+  };
+
+  const nudgeDuration = (delta: number) => {
+    setDuration(d => Math.max(15, d + delta));
+    setTimeSaved(false);
+  };
+
+  const saveDuration = async () => {
+    setSavingTime(true);
+    try {
+      await onSave(Number(apt.id), { duration });
+      setTimeSaved(true);
+    } finally {
+      setSavingTime(false);
+    }
+  };
+
+  const changeStatus = async (next: string) => {
+    if (durationDirty) {
+      await onSave(Number(apt.id), { duration, status: next });
+    } else {
+      await onSave(Number(apt.id), { status: next });
+    }
+    onClose();
+  };
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm p-4 flex justify-center" onClick={onClose}>
@@ -88,6 +180,11 @@ function AppointmentDetailModal({
         <div className="flex items-center justify-between p-6 border-b border-outline-variant">
           <div>
             <h3 className="font-display text-headline-sm text-on-surface">{t.calendar.detailTitle}</h3>
+            <p className="font-sans text-label-sm text-on-surface-variant mt-0.5">
+              {startDate.toLocaleString('de-DE', {
+                day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
+              })}
+            </p>
           </div>
           <div className="flex items-center gap-2">
             {onEditFull && (
@@ -109,11 +206,113 @@ function AppointmentDetailModal({
             <p className="font-sans text-label-md text-on-surface-variant">{String(pet?.name || '')} ({String(pet?.breed || '')}, {String(pet?.size || '').toUpperCase()})</p>
           </div>
 
+          {!isBlocked && (
+            <ClientNotifyPanel
+              apt={apt as any}
+              onUpdated={(next) => onAptPatch?.(next as Appointment)}
+            />
+          )}
+
+          {/* Duration / end time — set explicitly (no drag needed) */}
+          <div className="bg-surface-container-low rounded-2xl p-4 space-y-3">
+            <p className="font-sans text-label-sm text-on-surface-variant uppercase tracking-widest">Zeit / Dauer</p>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Von</label>
+                <div className="w-full bg-surface border border-outline rounded-xl px-3 py-3 text-base font-display font-semibold text-on-surface">
+                  {startHm}
+                </div>
+              </div>
+              <div>
+                <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Bis</label>
+                <select
+                  value={endHm}
+                  onChange={e => setEndFromSlot(e.target.value)}
+                  className="w-full bg-white border-2 border-primary/40 rounded-xl px-3 py-3 text-base font-display font-semibold text-on-surface outline-none focus:ring-2 focus:ring-primary appearance-none"
+                  style={{ minHeight: 48 }}
+                >
+                  {/* Keep current end visible even if not on 15-min grid */}
+                  {!endOptions.includes(endHm) && (
+                    <option value={endHm}>{endHm}</option>
+                  )}
+                  {endOptions.map(slot => (
+                    <option key={slot} value={slot}>{slot}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-sans text-label-md text-on-surface-variant">
+                Dauer: <span className="font-display font-bold text-on-surface text-lg">{duration} min</span>
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => nudgeDuration(-15)}
+                  className="w-11 h-11 rounded-full bg-white border border-outline text-on-surface font-bold text-lg active:bg-surface-container"
+                  aria-label="-15 min"
+                >
+                  −
+                </button>
+                <button
+                  type="button"
+                  onClick={() => nudgeDuration(15)}
+                  className="w-11 h-11 rounded-full bg-white border border-outline text-on-surface font-bold text-lg active:bg-surface-container"
+                  aria-label="+15 min"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {[30, 45, 60, 90, 120, 150, 180].map(mins => (
+                <button
+                  key={mins}
+                  type="button"
+                  onClick={() => applyQuickDuration(mins)}
+                  className={`px-3 py-2 rounded-full text-sm font-sans border transition-colors ${
+                    duration === mins
+                      ? 'bg-primary text-on-primary border-primary'
+                      : 'bg-white text-on-surface border-outline active:bg-surface-container'
+                  }`}
+                >
+                  {mins} min
+                </button>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              disabled={!durationDirty || savingTime}
+              onClick={saveDuration}
+              className={`w-full py-3 rounded-full font-sans text-label-lg transition-colors ${
+                durationDirty
+                  ? 'bg-primary text-on-primary active:opacity-90'
+                  : timeSaved
+                    ? 'bg-green-100 text-green-800'
+                    : 'bg-surface-container text-on-surface-variant'
+              }`}
+            >
+              {savingTime
+                ? 'Wird gespeichert...'
+                : durationDirty
+                  ? `Dauer speichern (${startHm} – ${endHm})`
+                  : timeSaved
+                    ? '✓ Gespeichert'
+                    : `${startHm} – ${endHm}`}
+            </button>
+          </div>
+
           <div className="bg-surface-container-low rounded-2xl p-4 space-y-2">
             <p className="font-sans text-label-sm text-on-surface-variant uppercase tracking-widest">{t.calendar.details}</p>
             <p className="font-sans text-body-md text-on-surface flex justify-between">
               <span>Groomer: {String(groomer?.name || '—')}</span>
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-surface text-on-surface`}>{String(apt.status)}</span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-surface text-on-surface`}>
+                {t.status[status as keyof typeof t.status] || status}
+              </span>
             </p>
             <div className="space-y-1 mt-2">
               {services?.map((s, i) => (
@@ -136,7 +335,53 @@ function AppointmentDetailModal({
                 </>
               )}
             </div>
+            <div className="border-t border-outline-variant pt-2 flex justify-between mt-2">
+              <span className="font-sans text-label-md text-on-surface-variant">{duration} min</span>
+              <span className="font-display font-bold text-primary">{String(apt.totalPrice)}€</span>
+            </div>
           </div>
+
+          {/* Status actions — available for all admin/staff accounts */}
+          {!isBlocked && (
+            <div className="flex gap-2 flex-wrap">
+              {status === 'pending' && (
+                <button
+                  type="button"
+                  onClick={() => changeStatus('confirmed')}
+                  className="flex-1 min-w-[120px] bg-blue-600 text-white font-sans text-label-lg py-2.5 rounded-full hover:bg-blue-700 transition-colors"
+                >
+                  {t.appointments.confirmBtn}
+                </button>
+              )}
+              {status === 'confirmed' && (
+                <button
+                  type="button"
+                  onClick={() => changeStatus('completed')}
+                  className="flex-1 min-w-[120px] bg-green-600 text-white font-sans text-label-lg py-2.5 rounded-full hover:bg-green-700 transition-colors"
+                >
+                  {t.appointments.completeBtn}
+                </button>
+              )}
+              {status !== 'cancelled' && status !== 'completed' && (
+                <button
+                  type="button"
+                  onClick={() => changeStatus('cancelled')}
+                  className="flex-1 min-w-[120px] bg-red-600 text-white font-sans text-label-lg py-2.5 rounded-full hover:bg-red-700 transition-colors"
+                >
+                  {t.appointments.cancelBtn}
+                </button>
+              )}
+              {onEditFull && (
+                <button
+                  type="button"
+                  onClick={() => onEditFull(apt)}
+                  className="flex-1 min-w-[120px] bg-surface-container border border-outline text-on-surface font-sans text-label-lg py-2.5 rounded-full hover:bg-surface-container-high transition-colors"
+                >
+                  {t.edit}
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -625,6 +870,10 @@ export default function CalendarPage() {
   const [resizeState, setResizeState] = useState<{ aptId: string | number; startY: number; startDuration: number; currentDuration: number } | null>(null);
   // Block HTML5 drag while resizing — otherwise the card "jumps" and duration saves only half the time
   const isResizingRef = useRef(false);
+  // Suppress click after long-press / resize / move
+  const suppressClickRef = useRef(false);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressStartRef = useRef<{ x: number; y: number; apt: Appointment } | null>(null);
   
   const [viewMode, setViewMode] = useState<'day' | 'week'>('day');
   const [contextMenu, setContextMenu] = useState<{ isOpen: boolean, x: number, y: number, apt: Appointment | null }>({ isOpen: false, x: 0, y: 0, apt: null });
@@ -653,11 +902,12 @@ export default function CalendarPage() {
 
   const hiddenCount = appointments.length - visibleAppointments.length;
 
+  // Pointer-based resize: works for mouse AND touch (phones)
   useEffect(() => {
     if (!resizeState) return;
     isResizingRef.current = true;
 
-    const handleMouseMove = (e: MouseEvent) => {
+    const handlePointerMove = (e: PointerEvent) => {
       e.preventDefault();
       const diffY = e.clientY - resizeState.startY;
       const diffMinutes = Math.round(diffY / 2); // 2px = 1 minute
@@ -665,27 +915,83 @@ export default function CalendarPage() {
       const newDuration = Math.max(15, resizeState.startDuration + snappedDiff);
       setResizeState(prev => prev ? { ...prev, currentDuration: newDuration } : null);
     };
-    const handleMouseUp = async () => {
+    const handlePointerUp = async () => {
       const current = resizeRef.current;
       setResizeState(null);
-      // Small delay before re-enabling drag so the browser doesn't treat mouseup as a drop
-      setTimeout(() => { isResizingRef.current = false; }, 50);
+      suppressClickRef.current = true;
+      setTimeout(() => {
+        isResizingRef.current = false;
+        suppressClickRef.current = false;
+      }, 80);
       if (current && current.currentDuration !== current.startDuration) {
         await handleUpdateAppointment(Number(current.aptId), { duration: current.currentDuration });
       }
     };
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-    // Prevent text selection / accidental drags while resizing
+    window.addEventListener('pointermove', handlePointerMove, { passive: false });
+    window.addEventListener('pointerup', handlePointerUp);
+    window.addEventListener('pointercancel', handlePointerUp);
+    // Prevent text selection / scroll while resizing
     document.body.style.userSelect = 'none';
     document.body.style.cursor = 'ns-resize';
+    const prevTouchAction = document.body.style.touchAction;
+    document.body.style.touchAction = 'none';
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+      window.removeEventListener('pointercancel', handlePointerUp);
       document.body.style.userSelect = '';
       document.body.style.cursor = '';
+      document.body.style.touchAction = prevTouchAction;
     };
   }, [resizeState?.startY, resizeState?.startDuration]);
+
+  const clearLongPress = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    longPressStartRef.current = null;
+  };
+
+  const startLongPress = (e: React.PointerEvent, apt: Appointment) => {
+    // Only for touch/pen — mouse already has right-click
+    if (e.pointerType === 'mouse') return;
+    longPressStartRef.current = { x: e.clientX, y: e.clientY, apt };
+    longPressTimerRef.current = setTimeout(() => {
+      const start = longPressStartRef.current;
+      if (!start) return;
+      suppressClickRef.current = true;
+      setContextMenu({ isOpen: true, x: start.x, y: start.y, apt: start.apt });
+      clearLongPress();
+      setTimeout(() => { suppressClickRef.current = false; }, 300);
+    }, 480);
+  };
+
+  const onAptPointerMove = (e: React.PointerEvent) => {
+    const start = longPressStartRef.current;
+    if (!start) return;
+    const dx = Math.abs(e.clientX - start.x);
+    const dy = Math.abs(e.clientY - start.y);
+    // Cancel long-press if finger moves (user is scrolling/dragging)
+    if (dx > 10 || dy > 10) clearLongPress();
+  };
+
+  const beginResize = (e: React.PointerEvent, apt: Appointment) => {
+    e.preventDefault();
+    e.stopPropagation();
+    clearLongPress();
+    isResizingRef.current = true;
+    suppressClickRef.current = true;
+    try {
+      (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+    } catch { /* ignore */ }
+    setResizeState({
+      aptId: String(apt.id),
+      startY: e.clientY,
+      startDuration: Number(apt.duration) || 15,
+      currentDuration: Number(apt.duration) || 15,
+    });
+  };
 
   const fetchAppointments = () => {
     setCurrentDate(d => new Date(d.getTime())); // Trigger effect without stale closure
@@ -774,6 +1080,10 @@ export default function CalendarPage() {
     setAppointments(prev => prev.map(a =>
       Number(a.id) === id ? { ...a, ...data } : a
     ));
+    // Keep open detail modal in sync (duration / status edits)
+    setSelectedApt(prev =>
+      prev && Number(prev.id) === id ? { ...prev, ...data } : prev
+    );
 
     try {
       const res = await fetch(`${API}/appointments/${id}`, {
@@ -786,6 +1096,18 @@ export default function CalendarPage() {
         fetchAppointments();
         return;
       }
+      // Prefer server payload (includes clientNotify* after e-mail)
+      try {
+        const serverApt = await res.json();
+        if (serverApt && serverApt.id != null) {
+          setAppointments(prev => prev.map(a =>
+            Number(a.id) === id ? { ...a, ...serverApt } : a
+          ));
+          setSelectedApt(prev =>
+            prev && Number(prev.id) === id ? { ...prev, ...serverApt } : prev
+          );
+        }
+      } catch { /* ignore parse errors */ }
       if (data.status) {
         try {
           let url = 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3';
@@ -886,7 +1208,11 @@ export default function CalendarPage() {
         groomers={groomers} 
         t={t} 
         onClose={() => setSelectedApt(null)} 
-        onSave={handleUpdateAppointment} 
+        onSave={handleUpdateAppointment}
+        onAptPatch={(next) => {
+          setSelectedApt(next);
+          setAppointments(prev => prev.map(a => Number(a.id) === Number(next.id) ? { ...a, ...next } : a));
+        }}
         onEditFull={(apt) => {
           setSelectedApt(null);
           setNewAptModalData({ isOpen: true, editingApt: apt });
@@ -1182,15 +1508,19 @@ export default function CalendarPage() {
                           }}
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (isResizingRef.current) return;
+                            if (isResizingRef.current || suppressClickRef.current) return;
                             setSelectedApt(apt);
                           }}
                           onContextMenu={(e) => {
                             e.preventDefault();
                             setContextMenu({ isOpen: true, x: e.clientX, y: e.clientY, apt });
                           }}
-                          className={`absolute left-0.5 right-0.5 rounded-md flex flex-col z-10 shadow-sm overflow-hidden border ${theme.border} hover:shadow-md transition-shadow ${isResizing ? 'cursor-ns-resize' : 'cursor-move'}`}
-                          style={{ top: `${top}px`, height: `${height}px` }}
+                          onPointerDown={(e) => startLongPress(e, apt)}
+                          onPointerMove={onAptPointerMove}
+                          onPointerUp={clearLongPress}
+                          onPointerCancel={clearLongPress}
+                          className={`absolute left-0.5 right-0.5 rounded-md flex flex-col z-10 shadow-sm overflow-hidden border ${theme.border} hover:shadow-md transition-shadow ${isResizing ? 'cursor-ns-resize' : 'cursor-move'} select-none`}
+                          style={{ top: `${top}px`, height: `${height}px`, touchAction: 'manipulation' }}
                         >
                           <div className={`${theme.header} text-white px-1.5 py-0.5 flex justify-between items-center shrink-0`}>
                             <span className="text-[10px] font-medium leading-none">{timeRange}</span>
@@ -1218,21 +1548,12 @@ export default function CalendarPage() {
                               </>
                             )}
                           </div>
-                          {/* Resize Handle — larger hit area; must not start HTML5 drag */}
+                          {/* Resize handle — desktop only; on phones set duration via detail modal */}
                           <div 
-                            className="absolute bottom-0 left-0 right-0 h-4 cursor-ns-resize hover:bg-black/10 transition-colors z-20 group flex items-end justify-center pb-[2px]"
+                            className="hidden md:flex absolute bottom-0 left-0 right-0 h-4 cursor-ns-resize hover:bg-black/10 active:bg-black/15 transition-colors z-20 group items-end justify-center pb-[2px]"
                             draggable={false}
-                            onMouseDown={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              isResizingRef.current = true;
-                              setResizeState({
-                                aptId: String(apt.id),
-                                startY: e.clientY,
-                                startDuration: Number(apt.duration) || 15,
-                                currentDuration: Number(apt.duration) || 15,
-                              });
-                            }}
+                            style={{ touchAction: 'none' }}
+                            onPointerDown={(e) => beginResize(e, apt)}
                             onDragStart={(e) => { e.preventDefault(); e.stopPropagation(); }}
                           >
                             <div className="w-8 h-1 bg-black/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -1289,13 +1610,21 @@ export default function CalendarPage() {
                       return (
                         <div
                           key={String(apt.id)}
-                          onClick={(e) => { e.stopPropagation(); setSelectedApt(apt); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (isResizingRef.current || suppressClickRef.current) return;
+                            setSelectedApt(apt);
+                          }}
                           onContextMenu={(e) => {
                             e.preventDefault();
                             setContextMenu({ isOpen: true, x: e.clientX, y: e.clientY, apt });
                           }}
-                          className={`absolute left-0.5 right-0.5 rounded-md flex flex-col z-10 shadow-sm overflow-hidden border ${theme.border} hover:shadow-md transition-shadow`}
-                          style={{ top: `${top}px`, height: `${height}px` }}
+                          onPointerDown={(e) => startLongPress(e, apt)}
+                          onPointerMove={onAptPointerMove}
+                          onPointerUp={clearLongPress}
+                          onPointerCancel={clearLongPress}
+                          className={`absolute left-0.5 right-0.5 rounded-md flex flex-col z-10 shadow-sm overflow-hidden border ${theme.border} hover:shadow-md transition-shadow select-none ${isResizing ? 'cursor-ns-resize' : ''}`}
+                          style={{ top: `${top}px`, height: `${height}px`, touchAction: 'manipulation' }}
                         >
                           <div className={`${theme.header} text-white px-1.5 py-0.5 flex justify-between items-center shrink-0`}>
                             <span className="text-[10px] font-medium leading-none">{timeRange}</span>
@@ -1320,21 +1649,12 @@ export default function CalendarPage() {
                               </>
                             )}
                           </div>
-                          {/* Resize Handle — larger hit area; must not start HTML5 drag */}
+                          {/* Resize handle — desktop only; on phones set duration via detail modal */}
                           <div 
-                            className="absolute bottom-0 left-0 right-0 h-4 cursor-ns-resize hover:bg-black/10 transition-colors z-20 group flex items-end justify-center pb-[2px]"
+                            className="hidden md:flex absolute bottom-0 left-0 right-0 h-4 cursor-ns-resize hover:bg-black/10 active:bg-black/15 transition-colors z-20 group items-end justify-center pb-[2px]"
                             draggable={false}
-                            onMouseDown={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              isResizingRef.current = true;
-                              setResizeState({
-                                aptId: String(apt.id),
-                                startY: e.clientY,
-                                startDuration: Number(apt.duration) || 15,
-                                currentDuration: Number(apt.duration) || 15,
-                              });
-                            }}
+                            style={{ touchAction: 'none' }}
+                            onPointerDown={(e) => beginResize(e, apt)}
                             onDragStart={(e) => { e.preventDefault(); e.stopPropagation(); }}
                           >
                             <div className="w-8 h-1 bg-black/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -1373,6 +1693,17 @@ export default function CalendarPage() {
                 setContextMenu({ ...contextMenu, isOpen: false });
               }}
             >
+              <span className="material-symbols-outlined text-[18px]">visibility</span>
+              Details
+            </button>
+
+            <button 
+              className="px-4 py-2 text-sm text-left hover:bg-gray-50 flex items-center gap-2 text-gray-700 transition-colors"
+              onClick={() => {
+                setNewAptModalData({ isOpen: true, editingApt: contextMenu.apt });
+                setContextMenu({ ...contextMenu, isOpen: false });
+              }}
+            >
               <span className="material-symbols-outlined text-[18px]">edit</span>
               Bearbeiten
             </button>
@@ -1390,6 +1721,32 @@ export default function CalendarPage() {
               </button>
             ) : (
               <>
+                {contextMenu.apt.status === 'pending' && (
+                  <button 
+                    className="px-4 py-2 text-sm text-left hover:bg-blue-50 flex items-center gap-2 text-blue-700 transition-colors"
+                    onClick={() => {
+                      handleUpdateAppointment(Number(contextMenu.apt!.id), { status: 'confirmed' });
+                      setContextMenu({ ...contextMenu, isOpen: false });
+                    }}
+                  >
+                    <span className="material-symbols-outlined text-[18px]">check_circle</span>
+                    {t.appointments.confirmTitle}
+                  </button>
+                )}
+
+                {contextMenu.apt.status === 'confirmed' && (
+                  <button 
+                    className="px-4 py-2 text-sm text-left hover:bg-green-50 flex items-center gap-2 text-green-700 transition-colors"
+                    onClick={() => {
+                      handleUpdateAppointment(Number(contextMenu.apt!.id), { status: 'completed' });
+                      setContextMenu({ ...contextMenu, isOpen: false });
+                    }}
+                  >
+                    <span className="material-symbols-outlined text-[18px]">task_alt</span>
+                    {t.appointments.completeTitle}
+                  </button>
+                )}
+
                 <button 
                   className="px-4 py-2 text-sm text-left hover:bg-orange-50 flex items-center gap-2 text-orange-600 transition-colors"
                   onClick={() => {

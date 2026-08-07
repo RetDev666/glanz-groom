@@ -103,6 +103,12 @@ model Appointment {
   totalPrice  Float
   notes       String?
   petPhotoUrl String?
+  // Client notification tracking (e-mail now; WhatsApp API later)
+  // status: sent | failed | skipped | none
+  clientNotifyStatus  String?
+  clientNotifyChannel String?   // email | whatsapp
+  clientNotifyAt      DateTime?
+  clientNotifyDetail  String?   // short admin-facing note
   createdAt   DateTime               @default(now())
   updatedAt   DateTime               @updatedAt
 

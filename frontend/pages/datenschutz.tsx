@@ -21,7 +21,7 @@ export default function DatenschutzPage({ legal }: { legal: LegalSettings }) {
         <title>Datenschutzerklärung — Glanz & Groom</title>
         <meta
           name="description"
-          content="Datenschutzerklärung von Glanz & Groom gemäß DSGVO und TTDSG."
+          content="Datenschutzerklärung von Glanz & Groom gemäß DSGVO und TDDDG."
         />
         <meta name="robots" content="index, follow" />
       </Head>
@@ -71,17 +71,37 @@ export default function DatenschutzPage({ legal }: { legal: LegalSettings }) {
             <div className="space-y-3 text-body-md text-on-surface-variant leading-relaxed">
               <p>
                 Der Schutz Ihrer personenbezogenen Daten ist uns wichtig. Wir verarbeiten personenbezogene
-                Daten nur, soweit dies zur Bereitstellung einer funktionsfähigen Website, unserer Inhalte und
-                Leistungen sowie zur Terminverwaltung erforderlich ist oder Sie eingewilligt haben.
+                Daten nur, soweit dies für die Bereitstellung unserer Website, die Bearbeitung von Anfragen,
+                die Terminbuchung und -verwaltung sowie die Durchführung unserer Leistungen erforderlich ist
+                oder Sie in die Verarbeitung eingewilligt haben.
               </p>
+              <p>Je nach Zweck der Verarbeitung stützen wir uns insbesondere auf folgende Rechtsgrundlagen:</p>
+              <ul className="list-disc pl-5 space-y-2">
+                <li>
+                  <strong className="text-on-surface">Art. 6 Abs. 1 lit. b DSGVO</strong> – soweit die
+                  Verarbeitung zur Durchführung vorvertraglicher Maßnahmen, zur Terminbuchung oder zur
+                  Erfüllung eines Vertrags mit Ihnen erforderlich ist.
+                </li>
+                <li>
+                  <strong className="text-on-surface">Art. 6 Abs. 1 lit. a DSGVO</strong> – soweit Sie uns eine
+                  Einwilligung erteilt haben, beispielsweise für optionale Cookies, Tracking-Technologien oder
+                  die Veröffentlichung von Foto- und Videoaufnahmen.
+                </li>
+                <li>
+                  <strong className="text-on-surface">Art. 6 Abs. 1 lit. f DSGVO</strong> – soweit die
+                  Verarbeitung zur Wahrung unserer berechtigten Interessen erforderlich ist, beispielsweise
+                  für den sicheren und stabilen Betrieb unserer Website, sofern Ihre Interessen oder
+                  Grundrechte nicht überwiegen.
+                </li>
+                <li>
+                  Soweit wir gesetzlich zur Verarbeitung bestimmter Daten verpflichtet sind, erfolgt die
+                  Verarbeitung auf Grundlage von <strong className="text-on-surface">Art. 6 Abs. 1 lit. c DSGVO</strong>.
+                </li>
+              </ul>
               <p>
-                Rechtsgrundlagen der Verarbeitung sind insbesondere Art. 6 Abs. 1 lit. a DSGVO (Einwilligung),
-                Art. 6 Abs. 1 lit. b DSGVO (Vertrag / vorvertragliche Maßnahmen) und Art. 6 Abs. 1 lit. f DSGVO
-                (berechtigtes Interesse).
-              </p>
-              <p>
-                Personenbezogene Daten werden gelöscht, sobald der Zweck der Speicherung entfällt und keine
-                gesetzlichen Aufbewahrungsfristen entgegenstehen.
+                Personenbezogene Daten werden gelöscht, sobald der jeweilige Verarbeitungszweck entfällt und
+                keine gesetzlichen Aufbewahrungspflichten oder sonstigen rechtlichen Gründe einer Löschung
+                entgegenstehen.
               </p>
             </div>
           </Section>
@@ -123,24 +143,37 @@ export default function DatenschutzPage({ legal }: { legal: LegalSettings }) {
             </div>
           </Section>
 
-          <Section icon="cookie" title="4. Cookies und Einwilligung">
+          <Section icon="cookie" title="4. Cookies und Einwilligungsmanagement">
             <div className="space-y-3 text-body-md text-on-surface-variant leading-relaxed">
               <p>
-                Unsere Website verwendet Cookies und ähnliche Technologien. Technisch notwendige Cookies sind
-                für den Betrieb der Website erforderlich (Rechtsgrundlage: § 25 Abs. 2 Nr. 2 TTDSG i. V. m.
-                Art. 6 Abs. 1 lit. f DSGVO).
+                Unsere Website verwendet Cookies und ähnliche Technologien. Technisch notwendige Cookies und
+                Technologien werden eingesetzt, soweit sie für den Betrieb der Website oder für ausdrücklich
+                vom Nutzer gewünschte Funktionen unbedingt erforderlich sind.
               </p>
               <p>
-                Optionale Cookies (Funktional, Analyse, Marketing) setzen wir nur, wenn Sie über unser
-                Cookie-Banner ausdrücklich eingewilligt haben (§ 25 Abs. 1 TTDSG, Art. 6 Abs. 1 lit. a DSGVO).
-                Ihre Entscheidung speichern wir in einem First-Party-Cookie{' '}
+                Rechtsgrundlage für die Speicherung von Informationen auf Ihrem Endgerät bzw. den Zugriff auf
+                bereits gespeicherte Informationen ist in diesen Fällen § 25 Abs. 2 Nr. 2 TDDDG. Soweit dabei
+                personenbezogene Daten verarbeitet werden, erfolgt die Verarbeitung insbesondere auf Grundlage
+                von Art. 6 Abs. 1 lit. f DSGVO, sofern keine speziellere Rechtsgrundlage einschlägig ist.
+              </p>
+              <p>
+                Nicht notwendige Cookies und vergleichbare Technologien, insbesondere für funktionale
+                Zusatzdienste, Analyse oder Marketing, werden nur eingesetzt, wenn Sie zuvor ausdrücklich
+                eingewilligt haben. Rechtsgrundlage hierfür ist § 25 Abs. 1 TDDDG in Verbindung mit Art. 6 Abs.
+                1 lit. a DSGVO.
+              </p>
+              <p>
+                Ihre Auswahl wird in einem technisch notwendigen First-Party-Cookie{' '}
                 <code className="text-xs bg-surface-container px-1.5 py-0.5 rounded">gg_cookie_consent</code>{' '}
-                mit den Attributen <strong>SameSite=Lax</strong>, <strong>Secure</strong> (bei HTTPS) und
-                einer Gültigkeit von 12 Monaten. Der Inhalt ist eine JSON-Struktur mit den gewählten
-                Kategorien und einem Versionsstand der Einwilligung.
+                gespeichert. Dieses Cookie dient ausschließlich dazu, Ihre Cookie-Einstellungen zu speichern
+                und hat eine Speicherdauer von bis zu 12 Monaten (Attribute: <strong>SameSite=Lax</strong>
+                {', '}
+                <strong>Secure</strong> bei HTTPS).
               </p>
               <p>
-                Sie können Ihre Einwilligung jederzeit widerrufen oder anpassen:
+                Sie können eine erteilte Einwilligung jederzeit mit Wirkung für die Zukunft widerrufen oder
+                Ihre Auswahl über die Cookie-Einstellungen ändern. Der Widerruf berührt nicht die
+                Rechtmäßigkeit der bis zum Widerruf erfolgten Verarbeitung.
               </p>
               <button
                 type="button"
@@ -175,21 +208,40 @@ export default function DatenschutzPage({ legal }: { legal: LegalSettings }) {
           <Section icon="event" title="6. Online-Terminbuchung">
             <div className="space-y-3 text-body-md text-on-surface-variant leading-relaxed">
               <p>
-                Über unser eigenes Buchungssystem (kein Calendly oder vergleichbarer Drittanbieter) können
-                Sie Termine online anfragen. Dabei verarbeiten wir insbesondere:
+                Über unser eigenes Online-Buchungssystem können Sie Termine für unsere Dienstleistungen
+                direkt online buchen. Bei erfolgreichem Abschluss der Buchung wird der ausgewählte Termin
+                automatisch für Sie reserviert.
               </p>
+              <p>Im Rahmen der Online-Terminbuchung verarbeiten wir insbesondere folgende Daten:</p>
               <ul className="list-disc pl-5 space-y-1">
-                <li>Name, Telefonnummer, E-Mail-Adresse</li>
-                <li>Angaben zum Haustier (Name, Rasse, Größe, optional Foto)</li>
-                <li>gewünschte Leistungen, Datum/Uhrzeit, Freitext-Hinweise</li>
+                <li>Name</li>
+                <li>Telefonnummer und E-Mail-Adresse</li>
+                <li>Angaben zum Haustier (z. B. Name, Rasse, Größe)</li>
+                <li>optional ein von Ihnen hochgeladenes Foto des Haustieres</li>
+                <li>gewünschte Dienstleistung</li>
+                <li>Datum und Uhrzeit des Termins</li>
+                <li>gegebenenfalls von Ihnen eingegebene Hinweise oder Freitextangaben</li>
               </ul>
               <p>
-                <strong className="text-on-surface">Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO
-                (Erfüllung bzw. Anbahnung eines Dienstleistungsvertrags).
+                <strong className="text-on-surface">Zweck der Verarbeitung:</strong> Die Verarbeitung dieser
+                Daten erfolgt zur Durchführung und Verwaltung der Terminbuchung, zur Kontaktaufnahme im
+                Zusammenhang mit dem gebuchten Termin sowie zur Vorbereitung und Erbringung unserer
+                Dienstleistungen. Dazu kann auch der Versand einer Bestätigungs-E-Mail (mit Termindetails und
+                optionaler Kalenderdatei) an die von Ihnen angegebene E-Mail-Adresse gehören.
               </p>
               <p>
-                Die Daten dienen der Terminplanung, Kundenbetreuung und Leistungserbringung und werden
-                entsprechend gesetzlicher und betrieblicher Aufbewahrungsfristen gespeichert.
+                <strong className="text-on-surface">Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO
+                (Durchführung vorvertraglicher Maßnahmen bzw. Erfüllung eines Dienstleistungsvertrags).
+              </p>
+              <p>
+                Die Daten werden nur so lange gespeichert, wie dies für die Terminverwaltung,
+                Kundenbetreuung und Durchführung unserer Dienstleistungen erforderlich ist. Soweit
+                gesetzliche Aufbewahrungspflichten bestehen, werden die betreffenden Daten für die Dauer
+                dieser Fristen gespeichert und anschließend gelöscht.
+              </p>
+              <p>
+                Weitere Informationen zu den für die technische Bereitstellung des Buchungssystems
+                eingesetzten Dienstleistern finden Sie im Abschnitt „Hosting“.
               </p>
             </div>
           </Section>
@@ -303,7 +355,7 @@ export default function DatenschutzPage({ legal }: { legal: LegalSettings }) {
                     . IP-Adressen werden anonymisiert verarbeitet, soweit technisch möglich.
                   </p>
                   <p>
-                    Rechtsgrundlage: Art. 6 Abs. 1 lit. a DSGVO und § 25 Abs. 1 TTDSG. Sie können die
+                    Rechtsgrundlage: Art. 6 Abs. 1 lit. a DSGVO und § 25 Abs. 1 TDDDG. Sie können die
                     Einwilligung jederzeit über die Cookie-Einstellungen widerrufen.
                   </p>
                 </>
@@ -331,7 +383,7 @@ export default function DatenschutzPage({ legal }: { legal: LegalSettings }) {
                     .
                   </p>
                   <p>
-                    Rechtsgrundlage: Art. 6 Abs. 1 lit. a DSGVO und § 25 Abs. 1 TTDSG. Widerruf über die
+                    Rechtsgrundlage: Art. 6 Abs. 1 lit. a DSGVO und § 25 Abs. 1 TDDDG. Widerruf über die
                     Cookie-Einstellungen möglich.
                   </p>
                 </>

@@ -632,9 +632,15 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
             <span className="material-symbols-outlined fill text-[48px] text-green-600">check_circle</span>
           </div>
           <h1 className="font-display text-headline-lg text-on-background mb-2">{t.book.success.title}</h1>
-          <p className="font-sans text-body-md text-on-surface-variant mb-6">
+          <p className="font-sans text-body-md text-on-surface-variant mb-3">
             {t.book.success.desc1} <strong>{booking.pets.map(p => p.petName).join(', ')}</strong> {t.book.success.desc2}
           </p>
+          {booking.email && (
+            <p className="font-sans text-body-sm text-on-surface-variant mb-6 bg-surface-container rounded-xl px-4 py-3 text-left">
+              <span className="material-symbols-outlined text-[18px] align-middle mr-1 text-primary">mail</span>
+              {t.book.success.emailNote}
+            </p>
+          )}
 
           {booking.pets[0]?.photoPreview && (
             <div className="mb-6 flex flex-wrap gap-4 justify-center">
@@ -651,6 +657,17 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
           </div>
 
           <div className="flex flex-col gap-3 mb-6">
+            <a
+              href={`https://wa.me/493075630831?text=${encodeURIComponent(
+                `Hallo Glanz & Groom! Ich habe einen Termin gebucht: ${booking.date} ${booking.time}, ${booking.pets.map(p => p.petName).join(', ')}, Tel: ${booking.phone}`
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full border-2 border-[#25D366]/40 flex items-center justify-center gap-2 bg-[#25D366] text-white font-sans text-label-lg py-3 rounded-full hover:opacity-90 transition-all"
+            >
+              <span className="material-symbols-outlined text-[20px]">chat</span>
+              {t.book.success.whatsappBtn}
+            </a>
             <button
               onClick={openGoogleCalendar}
               className="w-full border-2 border-outline flex items-center justify-center gap-2 bg-white text-on-surface font-sans text-label-lg py-3 rounded-full hover:bg-surface-container transition-all"

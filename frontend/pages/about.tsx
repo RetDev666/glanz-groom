@@ -153,7 +153,7 @@ export default function AboutPage({ initialGroomers, initialSettings }: { initia
             <div className="space-y-3">
               {[
                 { icon: 'location_on', title: t.about.addressTitle, text: settings.address || t.about.address, link: 'https://maps.app.goo.gl/NDd5SztVC6zd6C9i7?g_st=it' },
-                { icon: 'phone', title: t.about.phoneTitle, text: settings.phone || '+49 176 20331535' },
+                { icon: 'phone', title: t.about.phoneTitle, text: settings.phone || '+49 30 75630831' },
                 { icon: 'photo_camera', title: 'Instagram', text: '@glanz_groom', link: settings.instagram || 'https://www.instagram.com/glanz_groom?igsh=MXNvMmVrYmRwZDVyMw==' },
                 { icon: 'schedule', title: t.about.scheduleTitle, text: settings.openingHours || t.about.schedule },
               ].map(item => (

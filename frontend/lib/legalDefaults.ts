@@ -3,9 +3,9 @@ export const LEGAL_DEFAULTS = {
   ownerName: 'Alexander Markus',
   businessName: 'Glanz & Groom',
   legalForm: 'Einzelunternehmen',
-  address: 'Kreuznacher Straße 10, 14197 Berlin',
-  phone: '+49 176 20331535',
-  email: 'info@glanzgroom.de',
+  address: 'Kreuznacher Str. 10\n14197 Berlin\nDeutschland',
+  phone: '+49 30 75630831',
+  email: 'glanz.groom@gmail.com',
   /** Leave empty to omit from Impressum */
   ustId: '',
   /** Wirtschafts-Identifikationsnummer — leave empty to omit */

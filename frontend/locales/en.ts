@@ -161,6 +161,8 @@ export const en = {
       title: 'Booking Confirmed!',
       desc1: 'We are expecting',
       desc2: 'at our salon!',
+      emailNote: 'A confirmation with appointment details and a calendar file (.ics) has been sent to your e-mail. Please also check your spam folder.',
+      whatsappBtn: 'Message the salon on WhatsApp',
       date: 'Date',
       duration: 'Duration',
       sum: 'Total',

@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import AdminLayout from '@/components/AdminLayout';
+import ClientNotifyPanel from '@/components/ClientNotifyPanel';
 import { useAdminLang } from '../hooks/useAdminLang';
 import { NewAppointmentModal } from './calendar';
 import DatePicker from 'react-datepicker';
@@ -55,7 +56,7 @@ const STATUS_COLORS: Record<string, string> = {
 type Appointment = Record<string, unknown>;
 
 function AppointmentDetailModal({
-  apt, groomers, onClose, onStatusChange, onSave, onEditFull, t, userRole
+  apt, groomers, onClose, onStatusChange, onSave, onEditFull, onAptPatch, t, userRole
 }: {
   apt: Appointment;
   groomers: Record<string, unknown>[];
@@ -63,6 +64,7 @@ function AppointmentDetailModal({
   onStatusChange: (id: number, status: string) => void;
   onSave: (id: number, data: any) => Promise<void>;
   onEditFull?: (apt: Appointment) => void;
+  onAptPatch?: (next: Appointment) => void;
   t: ReturnType<typeof useAdminLang>['t'];
   userRole: string;
 }) {
@@ -149,6 +151,13 @@ function AppointmentDetailModal({
             </div>
           </div>
 
+          <ClientNotifyPanel
+            apt={apt as any}
+            onUpdated={(next) => {
+              onAptPatch?.(next as Appointment);
+            }}
+          />
+
           <div className="bg-surface-container-low rounded-2xl p-4 space-y-2">
             <p className="font-sans text-label-sm text-on-surface-variant uppercase tracking-widest">{t.appointments.petLabel}</p>
             <div className="flex justify-between">
@@ -198,34 +207,33 @@ function AppointmentDetailModal({
             </div>
           )}
 
-          {userRole !== 'groomer' && (
-            <div className="flex gap-2 flex-wrap">
-              {apt.status === 'pending' && (
-                <button
-                  onClick={() => onStatusChange(Number(apt.id), 'confirmed')}
-                  className="flex-1 bg-blue-600 text-white font-sans text-label-lg py-2.5 rounded-full hover:bg-blue-700 transition-colors"
-                >
-                  {t.appointments.confirmBtn}
-                </button>
-              )}
-              {apt.status === 'confirmed' && (
-                <button
-                  onClick={() => onStatusChange(Number(apt.id), 'completed')}
-                  className="flex-1 bg-green-600 text-white font-sans text-label-lg py-2.5 rounded-full hover:bg-green-700 transition-colors"
-                >
-                  {t.appointments.completeBtn}
-                </button>
-              )}
-              {apt.status !== 'cancelled' && (
-                <button
-                  onClick={() => onStatusChange(Number(apt.id), 'cancelled')}
-                  className="flex-1 bg-red-600 text-white font-sans text-label-lg py-2.5 rounded-full hover:bg-red-700 transition-colors"
-                >
-                  {t.appointments.cancelBtn}
-                </button>
-              )}
-            </div>
-          )}
+          {/* Status actions available for all staff (admin / developer / groomer) */}
+          <div className="flex gap-2 flex-wrap">
+            {apt.status === 'pending' && (
+              <button
+                onClick={() => onStatusChange(Number(apt.id), 'confirmed')}
+                className="flex-1 min-w-[120px] bg-blue-600 text-white font-sans text-label-lg py-2.5 rounded-full hover:bg-blue-700 transition-colors"
+              >
+                {t.appointments.confirmBtn}
+              </button>
+            )}
+            {apt.status === 'confirmed' && (
+              <button
+                onClick={() => onStatusChange(Number(apt.id), 'completed')}
+                className="flex-1 min-w-[120px] bg-green-600 text-white font-sans text-label-lg py-2.5 rounded-full hover:bg-green-700 transition-colors"
+              >
+                {t.appointments.completeBtn}
+              </button>
+            )}
+            {apt.status !== 'cancelled' && apt.status !== 'completed' && (
+              <button
+                onClick={() => onStatusChange(Number(apt.id), 'cancelled')}
+                className="flex-1 min-w-[120px] bg-red-600 text-white font-sans text-label-lg py-2.5 rounded-full hover:bg-red-700 transition-colors"
+              >
+                {t.appointments.cancelBtn}
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -301,11 +309,17 @@ export default function AppointmentsPage() {
 
   const updateStatus = async (id: number, status: string) => {
     const token = localStorage.getItem('admin_token');
-    await fetch(`${API}/appointments/${id}/status`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ status }),
-    });
+    let serverApt: Appointment | null = null;
+    try {
+      const res = await fetch(`${API}/appointments/${id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ status }),
+      });
+      if (res.ok) {
+        serverApt = await res.json();
+      }
+    } catch { /* keep optimistic update */ }
     try {
       let url = 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3';
       if (status === 'confirmed') url = 'https://assets.mixkit.co/active_storage/sfx/2870/2870-preview.mp3';
@@ -313,9 +327,12 @@ export default function AppointmentsPage() {
       if (status === 'cancelled') url = 'https://assets.mixkit.co/active_storage/sfx/2872/2872-preview.mp3';
       new Audio(url).play().catch(() => {});
     } catch(e) {}
-    setAppointments(prev => prev.map(a => a.id === id ? { ...a, status } : a));
-    if (selectedApt && selectedApt.id === id) {
-      setSelectedApt(prev => prev ? { ...prev, status } : null);
+    // Merge server fields (incl. clientNotify*) so admin sees e-mail status after confirm
+    setAppointments(prev => prev.map(a =>
+      Number(a.id) === id ? { ...a, ...(serverApt || {}), status: serverApt?.status ?? status } : a
+    ));
+    if (selectedApt && Number(selectedApt.id) === id) {
+      setSelectedApt(prev => prev ? { ...prev, ...(serverApt || {}), status: serverApt?.status ?? status } : null);
     }
   };
 
@@ -353,6 +370,10 @@ export default function AppointmentsPage() {
           userRole={userRole}
           onClose={() => setSelectedApt(null)}
           onStatusChange={updateStatus}
+          onAptPatch={(next) => {
+            setSelectedApt(next);
+            setAppointments(prev => prev.map(a => Number(a.id) === Number(next.id) ? { ...a, ...next } : a));
+          }}
           onEditFull={(apt) => {
             setSelectedApt(null);
             setEditingApt(apt);
@@ -505,28 +526,69 @@ export default function AppointmentsPage() {
                         <td className="px-4 py-3 font-sans text-body-md text-on-surface whitespace-nowrap">{String(groomer?.name || '—')}</td>
                         <td className="px-4 py-3 font-display font-bold text-primary whitespace-nowrap">{String(apt.totalPrice)}€</td>
                         <td className="px-4 py-3">
-                          <span className={`font-sans text-label-sm px-2.5 py-1 rounded-full whitespace-nowrap ${STATUS_COLORS[String(apt.status)] || ''}`}>
-                            {t.status[String(apt.status) as keyof typeof t.status] || String(apt.status)}
-                          </span>
+                          <div className="flex flex-col gap-1">
+                            <span className={`font-sans text-label-sm px-2.5 py-1 rounded-full whitespace-nowrap w-fit ${STATUS_COLORS[String(apt.status)] || ''}`}>
+                              {t.status[String(apt.status) as keyof typeof t.status] || String(apt.status)}
+                            </span>
+                            {apt.clientNotifyStatus === 'sent' && (
+                              <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-green-700" title={String(apt.clientNotifyDetail || 'E-Mail gesendet')}>
+                                <span className="material-symbols-outlined text-[12px]">mark_email_read</span>
+                                Mail OK
+                              </span>
+                            )}
+                            {apt.clientNotifyStatus === 'failed' && (
+                              <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-red-600" title={String(apt.clientNotifyDetail || 'E-Mail fehlgeschlagen')}>
+                                <span className="material-symbols-outlined text-[12px]">error</span>
+                                Mail ✗
+                              </span>
+                            )}
+                            {apt.clientNotifyStatus === 'skipped' && (
+                              <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-amber-700" title="Keine E-Mail — WhatsApp">
+                                <span className="material-symbols-outlined text-[12px]">chat</span>
+                                WA
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
-                          {userRole !== 'groomer' && (
-                            <div className="flex gap-1">
-                              {apt.status === 'pending' && (
-                                <button onClick={() => updateStatus(Number(apt.id), 'confirmed')} className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors" title={t.appointments.confirmTitle}>
-                                  <span className="material-symbols-outlined text-[18px]">check</span>
-                                </button>
-                              )}
-                              {apt.status === 'confirmed' && (
-                                <button onClick={() => updateStatus(Number(apt.id), 'completed')} className="p-1.5 rounded-lg text-green-600 hover:bg-green-50 transition-colors" title={t.appointments.completeTitle}>
-                                  <span className="material-symbols-outlined text-[18px]">done_all</span>
-                                </button>
-                              )}
+                          <div className="flex gap-1">
+                            {apt.status === 'pending' && (
+                              <button onClick={() => updateStatus(Number(apt.id), 'confirmed')} className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors" title={t.appointments.confirmTitle}>
+                                <span className="material-symbols-outlined text-[18px]">check</span>
+                              </button>
+                            )}
+                            {apt.status === 'confirmed' && (
+                              <button onClick={() => updateStatus(Number(apt.id), 'completed')} className="p-1.5 rounded-lg text-green-600 hover:bg-green-50 transition-colors" title={t.appointments.completeTitle}>
+                                <span className="material-symbols-outlined text-[18px]">done_all</span>
+                              </button>
+                            )}
+                            {(() => {
+                              const phone = String((apt.client as any)?.phone || '').replace(/\D/g, '');
+                              let n = phone;
+                              if (n.startsWith('0')) n = '49' + n.slice(1);
+                              if (n.length < 8) return null;
+                              const pet = (apt.pet as any)?.name || 'Hund';
+                              const when = new Date(String(apt.date)).toLocaleString('de-DE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+                              const msg = encodeURIComponent(`Hallo! Termin Glanz & Groom: ${when}, ${pet}.`);
+                              return (
+                                <a
+                                  href={`https://wa.me/${n}?text=${msg}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="p-1.5 rounded-lg text-green-600 hover:bg-green-50 transition-colors"
+                                  title="WhatsApp"
+                                  onClick={e => e.stopPropagation()}
+                                >
+                                  <span className="material-symbols-outlined text-[18px]">chat</span>
+                                </a>
+                              );
+                            })()}
+                            {userRole !== 'groomer' && (
                               <button onClick={() => deleteAppointment(Number(apt.id))} className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 transition-colors" title={t.appointments.deleteTitle}>
                                 <span className="material-symbols-outlined text-[18px]">delete</span>
                               </button>
-                            </div>
-                          )}
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );
