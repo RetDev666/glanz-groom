@@ -459,6 +459,7 @@ export function NewAppointmentModal({
     isBlock: editingApt?.status === 'blocked',
     duration: editingApt?.duration || 60,
   });
+  const [selectedClientNote, setSelectedClientNote] = useState<string>(editingApt?.client?.notes || '');
   const [services, setServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [clientSuggestions, setClientSuggestions] = useState<any[]>([]);
@@ -499,6 +500,7 @@ export function NewAppointmentModal({
   const applyClient = (c: any, pet?: any) => {
     const pets = Array.isArray(c.pets) ? c.pets : [];
     const chosen = pet || (pets.length === 1 ? pets[0] : null);
+    setSelectedClientNote(c.notes || '');
     setForm(prev => ({
       ...prev,
       clientFirstName: c.firstName || '',
@@ -507,7 +509,6 @@ export function NewAppointmentModal({
       clientEmail: c.email && !String(c.email).includes('@no-email') && !String(c.email).includes('@local')
         ? c.email
         : prev.clientEmail,
-      notes: c.notes && !prev.notes ? c.notes : prev.notes,
       ...(chosen
         ? {
             petName: chosen.name || '',
@@ -745,6 +746,12 @@ export function NewAppointmentModal({
                   )}
                 </div>
               </div>
+              {selectedClientNote && (
+                <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded-xl px-3 py-2 text-xs flex items-start gap-2">
+                  <span className="font-bold shrink-0">📌 Kunden-Notiz:</span>
+                  <span className="flex-1">{selectedClientNote}</span>
+                </div>
+              )}
               {matchedPets.length > 1 && (
                 <div>
                   <label className="block font-sans text-label-sm text-on-surface-variant mb-1.5">Haustier wählen</label>
@@ -815,8 +822,8 @@ export function NewAppointmentModal({
                   <label className="block font-sans text-label-sm text-on-surface-variant mb-2">Rabatt (€)</label>
                   <input type="number" min="0" step="0.01" value={form.discount} onChange={e => setForm({...form, discount: Number(e.target.value)})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none" placeholder="0.00" />
                   
-                  <label className="block font-sans text-label-sm text-on-surface-variant mb-1 mt-4">Grund (Kommentar)</label>
-                  <input type="text" value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none" placeholder="Notizen..." />
+                  <label className="block font-sans text-label-sm text-on-surface-variant mb-1 mt-4">Termin-Kommentar</label>
+                  <input type="text" value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} className="w-full bg-surface border border-outline rounded-xl px-3 py-2 outline-none" placeholder="Kommentar zu diesem Termin..." />
                 </div>
               </div>
             </>

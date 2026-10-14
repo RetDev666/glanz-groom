@@ -215,14 +215,13 @@ router.post('/admin-create', requireAuth, async (req: AuthRequest, res: Response
           phone: clientPhone || '000000000' 
         }
       });
-    } else if (clientFirstName || clientLastName !== undefined || notes) {
-      // Keep profile fresh when re-booking a known client
+    } else if (clientFirstName || clientLastName !== undefined) {
+      // Keep profile fresh when re-booking a known client (do not overwrite client's permanent profile notes with appointment notes)
       const patch: Record<string, string> = {};
       if (clientFirstName && clientFirstName !== client.firstName) patch.firstName = clientFirstName;
       if (clientLastName !== undefined && String(clientLastName) !== client.lastName) {
         patch.lastName = String(clientLastName || '');
       }
-      if (notes && notes !== client.notes) patch.notes = notes;
       if (Object.keys(patch).length > 0) {
         client = await prisma.client.update({ where: { id: client.id }, data: patch });
       }
@@ -657,13 +656,8 @@ router.post('/', async (req: Request, res: Response) => {
       include: { client: true, pet: true, groomer: true, services: { include: { service: true } } },
     });
 
-    if (notes) {
-      await prisma.client.update({
-        where: { id: client.id },
-        data: { notes }
-      });
-      appointment.client.notes = notes;
-    }
+    // Appointment notes are stored in appointment.notes.
+    // Client profile notes (Client.notes) remain permanent and untouched.
 
     cacheInvalidate('avail:');
 
@@ -897,13 +891,8 @@ router.patch('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
       include: { client: true, pet: true, groomer: true, services: { include: { service: true } } },
     });
 
-    if (notes !== undefined) {
-      await prisma.client.update({
-        where: { id: updated.clientId },
-        data: { notes }
-      });
-      updated.client.notes = notes;
-    }
+    // Appointment notes are saved in appointment.notes.
+    // Client profile notes remain intact.
 
     cacheInvalidate('avail:');
 
