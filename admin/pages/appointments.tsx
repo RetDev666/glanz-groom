@@ -245,6 +245,7 @@ export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState('all');
+  const [filterClientStatus, setFilterClientStatus] = useState('all');
   const [filterDate, setFilterDate] = useState('');
   const [search, setSearch] = useState('');
   const [selectedApt, setSelectedApt] = useState<Appointment | null>(null);
@@ -348,6 +349,10 @@ export default function AppointmentsPage() {
   };
 
   const filtered = appointments.filter(apt => {
+    if (filterClientStatus !== 'all') {
+      const cStatus = String((apt as any).clientConfirmationStatus || 'pending');
+      if (cStatus !== filterClientStatus) return false;
+    }
     if (!search) return true;
     const s = search.toLowerCase();
     const client = apt.client as Record<string, unknown>;
@@ -441,9 +446,23 @@ export default function AppointmentsPage() {
               placeholder={t.appointments.allStatuses}
             />
           </div>
-          {(filterDate || filterStatus !== 'all' || search) && (
+          <div className="z-[45]">
+            <CustomSelect
+              value={filterClientStatus}
+              onChange={v => setFilterClientStatus(v)}
+              options={[
+                { label: 'Alle Kunden-Status', value: 'all' },
+                { label: '✓ Vom Kunden bestätigt', value: 'confirmed' },
+                { label: '⏳ Wartet auf Kunde', value: 'pending' },
+                { label: '⚠️ Storno-Versuch (<24h)', value: 'late_cancel_attempt' },
+                { label: '✕ Vom Kunden storniert', value: 'cancelled' }
+              ]}
+              placeholder="Kunden-Status"
+            />
+          </div>
+          {(filterDate || filterStatus !== 'all' || filterClientStatus !== 'all' || search) && (
             <button
-              onClick={() => { setFilterDate(''); setFilterStatus('all'); setSearch(''); }}
+              onClick={() => { setFilterDate(''); setFilterStatus('all'); setFilterClientStatus('all'); setSearch(''); }}
               className="text-primary font-sans text-label-sm hover:underline"
             >
               {t.reset}
@@ -530,6 +549,31 @@ export default function AppointmentsPage() {
                             <span className={`font-sans text-label-sm px-2.5 py-1 rounded-full whitespace-nowrap w-fit ${STATUS_COLORS[String(apt.status)] || ''}`}>
                               {t.status[String(apt.status) as keyof typeof t.status] || String(apt.status)}
                             </span>
+                            {/* Client confirmation status badge */}
+                            {apt.clientConfirmationStatus === 'confirmed' && (
+                              <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-green-700 bg-green-50 border border-green-200 px-1.5 py-0.5 rounded-full w-fit" title="Vom Kunden bestätigt">
+                                <span className="material-symbols-outlined text-[12px]">check_circle</span>
+                                Kunde OK
+                              </span>
+                            )}
+                            {apt.clientConfirmationStatus === 'late_cancel_attempt' && (
+                              <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-red-800 bg-red-100 border border-red-300 px-1.5 py-0.5 rounded-full w-fit animate-pulse" title={`Kunde wollte kurzfristig (<24h) absagen! ${String(apt.cancellationReason || '')}`}>
+                                <span className="material-symbols-outlined text-[12px]">warning</span>
+                                Storno &lt;24h!
+                              </span>
+                            )}
+                            {apt.clientConfirmationStatus === 'cancelled' && (
+                              <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-red-700 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded-full w-fit" title="Vom Kunden online storniert">
+                                <span className="material-symbols-outlined text-[12px]">cancel</span>
+                                Storniert
+                              </span>
+                            )}
+                            {(!apt.clientConfirmationStatus || apt.clientConfirmationStatus === 'pending') && apt.status !== 'cancelled' && (
+                              <span className="inline-flex items-center gap-0.5 text-[10px] text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded-full w-fit" title="Wartet auf Bestätigung des Kunden">
+                                <span className="material-symbols-outlined text-[12px]">hourglass_empty</span>
+                                Wartet
+                              </span>
+                            )}
                             {apt.clientNotifyStatus === 'sent' && (
                               <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-green-700" title={String(apt.clientNotifyDetail || 'E-Mail gesendet')}>
                                 <span className="material-symbols-outlined text-[12px]">mark_email_read</span>

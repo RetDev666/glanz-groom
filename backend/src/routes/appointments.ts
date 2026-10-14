@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import crypto from 'crypto';
 import prisma from '../lib/prisma';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { cacheGet, cacheSet, cacheInvalidate, TTL } from '../lib/cache';
@@ -38,9 +39,7 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
 
     if (status && status !== 'all') where.status = status as string;
     
-    if (req.userRole === 'groomer' && req.groomerId) {
-      where.groomerId = req.groomerId;
-    } else if (groomerId) {
+    if (groomerId && groomerId !== 'all') {
       where.groomerId = Number(groomerId);
     }
     
@@ -129,9 +128,6 @@ router.get('/latest', requireAuth, async (req: AuthRequest, res: Response) => {
     const { sinceId } = req.query;
 
     const where: Record<string, unknown> = {};
-    if (req.userRole === 'groomer' && req.groomerId) {
-      where.groomerId = req.groomerId;
-    }
 
     // Parallel: latest row (slim) + optional count for badge
     const sinceNum = sinceId && !isNaN(Number(sinceId)) ? Number(sinceId) : null;
@@ -272,6 +268,7 @@ router.post('/admin-create', requireAuth, async (req: AuthRequest, res: Response
     finalDuration = finalDuration > 0 ? finalDuration : calculatedDuration;
     if (finalDuration === 0) finalDuration = 60; // fallback
 
+    const manageToken = crypto.randomBytes(24).toString('hex');
     const appointment = await prisma.appointment.create({
       data: {
         date: new Date(date),
@@ -279,6 +276,8 @@ router.post('/admin-create', requireAuth, async (req: AuthRequest, res: Response
         totalPrice: Math.max(0, calculatedPrice - (Number(discount) || 0)),
         notes: notes || '',
         status: 'confirmed',
+        manageToken,
+        clientConfirmationStatus: 'pending',
         clientId: client.id,
         petId: pet.id,
         groomerId: finalGroomerId,
@@ -310,6 +309,239 @@ router.get('/notify-config', requireAuth, async (_req: AuthRequest, res: Respons
     });
   } catch {
     res.json({ smtpConfigured: false, whatsappApiReady: false });
+  }
+});
+// ─────────────────────────────────────────────────────────────
+// CLIENT SELF-SERVICE: CONFIRMATION & CANCELLATION (24h rule)
+// ─────────────────────────────────────────────────────────────
+
+// GET /api/appointments/manage/:token — public details for client
+router.get('/manage/:token', async (req: Request, res: Response) => {
+  try {
+    const { token } = req.params;
+    if (!token || typeof token !== 'string') {
+      return res.status(400).json({ error: 'Token is required' });
+    }
+
+    const apt = await prisma.appointment.findUnique({
+      where: { manageToken: token },
+      include: {
+        client: { select: { firstName: true, lastName: true, phone: true, email: true } },
+        pet: { select: { name: true, breed: true, size: true } },
+        groomer: { select: { name: true, role: true, photoUrl: true } },
+        services: { include: { service: { select: { name: true, nameUk: true, description: true } } } },
+      },
+    });
+
+    if (!apt) {
+      return res.status(404).json({ error: 'Termin nicht gefunden oder ungültiger Link' });
+    }
+
+    const { salonContact } = require('../utils/mail');
+    const salon = salonContact();
+
+    const apptTime = new Date(apt.date).getTime();
+    const now = Date.now();
+    const msUntil = apptTime - now;
+    const hoursUntil = Math.round((msUntil / (1000 * 60 * 60)) * 10) / 10;
+
+    // 24 hours rule: can cancel only if >= 24h away, and not already cancelled/completed
+    const canCancelOnline = msUntil >= 24 * 60 * 60 * 1000 && apt.status !== 'cancelled' && apt.status !== 'completed';
+
+    res.json({
+      id: apt.id,
+      date: apt.date,
+      duration: apt.duration,
+      totalPrice: apt.totalPrice,
+      status: apt.status,
+      clientConfirmationStatus: apt.clientConfirmationStatus || 'pending',
+      clientConfirmedAt: apt.clientConfirmedAt,
+      lateCancelAttemptAt: apt.lateCancelAttemptAt,
+      cancellationReason: apt.cancellationReason,
+      hoursUntilAppointment: hoursUntil,
+      canCancelOnline,
+      minCancellationHours: 24,
+      client: {
+        firstName: apt.client.firstName,
+        lastName: apt.client.lastName,
+        phone: apt.client.phone,
+        email: apt.client.email,
+      },
+      pet: apt.pet,
+      groomer: apt.groomer,
+      services: apt.services.map(s => ({
+        price: s.price,
+        name: s.service?.name,
+        nameUk: s.service?.nameUk,
+      })),
+      salon: {
+        name: salon.name,
+        phone: salon.phone,
+        whatsapp: salon.whatsapp,
+        address: salon.address,
+        email: salon.email,
+      },
+    });
+  } catch (err) {
+    console.error('Error fetching appointment by manageToken:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// POST /api/appointments/manage/:token/confirm — client confirms appointment
+router.post('/manage/:token/confirm', async (req: Request, res: Response) => {
+  try {
+    const { token } = req.params;
+    const apt = await prisma.appointment.findUnique({
+      where: { manageToken: token },
+      include: { client: true, pet: true },
+    });
+
+    if (!apt) {
+      return res.status(404).json({ error: 'Termin nicht gefunden' });
+    }
+
+    if (apt.status === 'cancelled') {
+      return res.status(400).json({ error: 'Dieser Termin wurde bereits storniert und kann nicht bestätigt werden.' });
+    }
+
+    const updated = await prisma.appointment.update({
+      where: { id: apt.id },
+      data: {
+        clientConfirmationStatus: 'confirmed',
+        clientConfirmedAt: new Date(),
+      },
+      include: { client: true, pet: true, groomer: true, services: { include: { service: true } } },
+    });
+
+    try {
+      const { sendPushNotification } = require('./system');
+      await sendPushNotification({
+        title: 'Termin bestätigt!',
+        body: `Kunde ${apt.client.firstName} hat den Termin für ${apt.pet.name} bestätigt.`,
+        url: '/admin/appointments',
+      });
+    } catch {}
+
+    res.json({
+      ok: true,
+      message: 'Termin erfolgreich bestätigt',
+      clientConfirmationStatus: 'confirmed',
+      clientConfirmedAt: updated.clientConfirmedAt,
+    });
+  } catch (err) {
+    console.error('Error confirming appointment:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// POST /api/appointments/manage/:token/cancel — client cancels appointment (enforces 24h rule)
+router.post('/manage/:token/cancel', async (req: Request, res: Response) => {
+  try {
+    const { token } = req.params;
+    const { reason } = req.body || {};
+
+    const apt = await prisma.appointment.findUnique({
+      where: { manageToken: token },
+      include: { client: true, pet: true, groomer: true, services: { include: { service: true } } },
+    });
+
+    if (!apt) {
+      return res.status(404).json({ error: 'Termin nicht gefunden' });
+    }
+
+    if (apt.status === 'cancelled') {
+      return res.json({
+        ok: true,
+        alreadyCancelled: true,
+        message: 'Dieser Termin ist bereits storniert.',
+      });
+    }
+
+    const apptTime = new Date(apt.date).getTime();
+    const now = Date.now();
+    const msUntil = apptTime - now;
+    const hoursUntil = Math.round((msUntil / (1000 * 60 * 60)) * 10) / 10;
+
+    // Check 24-hour rule
+    if (msUntil < 24 * 60 * 60 * 1000) {
+      // LATE CANCELLATION ATTEMPT (< 24h)
+      // Do NOT cancel automatically! Record attempt and notify salon staff immediately.
+      await prisma.appointment.update({
+        where: { id: apt.id },
+        data: {
+          clientConfirmationStatus: 'late_cancel_attempt',
+          lateCancelAttemptAt: new Date(),
+          cancellationReason: reason ? String(reason).slice(0, 500) : 'Kunde wollte kurzfristig (< 24h) stornieren',
+        },
+      });
+
+      // Best effort email alert to salon
+      try {
+        const { notifyLateCancelAttempt } = require('../utils/bookingNotify');
+        await notifyLateCancelAttempt(apt, reason);
+      } catch (e) {
+        console.error('Failed to notify salon about late cancellation:', e);
+      }
+
+      try {
+        const { sendPushNotification } = require('./system');
+        await sendPushNotification({
+          title: '⚠️ Storno-Versuch (<24h)',
+          body: `${apt.client.firstName} wollte den Termin für ${apt.pet.name} absagen (<24h). Bitte kontaktieren!`,
+          url: '/admin/appointments',
+        });
+      } catch {}
+
+      return res.status(400).json({
+        ok: false,
+        late: true,
+        hoursUntil,
+        error: 'Online-Stornierung unter 24 Stunden vor dem Termin ist nicht möglich. Bitte kontaktieren Sie den Salon direkt per Telefon oder WhatsApp.',
+        clientConfirmationStatus: 'late_cancel_attempt',
+      });
+    }
+
+    // REGULAR CANCELLATION (>= 24h before appointment)
+    const updated = await prisma.appointment.update({
+      where: { id: apt.id },
+      data: {
+        status: 'cancelled',
+        clientConfirmationStatus: 'cancelled',
+        cancellationReason: reason ? String(reason).slice(0, 500) : 'Vom Kunden online storniert',
+      },
+      include: { client: true, pet: true, groomer: true, services: { include: { service: true } } },
+    });
+
+    cacheInvalidate('avail:');
+
+    // Notify salon and client about cancellation
+    try {
+      const { notifyStatusChange, safeNotify } = require('../utils/bookingNotify');
+      await safeNotify('customer-cancel', () => notifyStatusChange(updated, 'cancelled', apt.status));
+    } catch (e) {
+      console.error('Error notifying cancellation:', e);
+    }
+
+    try {
+      const { sendPushNotification } = require('./system');
+      await sendPushNotification({
+        title: 'Termin storniert',
+        body: `Kunde ${apt.client.firstName} hat den Termin für ${apt.pet.name} storniert.`,
+        url: '/admin/appointments',
+      });
+    } catch {}
+
+    res.json({
+      ok: true,
+      cancelled: true,
+      message: 'Termin wurde erfolgreich storniert.',
+      status: 'cancelled',
+      clientConfirmationStatus: 'cancelled',
+    });
+  } catch (err) {
+    console.error('Error cancelling appointment:', err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -404,6 +636,7 @@ router.post('/', async (req: Request, res: Response) => {
       ? calculatedDuration
       : Math.max(Number(duration) || 60, 15);
 
+    const manageToken = crypto.randomBytes(24).toString('hex');
     const appointment = await prisma.appointment.create({
       data: {
         clientId: client.id,
@@ -415,6 +648,8 @@ router.post('/', async (req: Request, res: Response) => {
         notes: notes || '',
         petPhotoUrl: petPhotoUrl || null,
         status: 'pending',
+        manageToken,
+        clientConfirmationStatus: 'pending',
         services: {
           create: services.map(s => ({ serviceId: s.id, price: s[priceField] })),
         },
@@ -533,6 +768,7 @@ router.post('/:id/notify', requireAuth, async (req: AuthRequest, res: Response) 
     const {
       resendClientNotify,
       buildClientWhatsAppUrl,
+      buildManageUrl,
       safeNotify,
     } = require('../utils/bookingNotify');
     const { isMailConfigured } = require('../utils/mail');
@@ -541,6 +777,7 @@ router.post('/:id/notify', requireAuth, async (req: AuthRequest, res: Response) 
     const wa =
       result?.clientWhatsAppUrl ||
       buildClientWhatsAppUrl(apt, kind === 'booking' ? 'booking' : kind);
+    const manageUrl = buildManageUrl(apt.manageToken);
 
     const refreshed = await prisma.appointment.findUnique({
       where: { id },
@@ -556,6 +793,7 @@ router.post('/:id/notify', requireAuth, async (req: AuthRequest, res: Response) 
         smtpConfigured: isMailConfigured(),
       },
       whatsappUrl: wa,
+      manageUrl,
       smtpConfigured: isMailConfigured(),
       appointment: refreshed || apt,
     });

@@ -29,6 +29,7 @@ echo "🗄️  [3/5] Database setup..."
 if [ -n "$TURSO_DATABASE_URL" ] && [ -n "$TURSO_AUTH_TOKEN" ]; then
   echo "🚀 Running schema push to Turso..."
   node push-db.js "$TURSO_DATABASE_URL" "$TURSO_AUTH_TOKEN"
+  node backend/scripts/add-manage-columns.js
 else
   echo "⚠️  TURSO_DATABASE_URL або TURSO_AUTH_TOKEN не вказані в налаштуваннях Netlify!"
 fi

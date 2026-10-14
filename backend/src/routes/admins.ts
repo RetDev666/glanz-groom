@@ -6,17 +6,17 @@ import { logAudit } from '../utils/audit';
 
 const router = Router();
 
-const requireDeveloper: RequestHandler = (req, res, next) => {
+const requireAdminOrDeveloper: RequestHandler = (req, res, next) => {
   const userRole = (req as any).userRole;
-  if (userRole !== 'developer') {
-    res.status(403).json({ error: 'Access denied: Developer only' });
+  if (userRole !== 'developer' && userRole !== 'admin') {
+    res.status(403).json({ error: 'Access denied: Admin or Developer only' });
     return;
   }
   next();
 };
 
 // GET /api/admins
-router.get('/', requireAuth, requireDeveloper, async (req: Request, res: Response) => {
+router.get('/', requireAuth, requireAdminOrDeveloper, async (req: Request, res: Response) => {
   try {
     const admins = await prisma.user.findMany({
       where: { role: { in: ['admin', 'developer'] } },
@@ -29,7 +29,7 @@ router.get('/', requireAuth, requireDeveloper, async (req: Request, res: Respons
 });
 
 // POST /api/admins
-router.post('/', requireAuth, requireDeveloper, async (req: Request, res: Response) => {
+router.post('/', requireAuth, requireAdminOrDeveloper, async (req: Request, res: Response) => {
   try {
     const { name, email, password, role } = req.body;
     if (!name || !email || !password) {
@@ -43,13 +43,17 @@ router.post('/', requireAuth, requireDeveloper, async (req: Request, res: Respon
       return;
     }
 
+    const creatorRole = (req as any).userRole;
+    // Only developers can create developer accounts
+    const targetRole = (role === 'developer' && creatorRole === 'developer') ? 'developer' : 'admin';
+
     const hashedPassword = await bcrypt.hash(password, 10);
     const newAdmin = await prisma.user.create({
       data: {
         name,
         email,
         password: hashedPassword,
-        role: role === 'developer' ? 'developer' : 'admin',
+        role: targetRole,
       },
     });
 
@@ -62,7 +66,7 @@ router.post('/', requireAuth, requireDeveloper, async (req: Request, res: Respon
 });
 
 // DELETE /api/admins/:id
-router.delete('/:id', requireAuth, requireDeveloper, async (req: Request, res: Response) => {
+router.delete('/:id', requireAuth, requireAdminOrDeveloper, async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
     const adminToDelete = await prisma.user.findUnique({ where: { id } });

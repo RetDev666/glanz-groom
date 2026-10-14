@@ -28,6 +28,12 @@ const de = {
     completed: 'Abgeschlossen',
     cancelled: 'Storniert',
   },
+  clientStatus: {
+    pending: 'Wartet auf Kunden',
+    confirmed: 'Vom Kunden bestätigt',
+    cancelled: 'Vom Kunden storniert',
+    late_cancel_attempt: 'Storno-Versuch (<24h)',
+  },
 
   // Sidebar
   sidebar: {
@@ -334,6 +340,12 @@ const en: typeof de = {
     completed: 'Completed',
     cancelled: 'Cancelled',
   },
+  clientStatus: {
+    pending: 'Awaiting client',
+    confirmed: 'Confirmed by client',
+    cancelled: 'Cancelled by client',
+    late_cancel_attempt: 'Late cancel attempt (<24h)',
+  },
 
   sidebar: {
     panel: 'Admin Panel',
@@ -627,6 +639,12 @@ const ru: typeof de = {
     confirmed: 'Подтверждён',
     completed: 'Завершён',
     cancelled: 'Отменён',
+  },
+  clientStatus: {
+    pending: 'Ожидает клиента',
+    confirmed: 'Подтверждено клиентом',
+    cancelled: 'Отменено клиентом',
+    late_cancel_attempt: 'Попытка отмены (<24ч)',
   },
 
   sidebar: {

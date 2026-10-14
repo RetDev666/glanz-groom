@@ -14,7 +14,7 @@
   "dependencies": {
     "@libsql/client": "^0.6.0",
     "@prisma/adapter-libsql": "^5.7.1",
-    "@prisma/client": "^5.7.1",
+    "@prisma/client": "^6.19.3",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^2.0.0",
     "cors": "^2.8.5",
@@ -28,6 +28,6 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
-    "prisma": "^5.7.1"
+    "prisma": "^6.19.3"
   }
 }

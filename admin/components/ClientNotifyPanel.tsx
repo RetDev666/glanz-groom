@@ -7,6 +7,11 @@ export type NotifyFields = {
   clientNotifyChannel?: string | null;
   clientNotifyAt?: string | null;
   clientNotifyDetail?: string | null;
+  manageToken?: string | null;
+  clientConfirmationStatus?: string | null;
+  clientConfirmedAt?: string | Date | null;
+  lateCancelAttemptAt?: string | Date | null;
+  cancellationReason?: string | null;
   client?: { phone?: string | null; email?: string | null; firstName?: string | null; lastName?: string | null } | null;
   pet?: { name?: string | null } | null;
   date?: string | Date | null;
@@ -24,6 +29,19 @@ function statusLabel(status?: string | null): { text: string; cls: string; icon:
       return { text: 'Keine E-Mail (WhatsApp nutzen)', cls: 'bg-amber-100 text-amber-900 border-amber-200', icon: 'mail_lock' };
     default:
       return { text: 'Noch keine Benachrichtigung', cls: 'bg-gray-100 text-gray-700 border-gray-200', icon: 'mail' };
+  }
+}
+
+function clientStatusBadge(status?: string | null): { text: string; cls: string; icon: string } {
+  switch (status) {
+    case 'confirmed':
+      return { text: 'Vom Kunden bestätigt', cls: 'bg-green-100 text-green-800 border-green-200', icon: 'check_circle' };
+    case 'cancelled':
+      return { text: 'Vom Kunden storniert', cls: 'bg-red-100 text-red-800 border-red-200', icon: 'cancel' };
+    case 'late_cancel_attempt':
+      return { text: 'Storno versucht (<24h)', cls: 'bg-red-100 text-red-900 border-red-300 animate-pulse font-bold', icon: 'warning' };
+    default:
+      return { text: 'Wartet auf Kunden', cls: 'bg-amber-100 text-amber-800 border-amber-200', icon: 'hourglass_empty' };
   }
 }
 
@@ -79,6 +97,7 @@ export default function ClientNotifyPanel({
   const [localDetail, setLocalDetail] = useState(String(apt.clientNotifyDetail || ''));
   const [localAt, setLocalAt] = useState(apt.clientNotifyAt ? String(apt.clientNotifyAt) : '');
   const [lastError, setLastError] = useState('');
+  const [copied, setCopied] = useState(false);
 
   // Reset when opening another appointment / server updates notify fields
   useEffect(() => {
@@ -86,9 +105,20 @@ export default function ClientNotifyPanel({
     setLocalDetail(String(apt.clientNotifyDetail || ''));
     setLocalAt(apt.clientNotifyAt ? String(apt.clientNotifyAt) : '');
     setLastError('');
+    setCopied(false);
   }, [apt.id, apt.clientNotifyStatus, apt.clientNotifyDetail, apt.clientNotifyAt]);
 
   const badge = statusLabel(localStatus || apt.clientNotifyStatus);
+  const clientBadge = clientStatusBadge(apt.clientConfirmationStatus);
+
+  const copyManageUrl = () => {
+    if (!apt.manageToken) return;
+    const origin = typeof window !== 'undefined' ? window.location.origin.replace(/\/admin\/?$/, '') : '';
+    const url = `${origin}/manage-booking?token=${apt.manageToken}`;
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  };
   const aptStatus = String(apt.status || 'pending');
   const kind: 'booking' | 'confirmed' | 'cancelled' =
     aptStatus === 'cancelled' ? 'cancelled' : aptStatus === 'confirmed' ? 'confirmed' : 'booking';
@@ -201,6 +231,71 @@ export default function ClientNotifyPanel({
       {lastError && (
         <p className="font-sans text-xs text-red-700 bg-red-50 rounded-lg px-3 py-2">{lastError}</p>
       )}
+
+      {/* Kunden-Status & Bestätigung */}
+      <div className="bg-surface rounded-xl p-3 border border-outline-variant space-y-2 mt-2">
+        <div className="flex items-center justify-between">
+          <span className="font-sans text-xs text-on-surface-variant font-semibold">
+            Kunden-Status:
+          </span>
+          <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] border ${clientBadge.cls}`}>
+            <span className="material-symbols-outlined text-[13px]">{clientBadge.icon}</span>
+            {clientBadge.text}
+          </span>
+        </div>
+
+        {apt.clientConfirmedAt && (
+          <p className="font-sans text-xs text-green-800">
+            ✓ Vom Kunden bestätigt am {new Date(String(apt.clientConfirmedAt)).toLocaleString('de-DE')}
+          </p>
+        )}
+
+        {/* Warning if client attempted late cancellation <24h */}
+        {apt.clientConfirmationStatus === 'late_cancel_attempt' && (
+          <div className="bg-red-50 border border-red-300 rounded-lg p-2.5 text-xs text-red-900 space-y-1">
+            <p className="font-bold flex items-center gap-1">
+              <span className="material-symbols-outlined text-[15px] text-red-700">warning</span>
+              Kunde wollte kurzfristig (&lt; 24h) stornieren!
+            </p>
+            {apt.lateCancelAttemptAt && (
+              <p className="text-[11px] text-red-700">
+                Zeitpunkt der Anfrage: {new Date(String(apt.lateCancelAttemptAt)).toLocaleString('de-DE')}
+              </p>
+            )}
+            {apt.cancellationReason && (
+              <p className="italic bg-white/70 rounded p-1 text-[11px]">
+                Grund: „{apt.cancellationReason}“
+              </p>
+            )}
+            <p className="text-[11px] text-red-800 font-semibold">
+              Termin ist NICHT storniert. Bitte Kunden direkt kontaktieren!
+            </p>
+          </div>
+        )}
+
+        {apt.manageToken && (
+          <div className="pt-1 flex items-center justify-between border-t border-outline-variant/40">
+            <button
+              type="button"
+              onClick={copyManageUrl}
+              className="inline-flex items-center gap-1 text-xs text-primary hover:underline font-semibold"
+            >
+              <span className="material-symbols-outlined text-[14px]">
+                {copied ? 'check' : 'content_copy'}
+              </span>
+              {copied ? 'Kunden-Link kopiert!' : 'Kunden-Link zum Verwalten kopieren'}
+            </button>
+            <a
+              href={`/manage-booking?token=${apt.manageToken}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[11px] text-on-surface-variant hover:text-primary flex items-center gap-0.5"
+            >
+              Öffnen <span className="material-symbols-outlined text-[12px]">open_in_new</span>
+            </a>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

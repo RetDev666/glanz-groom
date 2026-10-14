@@ -97,6 +97,11 @@ export type NotifyAppointment = {
   } | null;
   groomer?: { name?: string | null } | null;
   services?: AptService[] | null;
+  manageToken?: string | null;
+  clientConfirmationStatus?: string | null;
+  clientConfirmedAt?: Date | string | null;
+  lateCancelAttemptAt?: Date | string | null;
+  cancellationReason?: string | null;
 };
 
 function fmtDateTimeDe(d: Date): string {
@@ -151,6 +156,18 @@ function startEnd(apt: NotifyAppointment): { start: Date; end: Date } {
   const duration = Math.max(Number(apt.duration) || 60, 15);
   const end = new Date(start.getTime() + duration * 60_000);
   return { start, end };
+}
+
+export function getFrontendUrl(): string {
+  const url = process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://glanz-groom.netlify.app';
+  return url.replace(/\/+$/, '');
+}
+
+export function buildManageUrl(token?: string | null, action?: 'confirm' | 'cancel'): string | null {
+  if (!token) return null;
+  const base = getFrontendUrl();
+  const act = action ? `&action=${action}` : '';
+  return `${base}/manage-booking?token=${encodeURIComponent(token)}${act}`;
 }
 
 /** Free WhatsApp deep-link (admin → client). Auto WhatsApp API can reuse this message later. */
@@ -349,6 +366,9 @@ export async function notifyBookingCreated(
       smtpConfigured: true,
     };
   } else {
+    const confirmUrl = buildManageUrl(apt.manageToken, 'confirm');
+    const manageUrl = buildManageUrl(apt.manageToken);
+
     const subject = `Terminreservierung bei ${salon.name} – ${fmtDateTimeDe(start)}`;
     const text = [
       `Hallo ${clientName},`,
@@ -358,15 +378,22 @@ export async function notifyBookingCreated(
       '',
       details.text,
       '',
-      'Bitte erscheinen Sie pünktlich. Absagen bitte mindestens 24 Stunden vorher.',
+      '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+      'WICHTIGE STORNIERUNGSBEDINGUNGEN (24-STUNDEN-REGEL):',
+      'Eine kostenfreie Stornierung oder Änderung Ihres Termins ist bis zu 24 Stunden vor dem Termin online möglich.',
+      'Bei kurzfristigen Absagen (weniger als 24 Stunden vorher) ist eine Online-Stornierung nicht mehr möglich.',
+      'Bitte kontaktieren Sie uns in diesem Fall unverzüglich telefonisch oder per WhatsApp.',
+      '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
       '',
+      confirmUrl ? `✓ TERMIN JETZT ONLINE BESTÄTIGEN:\n${confirmUrl}\n` : '',
+      manageUrl ? `⚙ TERMIN VERWALTEN / STORNIEREN:\n${manageUrl}\n` : '',
       `Fragen? WhatsApp: ${waUrl}`,
       `Telefon: ${salon.phone}`,
       '',
       'Im Anhang finden Sie eine Kalenderdatei (.ics).',
       '',
       `Ihr Team von ${salon.name}`,
-    ].join('\n');
+    ].filter(Boolean).join('\n');
 
     const html = shellHtml(
       subject,
@@ -379,15 +406,38 @@ export async function notifyBookingCreated(
       <div style="background:#f6f4f1;border-radius:12px;padding:16px;margin:0 0 16px;">
         ${details.html}
       </div>
-      <p style="margin:0 0 16px;font-size:13px;color:#555;line-height:1.5;">
-        Bitte erscheinen Sie pünktlich. Absagen bitte mindestens 24&nbsp;Stunden vorher.
-      </p>
-      <p style="margin:0 0 8px;">
-        <a href="${waUrl}" style="display:inline-block;background:#25D366;color:#fff;text-decoration:none;padding:12px 18px;border-radius:999px;font-weight:600;font-size:14px;">
+
+      <!-- 24h Stornierungsregel Box -->
+      <div style="background:#fffbeb;border:1px solid #fef3c7;border-left:4px solid #f59e0b;border-radius:8px;padding:14px;margin:0 0 20px;">
+        <div style="font-weight:700;color:#92400e;font-size:14px;margin-bottom:4px;">
+          ⏱️ Stornierungsbedingungen (24-Stunden-Regel)
+        </div>
+        <p style="margin:0;font-size:13px;color:#78350f;line-height:1.5;">
+          Eine kostenfreie Stornierung oder Verschiebung ist <strong>bis zu 24 Stunden vor dem Beginn</strong> online möglich.<br/>
+          Bei kurzfristigen Absagen (&lt; 24 Std.) bitten wir um direkte telefonische Kontaktaufnahme.
+        </p>
+      </div>
+
+      <!-- Buttons zur Bestätigung und Verwaltung -->
+      <div style="text-align:center;margin:24px 0 16px;">
+        ${confirmUrl ? `
+          <a href="${confirmUrl}" style="display:inline-block;background:#2e7d32;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:10px;font-weight:700;font-size:15px;margin:6px;box-shadow:0 2px 8px rgba(46,125,50,0.25);">
+            ✓ Termin jetzt bestätigen
+          </a>
+        ` : ''}
+        ${manageUrl ? `
+          <a href="${manageUrl}" style="display:inline-block;background:#ffffff;color:#374151;border:1px solid #d1d5db;text-decoration:none;padding:11px 20px;border-radius:10px;font-weight:600;font-size:14px;margin:6px;">
+            Termin verwalten / stornieren
+          </a>
+        ` : ''}
+      </div>
+
+      <div style="text-align:center;margin:16px 0;">
+        <a href="${waUrl}" style="display:inline-block;background:#25D366;color:#fff;text-decoration:none;padding:10px 18px;border-radius:999px;font-weight:600;font-size:13px;">
           WhatsApp an den Salon
         </a>
-      </p>
-      <p style="margin:16px 0 0;font-size:13px;color:#666;">Im Anhang: Kalenderdatei (.ics) zum Speichern im Kalender.</p>
+      </div>
+      <p style="margin:16px 0 0;font-size:13px;color:#666;text-align:center;">Im Anhang: Kalenderdatei (.ics) zum Speichern im Kalender.</p>
       `
     );
 
@@ -637,6 +687,73 @@ export async function resendClientNotify(
     emptyNotify('Nichts zu senden', apt, 'email')
   );
 }
+
+/** Alert salon that client tried to cancel < 24h before appointment */
+export async function notifyLateCancelAttempt(
+  apt: NotifyAppointment,
+  reason?: string
+): Promise<void> {
+  const salon = salonContact();
+  if (!isMailConfigured() || !isRealEmail(salon.email)) return;
+
+  const clientName = [apt.client?.firstName, apt.client?.lastName].filter(Boolean).join(' ') || 'Kunde';
+  const { start } = startEnd(apt);
+  const when = fmtDateTimeDe(start);
+  const clientWa = buildClientWhatsAppUrl(apt, 'booking');
+
+  const subject = `⚠️ Dringend: Storno-Versuch (<24h) für Termin #${apt.id} – ${clientName}`;
+  const text = [
+    `ACHTUNG: Kunde hat versucht, Termin #${apt.id} kurzfristig (< 24 Stunden) online zu stornieren!`,
+    '',
+    `Kunde: ${clientName} (${apt.client?.phone || 'Keine Nummer'})`,
+    `Tier: ${apt.pet?.name || 'Hund'}`,
+    `Termin: ${when}`,
+    reason ? `Grund des Kunden: ${reason}` : 'Kein Grund angegeben',
+    '',
+    'Der Termin wurde im System NICHT automatisch storniert, da dies gegen die 24-Stunden-Regel verstößt.',
+    'Bitte kontaktieren Sie den Kunden direkt per Telefon oder WhatsApp zur Klärung.',
+    clientWa ? `WhatsApp an Kunden: ${clientWa}` : '',
+  ].filter(Boolean).join('\n');
+
+  const html = shellHtml(
+    subject,
+    `
+    <div style="background:#fee2e2;border:1px solid #fca5a5;border-left:5px solid #dc2626;border-radius:8px;padding:16px;margin:0 0 16px;">
+      <h3 style="margin:0 0 8px;color:#991b1b;font-size:16px;">⚠️ Kurzfristiger Storno-Versuch (&lt; 24h vor Termin)</h3>
+      <p style="margin:0;font-size:14px;color:#7f1d1d;line-height:1.5;">
+        Kunde <strong>${escapeHtml(clientName)}</strong> hat versucht, den Termin online abzusagen.<br/>
+        Da der Termin in weniger als 24 Stunden stattfindet, wurde er <strong>nicht automatisch storniert</strong>.
+      </p>
+    </div>
+    <table role="presentation" width="100%" style="font-size:14px;line-height:1.6;margin-bottom:16px;">
+      <tr><td style="color:#666;width:120px;">Termin:</td><td style="font-weight:600;">${escapeHtml(when)}</td></tr>
+      <tr><td style="color:#666;">Kunde:</td><td>${escapeHtml(clientName)}</td></tr>
+      <tr><td style="color:#666;">Telefon:</td><td><a href="tel:${escapeHtml(apt.client?.phone || '')}" style="color:#ae2f34;">${escapeHtml(apt.client?.phone || '—')}</a></td></tr>
+      <tr><td style="color:#666;">Tier:</td><td>${escapeHtml(apt.pet?.name || 'Hund')}</td></tr>
+      ${reason ? `<tr><td style="color:#666;">Grund:</td><td><em>${escapeHtml(reason)}</em></td></tr>` : ''}
+    </table>
+    <div style="text-align:center;margin:16px 0;">
+      ${clientWa ? `
+        <a href="${clientWa}" style="display:inline-block;background:#25D366;color:#fff;text-decoration:none;padding:12px 20px;border-radius:999px;font-weight:700;font-size:14px;">
+          Kunden per WhatsApp kontaktieren
+        </a>
+      ` : ''}
+    </div>
+    `
+  );
+
+  try {
+    await sendMail({
+      to: salon.email,
+      subject,
+      text,
+      html,
+    });
+  } catch (e) {
+    console.error('[bookingNotify] Failed to send late cancel alert:', e);
+  }
+}
+
 
 /** Contact form → salon inbox */
 export async function notifyContactMessage(data: {

@@ -18,7 +18,7 @@ export default function AdminsPage() {
       try {
         const user = JSON.parse(userStr);
         setUserRole(user.role);
-        if (user.role !== 'developer') {
+        if (user.role !== 'developer' && user.role !== 'admin') {
           // If somehow navigated here directly
           window.location.href = '/';
         }
@@ -45,7 +45,7 @@ export default function AdminsPage() {
   };
 
   useEffect(() => {
-    if (userRole === 'developer') fetchAdmins();
+    if (userRole === 'developer' || userRole === 'admin') fetchAdmins();
   }, [userRole]);
 
   const handleAddAdmin = async () => {
@@ -90,7 +90,7 @@ export default function AdminsPage() {
     }
   };
 
-  if (userRole !== 'developer') return <AdminLayout><div className="p-6">Access denied</div></AdminLayout>;
+  if (userRole !== 'developer' && userRole !== 'admin') return <AdminLayout><div className="p-6">Access denied</div></AdminLayout>;
 
   return (
     <AdminLayout title={t.admins.title}>

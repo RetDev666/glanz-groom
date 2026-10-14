@@ -116,21 +116,21 @@ export default function Sidebar({ unreadCount = 0 }: { unreadCount?: number }) {
               </li>
             </>
           )}
+          {(userRole === 'developer' || userRole === 'admin') && (
+            <li>
+              <Link href="/admins" className={`flex items-center gap-3 px-4 py-3 rounded-full hover:bg-surface-container-high transition-colors ${router.pathname === '/admins' ? 'text-primary font-semibold' : 'text-on-surface-variant'}`}>
+                <span className="material-symbols-outlined">admin_panel_settings</span>
+                <span className="font-sans text-sm">{t.sidebar.admins}</span>
+              </Link>
+            </li>
+          )}
           {userRole === 'developer' && (
-            <>
-              <li>
-                <Link href="/admins" className={`flex items-center gap-3 px-4 py-3 rounded-full hover:bg-surface-container-high transition-colors ${router.pathname === '/admins' ? 'text-primary font-semibold' : 'text-on-surface-variant'}`}>
-                  <span className="material-symbols-outlined">admin_panel_settings</span>
-                  <span className="font-sans text-sm">{t.sidebar.admins}</span>
-                </Link>
-              </li>
-              <li>
-                <Link href="/system" className={`flex items-center gap-3 px-4 py-3 rounded-full hover:bg-surface-container-high transition-colors ${router.pathname === '/system' ? 'text-primary font-semibold' : 'text-on-surface-variant'}`}>
-                  <span className="material-symbols-outlined">build</span>
-                  <span className="font-sans text-sm">{t.sidebar.system}</span>
-                </Link>
-              </li>
-            </>
+            <li>
+              <Link href="/system" className={`flex items-center gap-3 px-4 py-3 rounded-full hover:bg-surface-container-high transition-colors ${router.pathname === '/system' ? 'text-primary font-semibold' : 'text-on-surface-variant'}`}>
+                <span className="material-symbols-outlined">build</span>
+                <span className="font-sans text-sm">{t.sidebar.system}</span>
+              </Link>
+            </li>
           )}
           <li>
             <button onClick={logout} className="flex items-center gap-3 text-on-surface-variant px-4 py-3 rounded-full hover:bg-red-50 hover:text-red-600 transition-colors w-full">
