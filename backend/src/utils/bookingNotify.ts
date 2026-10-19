@@ -421,24 +421,49 @@ export async function notifyBookingCreated(
         </p>
       </div>
 
-      <!-- Buttons zur Bestätigung und Verwaltung -->
-      <div style="text-align:center;margin:24px 0 16px;">
+      <!-- Buttons zur Bestätigung und Verwaltung (Email-Safe Bulletproof Buttons) -->
+      <div style="text-align:center;margin:24px 0 12px;">
         ${confirmUrl ? `
-          <a href="${confirmUrl}" style="display:inline-block;background:#2e7d32;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:10px;font-weight:700;font-size:15px;margin:6px;box-shadow:0 2px 8px rgba(46,125,50,0.25);">
-            ✓ Termin jetzt bestätigen
-          </a>
+          <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin:8px auto;display:inline-block;">
+            <tr>
+              <td align="center" style="border-radius:10px;background-color:#2e7d32;">
+                <a href="${confirmUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-block;background-color:#2e7d32;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:10px;font-weight:700;font-size:15px;border:1px solid #2e7d32;font-family:Segoe UI,Helvetica,Arial,sans-serif;">
+                  ✓ Termin jetzt bestätigen
+                </a>
+              </td>
+            </tr>
+          </table>
         ` : ''}
         ${manageUrl ? `
-          <a href="${manageUrl}" style="display:inline-block;background:#ffffff;color:#374151;border:1px solid #d1d5db;text-decoration:none;padding:11px 20px;border-radius:10px;font-weight:600;font-size:14px;margin:6px;">
-            Termin verwalten / stornieren
-          </a>
+          <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin:8px auto;display:inline-block;">
+            <tr>
+              <td align="center" style="border-radius:10px;background-color:#ffffff;border:1px solid #d1d5db;">
+                <a href="${manageUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-block;background-color:#ffffff;color:#374151;text-decoration:none;padding:12px 22px;border-radius:10px;font-weight:600;font-size:14px;border:1px solid #d1d5db;font-family:Segoe UI,Helvetica,Arial,sans-serif;">
+                  Termin verwalten / stornieren
+                </a>
+              </td>
+            </tr>
+          </table>
         ` : ''}
       </div>
 
+      ${confirmUrl ? `
+        <div style="text-align:center;margin:0 0 16px;font-size:12px;color:#777;line-height:1.4;">
+          Falls der Button nicht klickbar ist, Link direkt im Browser öffnen:<br/>
+          <a href="${confirmUrl}" target="_blank" rel="noopener noreferrer" style="color:#2e7d32;word-break:break-all;font-size:11px;text-decoration:underline;">${confirmUrl}</a>
+        </div>
+      ` : ''}
+
       <div style="text-align:center;margin:16px 0;">
-        <a href="${waUrl}" style="display:inline-block;background:#25D366;color:#fff;text-decoration:none;padding:10px 18px;border-radius:999px;font-weight:600;font-size:13px;">
-          WhatsApp an den Salon
-        </a>
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin:0 auto;">
+          <tr>
+            <td align="center" style="border-radius:999px;background-color:#25D366;">
+              <a href="${waUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-block;background-color:#25D366;color:#ffffff;text-decoration:none;padding:10px 22px;border-radius:999px;font-weight:600;font-size:13px;font-family:Segoe UI,Helvetica,Arial,sans-serif;">
+                WhatsApp an den Salon
+              </a>
+            </td>
+          </tr>
+        </table>
       </div>
       <p style="margin:16px 0 0;font-size:13px;color:#666;text-align:center;">Im Anhang: Kalenderdatei (.ics) zum Speichern im Kalender.</p>
       `
@@ -500,7 +525,7 @@ export async function notifyBookingCreated(
         ${details.html}
       </div>
       <p style="margin:0 0 8px;font-size:13px;">Kunden-Benachrichtigung: <strong>${escapeHtml(result.status)}</strong> — ${escapeHtml(result.detail)}</p>
-      ${clientWa ? `<p style="margin:0 0 8px;"><a href="${clientWa}" style="display:inline-block;background:#25D366;color:#fff;text-decoration:none;padding:10px 16px;border-radius:999px;font-weight:600;font-size:13px;">WhatsApp an Kunden</a></p>` : ''}
+      ${clientWa ? `<p style="margin:0 0 8px;"><a href="${clientWa}" target="_blank" rel="noopener noreferrer" style="display:inline-block;background:#25D366;color:#fff;text-decoration:none;padding:10px 16px;border-radius:999px;font-weight:600;font-size:13px;">WhatsApp an Kunden</a></p>` : ''}
       <p style="margin:0;font-size:13px;color:#666;">Status: <strong>pending</strong> – bitte im Admin-Kalender prüfen.</p>
       `
     );
@@ -737,7 +762,7 @@ export async function notifyLateCancelAttempt(
     </table>
     <div style="text-align:center;margin:16px 0;">
       ${clientWa ? `
-        <a href="${clientWa}" style="display:inline-block;background:#25D366;color:#fff;text-decoration:none;padding:12px 20px;border-radius:999px;font-weight:700;font-size:14px;">
+        <a href="${clientWa}" target="_blank" rel="noopener noreferrer" style="display:inline-block;background:#25D366;color:#fff;text-decoration:none;padding:12px 20px;border-radius:999px;font-weight:700;font-size:14px;">
           Kunden per WhatsApp kontaktieren
         </a>
       ` : ''}
