@@ -67,7 +67,10 @@ export function salonContact() {
     address: process.env.SALON_ADDRESS || 'Kreuznacher Str. 10, 14197 Berlin',
     /** Digits only for wa.me */
     whatsapp: (process.env.SALON_WHATSAPP || '493075630831').replace(/\D/g, ''),
-    website: process.env.FRONTEND_URL || 'https://glanzgroom.de',
+    website:
+      process.env.FRONTEND_URL && !process.env.FRONTEND_URL.includes('zippy-dieffenbachia')
+        ? process.env.FRONTEND_URL.replace(/\/+$/, '')
+        : 'https://glanzgroom.de',
   };
 }
 

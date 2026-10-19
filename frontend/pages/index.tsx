@@ -45,13 +45,6 @@ export default function HomePage() {
     }).finally(() => setReviewsLoading(false));
   }, []);
 
-  const stats = [
-    { value: '500+', label: t.home.stats.clients },
-    { value: '2000+', label: t.home.stats.procedures },
-    { value: '5 ★', label: t.home.stats.rating },
-    { value: '3', label: t.home.stats.groomers },
-  ];
-
   return (
     <Layout>
       <Head>
@@ -103,15 +96,19 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* STATS */}
-      <section className="bg-gradient-to-r from-[#34d399] to-[#059669] py-10 px-6 md:px-12">
-        <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-          {stats.map(s => (
-            <div key={s.value}>
-              <div className="font-display text-3xl md:text-4xl font-extrabold text-white">{s.value}</div>
-              <div className="font-sans text-label-sm text-white/90 mt-1">{s.label}</div>
-            </div>
-          ))}
+      {/* SLOGAN BANNER */}
+      <section className="relative overflow-hidden bg-gradient-to-r from-[#34d399] via-[#10b981] to-[#059669] py-12 md:py-14 px-6 md:px-12 shadow-sm">
+        <div className="max-w-5xl mx-auto text-center relative z-10">
+          <div className="inline-flex items-center justify-center gap-2 px-4 py-1.5 rounded-full bg-white/20 backdrop-blur-sm text-white text-xs font-bold uppercase tracking-widest mb-4">
+            <span className="material-symbols-outlined text-[16px]">pets</span>
+            <span>Glanz &amp; Groom</span>
+          </div>
+          <h2 className="font-display text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-tight drop-shadow-sm">
+            {t.home.sloganTitle || 'Königliche Pflege mit Liebe für jedes Detail'}
+          </h2>
+          <p className="font-sans text-base sm:text-lg text-white/95 mt-3 max-w-2xl mx-auto font-medium">
+            {t.home.sloganSubtitle || 'Ihr Premium-Hundesalon in Berlin — stressfrei, professionell & fürsorglich'}
+          </p>
         </div>
       </section>
 

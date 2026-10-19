@@ -19,7 +19,7 @@ export type ClientNotifyResult = {
 export async function safeNotify<T>(
   label: string,
   work: () => Promise<T>,
-  timeoutMs = 8000
+  timeoutMs = 9500
 ): Promise<T | null> {
   try {
     let timedOut = false;
@@ -159,8 +159,11 @@ function startEnd(apt: NotifyAppointment): { start: Date; end: Date } {
 }
 
 export function getFrontendUrl(): string {
-  const url = process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://glanz-groom.netlify.app';
-  return url.replace(/\/+$/, '');
+  const envUrl = process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_FRONTEND_URL || '';
+  if (!envUrl || envUrl.includes('zippy-dieffenbachia') || envUrl.includes('localhost')) {
+    return 'https://glanzgroom.de';
+  }
+  return envUrl.replace(/\/+$/, '');
 }
 
 export function buildManageUrl(token?: string | null, action?: 'confirm' | 'cancel'): string | null {

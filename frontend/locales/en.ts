@@ -13,6 +13,8 @@ export const en = {
     heroDesc: 'Because they deserve the best. Experience joyful luxury for your furry family members.',
     bookBtn: 'Book Now',
     servicesBtn: 'Our Services',
+    sloganTitle: 'Royal Care with Love for Every Detail',
+    sloganSubtitle: 'Your premium dog salon in Berlin — stress-free, professional & caring',
     stats: {
       clients: 'Happy Clients',
       procedures: 'Procedures per Year',

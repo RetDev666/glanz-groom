@@ -13,6 +13,8 @@ export const de = {
     heroDesc: 'Weil sie nur das Beste verdienen. Erleben Sie freudigen Luxus für Ihre pelzigen Familienmitglieder.',
     bookBtn: 'Buchen',
     servicesBtn: 'Unsere Leistungen',
+    sloganTitle: 'Königliche Pflege mit Liebe für jedes Detail',
+    sloganSubtitle: 'Ihr Premium-Hundesalon in Berlin — stressfrei, professionell & fürsorglich',
     stats: {
       clients: 'Zufriedene Kunden',
       procedures: 'Behandlungen pro Jahr',

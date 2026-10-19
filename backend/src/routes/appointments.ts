@@ -164,7 +164,7 @@ router.post('/admin-create', requireAuth, async (req: AuthRequest, res: Response
   try {
     const {
       groomerId, date, duration, notes, petName, petBreed, petSize,
-      clientFirstName, clientLastName, clientPhone, isBlock, serviceIds, discount,
+      clientFirstName, clientLastName, clientPhone, clientEmail, isBlock, serviceIds, discount,
     } = req.body;
 
     let finalDuration = Number(duration) || 0;
@@ -202,25 +202,35 @@ router.post('/admin-create', requireAuth, async (req: AuthRequest, res: Response
       return res.json(appointment);
     }
 
-    // Normal admin appointment creation — reuse existing client by phone when possible
+    // Normal admin appointment creation — reuse existing client by phone or email when possible
+    const { isRealEmail } = require('../utils/mail');
+    const validEmail = isRealEmail(clientEmail) ? clientEmail.trim().toLowerCase() : null;
+    const finalEmail = validEmail || `client-${Date.now()}@local`;
+
     let client = clientPhone
       ? await prisma.client.findFirst({ where: { phone: clientPhone } })
       : null;
+    if (!client && validEmail) {
+      client = await prisma.client.findUnique({ where: { email: validEmail } });
+    }
     if (!client) {
       client = await prisma.client.create({
         data: { 
           firstName: clientFirstName || 'Client', 
-          lastName: '', 
-          email: `client-${Date.now()}@local`, 
+          lastName: clientLastName || '', 
+          email: finalEmail, 
           phone: clientPhone || '000000000' 
         }
       });
-    } else if (clientFirstName || clientLastName !== undefined) {
-      // Keep profile fresh when re-booking a known client (do not overwrite client's permanent profile notes with appointment notes)
+    } else {
+      // Keep profile fresh when re-booking a known client
       const patch: Record<string, string> = {};
       if (clientFirstName && clientFirstName !== client.firstName) patch.firstName = clientFirstName;
       if (clientLastName !== undefined && String(clientLastName) !== client.lastName) {
         patch.lastName = String(clientLastName || '');
+      }
+      if (validEmail && (client.email.includes('@local') || client.email.includes('no-email') || client.email !== validEmail)) {
+        patch.email = validEmail;
       }
       if (Object.keys(patch).length > 0) {
         client = await prisma.client.update({ where: { id: client.id }, data: patch });
@@ -287,7 +297,33 @@ router.post('/admin-create', requireAuth, async (req: AuthRequest, res: Response
     });
 
     cacheInvalidate('avail:');
-    res.json(appointment);
+
+    // If client has a valid real email, send confirmation email (skip salon since staff created it)
+    if (validEmail) {
+      try {
+        const { notifyBookingCreated, safeNotify } = require('../utils/bookingNotify');
+        const fullApt = await prisma.appointment.findUnique({
+          where: { id: appointment.id },
+          include: { client: true, pet: true, groomer: true, services: { include: { service: true } } },
+        });
+        if (fullApt) {
+          await safeNotify('admin-create-notify', () => notifyBookingCreated(fullApt, { skipSalon: true }));
+        }
+      } catch (e) {
+        console.error('[admin-create] notify error:', e);
+      }
+    }
+
+    let payload: any = appointment;
+    try {
+      const refreshed = await prisma.appointment.findUnique({
+        where: { id: appointment.id },
+        include: { client: true, pet: true, groomer: true, services: { include: { service: true } } },
+      });
+      if (refreshed) payload = refreshed;
+    } catch { /* ok */ }
+
+    res.json(payload);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal server error' });
