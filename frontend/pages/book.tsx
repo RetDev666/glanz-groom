@@ -274,7 +274,21 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
     if (router.query.size) {
       const s = router.query.size as string;
       if (['xs', 's', 'm', 'l', 'xl'].includes(s)) {
-        setBooking(b => ({ ...b, pets: [{ ...b.pets[0], petSize: s as any }] }));
+        setBooking(b => {
+          const current = b.pets[0];
+          return {
+            ...b,
+            pets: [{
+              id: current?.id || '1',
+              petSize: s as any,
+              selectedServices: current?.selectedServices || [],
+              petName: current?.petName || '',
+              petBreed: current?.petBreed || '',
+              photoFile: current?.photoFile || null,
+              photoPreview: current?.photoPreview || null
+            }]
+          };
+        });
       }
     }
     if (router.query.services) {
@@ -284,7 +298,21 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
         .map(s => s.id);
       
       if (matchingIds.length > 0) {
-        setBooking(b => ({ ...b, pets: [{ ...b.pets[0], selectedServices: matchingIds }] }));
+        setBooking(b => {
+          const current = b.pets[0];
+          return {
+            ...b,
+            pets: [{
+              id: current?.id || '1',
+              petSize: current?.petSize || 'm',
+              selectedServices: matchingIds,
+              petName: current?.petName || '',
+              petBreed: current?.petBreed || '',
+              photoFile: current?.photoFile || null,
+              photoPreview: current?.photoPreview || null
+            }]
+          };
+        });
       }
     }
   }, [router.query.size, router.query.services, initialServices, initialGroomers, initialSettings]);
@@ -406,47 +434,65 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
 
   const toggleServiceForSize = (serviceId: number, size: 'xs' | 's' | 'm' | 'l' | 'xl', isPackage: boolean) => {
     setBooking(b => {
-      const newPets = [...b.pets];
-      let petIndex = newPets.findIndex(p => p.petSize === size);
-      
-      if (petIndex === -1) {
-        newPets.push({
-          id: Date.now().toString() + '-' + size,
-          petSize: size,
-          selectedServices: [],
-          petName: '',
-          petBreed: '',
-          photoFile: null,
-          photoPreview: null
-        });
-        petIndex = newPets.length - 1;
-      }
-      
-      const pet = { ...newPets[petIndex] };
+      const currentPet = b.pets[0];
       const packageIds = packages.map(p => p.id);
 
-      if (isPackage) {
-        const other = pet.selectedServices.filter(sid => !packageIds.includes(sid));
-        pet.selectedServices = pet.selectedServices.includes(serviceId) ? other : [...other, serviceId];
-      } else {
-        if (pet.selectedServices.includes(serviceId)) {
-          pet.selectedServices = pet.selectedServices.filter(x => x !== serviceId);
-        } else {
-          pet.selectedServices = [...pet.selectedServices, serviceId];
-        }
-      }
-      
-      if (pet.selectedServices.length === 0) {
-         newPets.splice(petIndex, 1);
-      } else {
-         newPets[petIndex] = pet;
+      if (!currentPet) {
+        return {
+          ...b,
+          pets: [{
+            id: '1',
+            petSize: size,
+            selectedServices: [serviceId],
+            petName: '',
+            petBreed: '',
+            photoFile: null,
+            photoPreview: null
+          }]
+        };
       }
 
-      return { ...b, pets: newPets };
+      let updatedServices = [...currentPet.selectedServices];
+
+      if (currentPet.petSize === size) {
+        if (isPackage) {
+          const other = updatedServices.filter(sid => !packageIds.includes(sid));
+          updatedServices = updatedServices.includes(serviceId) ? other : [...other, serviceId];
+        } else {
+          if (updatedServices.includes(serviceId)) {
+            updatedServices = updatedServices.filter(x => x !== serviceId);
+          } else {
+            updatedServices = [...updatedServices, serviceId];
+          }
+        }
+      } else {
+        // Different size selected: keep only 1 dog, switch to new size
+        if (isPackage) {
+          const other = updatedServices.filter(sid => !packageIds.includes(sid));
+          updatedServices = updatedServices.includes(serviceId) ? other : [...other, serviceId];
+        } else {
+          if (!updatedServices.includes(serviceId)) {
+            updatedServices = [...updatedServices, serviceId];
+          }
+        }
+      }
+
+      if (updatedServices.length === 0) {
+        return { ...b, pets: [] };
+      }
+
+      return {
+        ...b,
+        pets: [{
+          ...currentPet,
+          petSize: size,
+          selectedServices: updatedServices
+        }]
+      };
     });
   };
 
-  const handlePhotoChange = async (petIndex: number, e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
@@ -456,9 +502,11 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
       const reader = new FileReader();
       reader.onloadend = () => {
         setBooking(b => {
-          const newPets = [...b.pets];
-          newPets[petIndex] = { ...newPets[petIndex], photoFile: file, photoPreview: reader.result as string };
-          return { ...b, pets: newPets };
+          if (!b.pets[0]) return b;
+          return {
+            ...b,
+            pets: [{ ...b.pets[0], photoFile: file, photoPreview: reader.result as string }]
+          };
         });
         setError('');
       };
@@ -467,10 +515,10 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
   };
 
   const canNext = () => {
-    if (step === 0) return booking.pets.length > 0 && booking.pets.every(p => p.selectedServices.length > 0);
+    if (step === 0) return booking.pets.length > 0 && booking.pets[0].selectedServices.length > 0;
     if (step === 1) return booking.groomerId !== null;
-    if (step === 2) return booking.date && booking.time;
-    if (step === 3) return booking.firstName && booking.email && booking.phone && booking.pets.every(p => p.petName) && booking.acceptTerms;
+    if (step === 2) return Boolean(booking.date && booking.time);
+    if (step === 3) return Boolean(booking.firstName && booking.email && booking.phone && booking.pets[0]?.petName && booking.acceptTerms);
     return false;
   };
 
@@ -479,67 +527,62 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
     setError('');
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-      
-      const dateTime = new Date(`${booking.date}T${booking.time}:00`);
-      let currentDateTime = dateTime;
+      const pet = booking.pets[0];
+      if (!pet) throw new Error('Kein Haustier ausgewählt');
 
-      for (const pet of booking.pets) {
-        let petPhotoUrl = null;
-        if (pet.photoFile) {
-          const formData = new FormData();
-          formData.append('photo', pet.photoFile);
-          const uploadRes = await fetch(`${apiUrl}/upload/pet-photo`, {
-            method: 'POST',
-            body: formData,
-          });
-          if (uploadRes.ok) {
-            petPhotoUrl = (await uploadRes.json()).url;
-          }
-        }
-
-        // Always lowercase size so backend maps to durationXs (not L)
-        const sizeKey = String(pet.petSize || 'm').trim().toLowerCase();
-        const durationKey = SIZE_DURATION_KEY[sizeKey] || 'durationM';
-        const petDuration = pet.selectedServices
-          .map(id => services.find(s => s.id === id))
-          .filter(Boolean)
-          .reduce((sum, s) => sum + (Number(s![durationKey]) || 0), 0);
-        
-        const priceKey = SIZE_PRICE_KEY[sizeKey] || 'priceM';
-        const petPrice = pet.selectedServices
-          .map(id => services.find(s => s.id === id))
-          .filter(Boolean)
-          .reduce((sum, s) => sum + (Number(s![priceKey]) || 0), 0);
-
-        const res = await fetch(`${apiUrl}/appointments`, {
+      let petPhotoUrl = null;
+      if (pet.photoFile) {
+        const formData = new FormData();
+        formData.append('photo', pet.photoFile);
+        const uploadRes = await fetch(`${apiUrl}/upload/pet-photo`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            clientFirstName: booking.firstName,
-            clientLastName: booking.lastName,
-            clientEmail: booking.email,
-            clientPhone: booking.phone,
-            petName: pet.petName,
-            petBreed: pet.petBreed,
-            petSize: sizeKey,
-            petPhotoUrl,
-            notes: booking.notes,
-            groomerId: booking.groomerId,
-            date: currentDateTime.toISOString(),
-            serviceIds: pet.selectedServices,
-            duration: petDuration,
-            totalPrice: petPrice
-          })
+          body: formData,
         });
-
-        if (!res.ok) {
-          const errData = await res.json();
-          throw new Error(errData.error || 'Fehler beim Erstellen');
+        if (uploadRes.ok) {
+          petPhotoUrl = (await uploadRes.json()).url;
         }
-
-        currentDateTime = new Date(currentDateTime.getTime() + petDuration * 60000);
       }
+
+      // Always lowercase size so backend maps to durationXs (not L)
+      const sizeKey = String(pet.petSize || 'm').trim().toLowerCase();
+      const durationKey = SIZE_DURATION_KEY[sizeKey] || 'durationM';
+      const petDuration = pet.selectedServices
+        .map(id => services.find(s => s.id === id))
+        .filter(Boolean)
+        .reduce((sum, s) => sum + (Number(s![durationKey]) || 0), 0);
       
+      const priceKey = SIZE_PRICE_KEY[sizeKey] || 'priceM';
+      const petPrice = pet.selectedServices
+        .map(id => services.find(s => s.id === id))
+        .filter(Boolean)
+        .reduce((sum, s) => sum + (Number(s![priceKey]) || 0), 0);
+
+      const res = await fetch(`${apiUrl}/appointments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientFirstName: booking.firstName,
+          clientLastName: booking.lastName,
+          clientEmail: booking.email,
+          clientPhone: booking.phone,
+          petName: pet.petName,
+          petBreed: pet.petBreed,
+          petSize: sizeKey,
+          petPhotoUrl,
+          notes: booking.notes,
+          groomerId: booking.groomerId,
+          date: `${booking.date}T${booking.time}:00`,
+          serviceIds: pet.selectedServices,
+          duration: petDuration,
+          totalPrice: petPrice
+        })
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Fehler beim Erstellen');
+      }
+
       setSubmitted(true);
     } catch (err: any) {
       console.error(err);
@@ -557,15 +600,16 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
       return d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
     };
 
-    const serviceNames = booking.pets.map(pet => 
-      pet.selectedServices
-        .map(id => services.find(s => s.id === id))
-        .filter(Boolean)
-        .map(s => locale === 'en' && s?.nameEn ? s.nameEn : s?.name)
-        .join(', ')
-    ).join(' | ');
+    const pet = booking.pets[0];
+    const serviceNames = pet
+      ? pet.selectedServices
+          .map(id => services.find(s => s.id === id))
+          .filter(Boolean)
+          .map(s => locale === 'en' && s?.nameEn ? s.nameEn : s?.name)
+          .join(', ')
+      : '';
 
-    const petNames = booking.pets.map(p => p.petName).join(', ');
+    const petName = pet?.petName || '';
 
     const icsContent = [
       'BEGIN:VCALENDAR',
@@ -576,7 +620,7 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
       `DTSTAMP:${formatDate(new Date())}`,
       `DTSTART:${formatDate(dateTime)}`,
       `DTEND:${formatDate(endDateTime)}`,
-      `SUMMARY:Grooming ${petNames} (Glanz & Groom)`,
+      `SUMMARY:Grooming ${petName} (Glanz & Groom)`,
       `DESCRIPTION:Services: ${serviceNames}. Duration: ${totalDuration} min.`,
       `LOCATION:Glanz & Groom Salon`,
       'END:VEVENT',
@@ -586,7 +630,7 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
     const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
     const link = document.createElement('a');
     link.href = window.URL.createObjectURL(blob);
-    link.download = `grooming_${petNames.replace(/[^a-z0-9]/gi, '_')}.ics`;
+    link.download = `grooming_${petName.replace(/[^a-z0-9]/gi, '_')}.ics`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -598,19 +642,20 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
     
     const formatDate = (d: Date) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
 
-    const serviceNames = booking.pets.map(pet => 
-      pet.selectedServices
-        .map(id => services.find(s => s.id === id))
-        .filter(Boolean)
-        .map(s => locale === 'en' && s?.nameEn ? s.nameEn : s?.name)
-        .join(', ')
-    ).join(' | ');
+    const pet = booking.pets[0];
+    const serviceNames = pet
+      ? pet.selectedServices
+          .map(id => services.find(s => s.id === id))
+          .filter(Boolean)
+          .map(s => locale === 'en' && s?.nameEn ? s.nameEn : s?.name)
+          .join(', ')
+      : '';
 
-    const petNames = booking.pets.map(p => p.petName).join(', ');
+    const petName = pet?.petName || '';
 
     const params = new URLSearchParams({
       action: 'TEMPLATE',
-      text: `Grooming ${petNames} (Glanz & Groom)`,
+      text: `Grooming ${petName} (Glanz & Groom)`,
       dates: `${formatDate(dateTime)}/${formatDate(endDateTime)}`,
       details: `Services: ${serviceNames}. Duration: ${totalDuration} min.`,
       location: 'Glanz & Groom Salon',
@@ -622,6 +667,8 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
   const getServiceName = (svc: Service) => locale === 'en' && svc.nameEn ? svc.nameEn : svc.name;
 
   if (submitted) {
+    const pet = booking.pets[0];
+    const petName = pet?.petName || '';
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 text-center py-12">
         <Head>
@@ -633,7 +680,7 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
           </div>
           <h1 className="font-display text-headline-lg text-on-background mb-2">{t.book.success.title}</h1>
           <p className="font-sans text-body-md text-on-surface-variant mb-3">
-            {t.book.success.desc1} <strong>{booking.pets.map(p => p.petName).join(', ')}</strong> {t.book.success.desc2}
+            {t.book.success.desc1} <strong>{petName}</strong> {t.book.success.desc2}
           </p>
           {booking.email && (
             <p className="font-sans text-body-sm text-on-surface-variant mb-6 bg-surface-container rounded-xl px-4 py-3 text-left">
@@ -642,11 +689,9 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
             </p>
           )}
 
-          {booking.pets[0]?.photoPreview && (
-            <div className="mb-6 flex flex-wrap gap-4 justify-center">
-              {booking.pets.map(p => p.photoPreview && (
-                <img key={p.id} src={p.photoPreview} alt="Pet" className="w-24 h-24 rounded-full object-cover border-4 border-surface shadow-md" />
-              ))}
+          {pet?.photoPreview && (
+            <div className="mb-6 flex justify-center">
+              <img src={pet.photoPreview} alt="Pet" className="w-24 h-24 rounded-full object-cover border-4 border-surface shadow-md" />
             </div>
           )}
 
@@ -659,7 +704,7 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
           <div className="flex flex-col gap-3 mb-6">
             <a
               href={`https://wa.me/493075630831?text=${encodeURIComponent(
-                `Hallo Glanz & Groom! Ich habe einen Termin gebucht: ${booking.date} ${booking.time}, ${booking.pets.map(p => p.petName).join(', ')}, Tel: ${booking.phone}`
+                `Hallo Glanz & Groom! Ich habe einen Termin gebucht: ${booking.date} ${booking.time}, ${petName}, Tel: ${booking.phone}`
               )}`}
               target="_blank"
               rel="noopener noreferrer"
@@ -782,8 +827,8 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
                                  const d = Number(svc[durationKey]) || 0;
                                  if (p === 0) return null;
 
-                                 const pet = booking.pets.find(p => p.petSize === size);
-                                 const isSelected = pet?.selectedServices.includes(svc.id) || false;
+                                 const pet = booking.pets[0];
+                                 const isSelected = Boolean(pet && pet.petSize === size && pet.selectedServices.includes(svc.id));
 
                                  return (
                                     <label key={size} className={`flex flex-row items-start gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${isSelected ? 'border-primary bg-primary/5 shadow-md' : 'border-outline hover:border-primary/50'}`}>
@@ -984,7 +1029,8 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
                 <input type="email" value={booking.email} onChange={e => setBooking({ ...booking, email: e.target.value })} className="w-full bg-surface border border-outline rounded-xl px-4 py-3 focus:border-primary focus:ring-1 outline-none" placeholder={t.book.step3.emailPh} />
               </div>
 
-              {booking.pets.map((pet, petIndex) => {
+              {booking.pets[0] && (() => {
+                 const pet = booking.pets[0];
                  const petServices = pet.selectedServices
                     .map(id => services.find(s => s.id === id))
                     .filter(Boolean)
@@ -994,24 +1040,20 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
                  return (
                 <div key={pet.id} className="p-4 bg-surface-container-low border border-surface-variant rounded-xl mt-4">
                   <h3 className="font-display text-label-lg font-bold text-primary mb-1 pb-2 border-b border-outline">
-                    Hund {petIndex + 1} ({pet.petSize.toUpperCase()} - {SIZE_LABELS[pet.petSize]})
+                    Angaben zum Hund ({pet.petSize.toUpperCase()} - {SIZE_LABELS[pet.petSize]})
                   </h3>
                   <p className="text-xs text-on-surface-variant mb-4 italic">Gewählte Leistungen: {petServices}</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Name des Hundes</label>
                       <input type="text" value={pet.petName} onChange={e => {
-                        const newPets = [...booking.pets];
-                        newPets[petIndex] = { ...pet, petName: e.target.value };
-                        setBooking({ ...booking, pets: newPets });
+                        setBooking({ ...booking, pets: [{ ...pet, petName: e.target.value }] });
                       }} className="w-full bg-surface border border-outline rounded-xl px-4 py-3 focus:border-primary focus:ring-1 outline-none" placeholder="z.B. Rex" />
                     </div>
                     <div>
                       <label className="block font-sans text-label-sm text-on-surface-variant mb-1">Hunderasse</label>
                       <input type="text" list={`breed-suggestions-${pet.id}`} value={pet.petBreed} onChange={e => {
-                        const newPets = [...booking.pets];
-                        newPets[petIndex] = { ...pet, petBreed: e.target.value };
-                        setBooking({ ...booking, pets: newPets });
+                        setBooking({ ...booking, pets: [{ ...pet, petBreed: e.target.value }] });
                       }} className="w-full bg-surface border border-outline rounded-xl px-4 py-3 focus:border-primary focus:ring-1 outline-none" placeholder="z.B. Chihuahua" />
                       {breedsConfig[pet.petSize] && breedsConfig[pet.petSize].length > 0 && (
                         <datalist id={`breed-suggestions-${pet.id}`}>
@@ -1038,7 +1080,7 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
                         id={`photoUpload-${pet.id}`}
                         className="hidden" 
                         accept="image/*" 
-                        onChange={(e) => handlePhotoChange(petIndex, e as any)}
+                        onChange={handlePhotoChange}
                       />
                       {pet.photoPreview ? (
                         <div className="flex items-center gap-4 w-full">
@@ -1058,8 +1100,8 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
                     </div>
                   </div>
                 </div>
-              );
-            })}
+                 );
+              })()}
 
               <div className="mt-4">
                 <label className="block font-sans text-label-sm text-on-surface-variant mb-1">{t.book.step3.notes}</label>
