@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import prisma from '../lib/prisma';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { cacheGet, cacheSet, cacheInvalidate, TTL } from '../lib/cache';
+import { parseBerlinOrUtcDate } from '../utils/timezone';
 
 const router = Router();
 
@@ -44,16 +45,15 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
     }
     
     if (startDate && endDate) {
-      where.date = { gte: new Date(startDate as string), lte: new Date(endDate as string) };
+      where.date = { gte: parseBerlinOrUtcDate(startDate as string, '00:00'), lte: parseBerlinOrUtcDate(endDate as string, '23:59:59') };
     } else if (startDate) {
-      where.date = { gte: new Date(startDate as string) };
+      where.date = { gte: parseBerlinOrUtcDate(startDate as string, '00:00') };
     } else if (endDate) {
-      where.date = { lte: new Date(endDate as string) };
+      where.date = { lte: parseBerlinOrUtcDate(endDate as string, '23:59:59') };
     } else if (date) {
-      const d = new Date(date as string);
-      const nextDay = new Date(d);
-      nextDay.setDate(nextDay.getDate() + 1);
-      where.date = { gte: d, lt: nextDay };
+      const d = parseBerlinOrUtcDate(date as string, '00:00');
+      const nextDay = parseBerlinOrUtcDate(date as string, '23:59:59.999');
+      where.date = { gte: d, lte: nextDay };
     }
 
     const appointments = await prisma.appointment.findMany({
@@ -93,12 +93,11 @@ router.get('/availability', async (req: Request, res: Response) => {
 
     let dateWhere: any = {};
     if (startDate && endDate) {
-      dateWhere = { gte: new Date(startDate as string), lt: new Date(endDate as string) };
+      dateWhere = { gte: parseBerlinOrUtcDate(startDate as string, '00:00'), lte: parseBerlinOrUtcDate(endDate as string, '23:59:59') };
     } else {
-      const d = new Date(date as string);
-      const nextDay = new Date(d);
-      nextDay.setDate(nextDay.getDate() + 1);
-      dateWhere = { gte: d, lt: nextDay };
+      const d = parseBerlinOrUtcDate(date as string, '00:00');
+      const nextDay = parseBerlinOrUtcDate(date as string, '23:59:59.999');
+      dateWhere = { gte: d, lte: nextDay };
     }
 
     const appointments = await prisma.appointment.findMany({
@@ -188,7 +187,7 @@ router.post('/admin-create', requireAuth, async (req: AuthRequest, res: Response
 
       const appointment = await prisma.appointment.create({
         data: {
-          date: new Date(date),
+          date: parseBerlinOrUtcDate(date),
           duration: finalDuration > 0 ? finalDuration : 60, // default to 60m if not provided
           totalPrice: 0,
           notes: notes || 'Time blocked by admin',
@@ -280,7 +279,7 @@ router.post('/admin-create', requireAuth, async (req: AuthRequest, res: Response
     const manageToken = crypto.randomBytes(24).toString('hex');
     const appointment = await prisma.appointment.create({
       data: {
-        date: new Date(date),
+        date: parseBerlinOrUtcDate(date),
         duration: finalDuration,
         totalPrice: Math.max(0, calculatedPrice - (Number(discount) || 0)),
         notes: notes || '',
@@ -677,7 +676,7 @@ router.post('/', async (req: Request, res: Response) => {
         clientId: client.id,
         petId: pet.id,
         groomerId: groomer.id,
-        date: new Date(date),
+        date: parseBerlinOrUtcDate(date),
         duration: finalDuration,
         totalPrice: finalPrice,
         notes: notes || '',
@@ -847,7 +846,7 @@ router.patch('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
     if (status !== undefined) data.status = status;
     if (notes !== undefined) data.notes = notes;
     if (groomerId !== undefined) data.groomerId = Number(groomerId);
-    if (date !== undefined) data.date = new Date(date);
+    if (date !== undefined) data.date = parseBerlinOrUtcDate(date as string | Date);
     if (totalPrice !== undefined) data.totalPrice = Number(totalPrice);
     if (duration !== undefined) data.duration = Number(duration);
     if (petPhotoUrl !== undefined) data.petPhotoUrl = petPhotoUrl;

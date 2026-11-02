@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import Navbar from '@/components/Navbar';
 import BottomNav from '@/components/BottomNav';
 import { useTranslation } from '@/hooks/useTranslation';
+import { getBerlinParts, parseBerlinOrUtcDate } from '@/lib/timezone';
 
 // ─── Mini Calendar Component ──────────────────────────────
 const DE_DAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
@@ -376,11 +377,10 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
 
     const groomerBusyRanges: Record<number, {start: number, end: number}[]> = {};
     busySlots.forEach(slot => {
-      const slotDateStr = slot.date.split('T')[0];
-      if (slotDateStr !== dateToCheck) return;
+      const { dateStr, hour, minute } = getBerlinParts(slot.date);
+      if (dateStr !== dateToCheck) return;
 
-      const d = new Date(slot.date);
-      const startMins = d.getHours() * 60 + d.getMinutes(); 
+      const startMins = hour * 60 + minute; 
       const endMins = startMins + slot.duration;
       if (!groomerBusyRanges[slot.groomerId]) groomerBusyRanges[slot.groomerId] = [];
       groomerBusyRanges[slot.groomerId].push({ start: startMins, end: endMins });
@@ -571,7 +571,7 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
           petPhotoUrl,
           notes: booking.notes,
           groomerId: booking.groomerId,
-          date: `${booking.date}T${booking.time}:00`,
+          date: parseBerlinOrUtcDate(booking.date, booking.time).toISOString(),
           serviceIds: pet.selectedServices,
           duration: petDuration,
           totalPrice: petPrice
@@ -593,7 +593,7 @@ export default function BookPage({ initialServices, initialGroomers, initialSett
   };
 
   const generateICS = () => {
-    const dateTime = new Date(`${booking.date}T${booking.time}:00`);
+    const dateTime = parseBerlinOrUtcDate(booking.date, booking.time);
     const endDateTime = new Date(dateTime.getTime() + totalDuration * 60000);
     
     const formatDate = (d: Date) => {

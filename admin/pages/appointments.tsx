@@ -107,6 +107,7 @@ function AppointmentDetailModal({
             <h3 className="font-display text-headline-sm text-on-surface">{t.appointments.detailTitle}</h3>
             <p className="font-sans text-label-sm text-on-surface-variant mt-0.5">
               {new Date(String(apt.date)).toLocaleString('de-DE', {
+                timeZone: 'Europe/Berlin',
                 day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
               })}
             </p>
@@ -497,10 +498,10 @@ export default function AppointmentsPage() {
                       >
                         <td className="px-4 py-3 whitespace-nowrap">
                           <p className="font-sans text-label-lg text-on-surface font-semibold">
-                            {new Date(String(apt.date)).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
+                            {new Date(String(apt.date)).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin' })}
                           </p>
                           <p className="font-sans text-label-sm text-on-surface-variant">
-                            {new Date(String(apt.date)).toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })}
+                            {new Date(String(apt.date)).toLocaleDateString('de-DE', { day: 'numeric', month: 'short', timeZone: 'Europe/Berlin' })}
                           </p>
                         </td>
                         <td className="px-4 py-3">
@@ -605,7 +606,7 @@ export default function AppointmentsPage() {
                               if (n.startsWith('0')) n = '49' + n.slice(1);
                               if (n.length < 8) return null;
                               const pet = (apt.pet as any)?.name || 'Hund';
-                              const when = new Date(String(apt.date)).toLocaleString('de-DE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+                              const when = new Date(String(apt.date)).toLocaleString('de-DE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin' });
                               const msg = encodeURIComponent(`Hallo! Termin Glanz & Groom: ${when}, ${pet}.`);
                               return (
                                 <a

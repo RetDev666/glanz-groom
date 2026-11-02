@@ -106,6 +106,7 @@ export type NotifyAppointment = {
 
 function fmtDateTimeDe(d: Date): string {
   return d.toLocaleString('de-DE', {
+    timeZone: 'Europe/Berlin',
     weekday: 'long',
     day: 'numeric',
     month: 'long',
@@ -116,7 +117,11 @@ function fmtDateTimeDe(d: Date): string {
 }
 
 function fmtTimeDe(d: Date): string {
-  return d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleTimeString('de-DE', {
+    timeZone: 'Europe/Berlin',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
 function serviceLines(apt: NotifyAppointment): string {

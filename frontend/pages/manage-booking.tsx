@@ -186,6 +186,7 @@ export default function ManageBookingPage() {
     if (!apt) return '';
     const phone = apt.salon.whatsapp.replace(/\D/g, '');
     const dateFormatted = new Date(apt.date).toLocaleString('de-DE', {
+      timeZone: 'Europe/Berlin',
       weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
     });
     const defaultMsg = `Hallo Glanz & Groom! Ich habe eine Frage zu meinem Termin am ${dateFormatted} für ${apt.pet.name}.`;
@@ -193,10 +194,12 @@ export default function ManageBookingPage() {
   };
 
   const formattedDate = apt ? new Date(apt.date).toLocaleDateString('de-DE', {
+    timeZone: 'Europe/Berlin',
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
   }) : '';
 
   const formattedTime = apt ? new Date(apt.date).toLocaleTimeString('de-DE', {
+    timeZone: 'Europe/Berlin',
     hour: '2-digit', minute: '2-digit'
   }) : '';
 
@@ -295,7 +298,7 @@ export default function ManageBookingPage() {
                   </p>
                   {apt.clientConfirmedAt && (
                     <p className="font-sans text-label-sm text-green-700">
-                      Bestätigt am {new Date(apt.clientConfirmedAt).toLocaleString('de-DE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      Bestätigt am {new Date(apt.clientConfirmedAt).toLocaleString('de-DE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin' })}
                     </p>
                   )}
                 </div>

@@ -6,6 +6,7 @@ import { format, addDays, startOfWeek, isSameDay } from 'date-fns';
 import { de } from 'date-fns/locale';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
+import { getBerlinParts, parseBerlinOrUtcDate, isSameBerlinDay, formatBerlinHm } from '../utils/timezone';
 
 registerLocale('de', de);
 
@@ -26,7 +27,7 @@ function isAppointmentVisible(apt: Record<string, unknown>, showFinished: boolea
   const end = new Date(start.getTime() + (Number(apt.duration) || 0) * 60_000);
   const now = new Date();
 
-  if (isSameDay(start, now) && end.getTime() <= now.getTime()) {
+  if (isSameBerlinDay(start, now) && end.getTime() <= now.getTime()) {
     return false;
   }
   return true;
@@ -81,7 +82,7 @@ function buildTimeSlots(stepMin = 15, fromHour = 8, toHour = 22): string[] {
 const TIME_SLOTS = buildTimeSlots(15, 8, 22);
 
 function formatHm(d: Date): string {
-  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  return getBerlinParts(d).timeStr;
 }
 
 function AppointmentDetailModal({
@@ -124,7 +125,8 @@ function AppointmentDetailModal({
 
   // End-time options: after start, up to end of day slots
   const endOptions = useMemo(() => {
-    const startMinutes = startDate.getHours() * 60 + startDate.getMinutes();
+    const { hour, minute } = getBerlinParts(startDate);
+    const startMinutes = hour * 60 + minute;
     return TIME_SLOTS.filter(slot => {
       const [h, m] = slot.split(':').map(Number);
       const slotMin = h * 60 + m;
@@ -133,13 +135,12 @@ function AppointmentDetailModal({
   }, [startDate]);
 
   const setEndFromSlot = (slot: string) => {
+    const { hour, minute } = getBerlinParts(startDate);
+    const startMinutes = hour * 60 + minute;
     const [h, m] = slot.split(':').map(Number);
-    const end = new Date(startDate);
-    end.setHours(h, m, 0, 0);
-    // if end is somehow before start (shouldn't), add a day is wrong for salon — clamp min 15
-    let mins = Math.round((end.getTime() - startDate.getTime()) / 60_000);
+    const slotMin = h * 60 + m;
+    let mins = slotMin - startMinutes;
     if (mins < 15) mins = 15;
-    // snap to 5 min
     mins = Math.round(mins / 5) * 5;
     setDuration(mins);
     setTimeSaved(false);
@@ -182,6 +183,7 @@ function AppointmentDetailModal({
             <h3 className="font-display text-headline-sm text-on-surface">{t.calendar.detailTitle}</h3>
             <p className="font-sans text-label-sm text-on-surface-variant mt-0.5">
               {startDate.toLocaleString('de-DE', {
+                timeZone: 'Europe/Berlin',
                 day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
               })}
             </p>
@@ -435,7 +437,11 @@ export function NewAppointmentModal({
   onSave: () => void;
   t: ReturnType<typeof useAdminLang>['t'];
 }) {
-  const defaultDate = editingApt?.date ? new Date(new Date(editingApt.date).getTime() - new Date(editingApt.date).getTimezoneOffset() * 60000).toISOString().slice(0, 16) : (initialDate ? new Date(initialDate.getTime() - initialDate.getTimezoneOffset() * 60000).toISOString().slice(0, 16) : new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16));
+  const defaultDate = editingApt?.date
+    ? `${getBerlinParts(editingApt.date).dateStr}T${getBerlinParts(editingApt.date).timeStr}`
+    : (initialDate
+      ? `${getBerlinParts(initialDate).dateStr}T${getBerlinParts(initialDate).timeStr}`
+      : `${getBerlinParts(new Date()).dateStr}T${getBerlinParts(new Date()).timeStr}`);
   
   let initialDiscount = 0;
   if (editingApt && editingApt.services && editingApt.totalPrice !== undefined) {
@@ -574,7 +580,7 @@ export function NewAppointmentModal({
       petBreed: form.petBreed,
       petSize: form.petSize,
       clientEmail: form.clientEmail || `${Date.now()}@no-email.local`,
-      date: new Date(form.date).toISOString(),
+      date: parseBerlinOrUtcDate(form.date).toISOString(),
       groomerId: Number(form.groomerId) || Number(groomers[0]?.id) || 0,
     };
 
@@ -1134,13 +1140,12 @@ export default function CalendarPage() {
     
     const hours = Math.floor(snappedMinutes / 60);
     const minutes = snappedMinutes % 60;
-
-    const newDate = new Date(currentDate);
-    newDate.setHours(hours, minutes, 0, 0);
+    const timeStr = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    const newUtc = parseBerlinOrUtcDate(toLocalDateString(currentDate), timeStr);
 
     await handleUpdateAppointment(Number(aptId), {
       groomerId: newGroomerId,
-      date: newDate.toISOString()
+      date: newUtc.toISOString()
     });
   };
 
@@ -1158,17 +1163,16 @@ export default function CalendarPage() {
     
     const hours = Math.floor(snappedMinutes / 60);
     const minutes = snappedMinutes % 60;
-
-    const newDate = new Date(currentDate);
-    newDate.setHours(hours, minutes, 0, 0);
+    const timeStr = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    const newUtc = parseBerlinOrUtcDate(toLocalDateString(currentDate), timeStr);
     
-    setNewAptModalData({ isOpen: true, date: newDate, groomerId });
+    setNewAptModalData({ isOpen: true, date: newUtc, groomerId });
   };
 
   // 1 hour = 120px height, 30 min = 60px height. Base is 10:00.
   const getTopPosition = (dateStr: string) => {
-    const d = new Date(dateStr);
-    const minutesDiff = (d.getHours() - 10) * 60 + d.getMinutes();
+    const { hour, minute } = getBerlinParts(dateStr);
+    const minutesDiff = (hour - 10) * 60 + minute;
     return minutesDiff * 2; // 2px per minute
   };
 
@@ -1336,7 +1340,7 @@ export default function CalendarPage() {
 
           {/* Block day */}
           <button
-            onClick={() => setNewAptModalData({ isOpen: true, date: new Date(currentDate.setHours(13, 0, 0, 0)), groomerId: Number(groomers[0]?.id) || 1 })}
+            onClick={() => setNewAptModalData({ isOpen: true, date: parseBerlinOrUtcDate(toLocalDateString(currentDate), '13:00'), groomerId: Number(groomers[0]?.id) || 1 })}
             title="Tag blockieren"
             className="flex items-center gap-1.5 bg-white/10 hover:bg-red-500/30 px-3 py-1.5 rounded-xl transition-colors text-white/80 hover:text-white"
           >
@@ -1361,7 +1365,7 @@ export default function CalendarPage() {
         <div className="flex bg-primary/5 shrink-0 overflow-x-auto no-scrollbar border-b border-gray-100">
           {weekDays.map((d, i) => {
             const isActive = isSameDay(d, currentDate);
-            const hasApts = visibleAppointments.filter(a => isSameDay(new Date(String(a.date)), d)).length;
+            const hasApts = visibleAppointments.filter(a => isSameBerlinDay(String(a.date), d)).length;
             return (
               <div
                 key={i}
@@ -1433,7 +1437,7 @@ export default function CalendarPage() {
           <div className="flex-1 grid" style={{ gridTemplateColumns: `repeat(${viewMode === 'day' ? Math.max((filterGroomerId ? groomers.filter(g => Number(g.id) === filterGroomerId) : groomers).length, 1) : 7}, 1fr)` }}>
             {viewMode === 'day' ? (
               ((filterGroomerId ? groomers.filter(g => Number(g.id) === filterGroomerId) : groomers).length > 0 ? (filterGroomerId ? groomers.filter(g => Number(g.id) === filterGroomerId) : groomers) : [{ id: 1 }]).map((g, i, arr) => {
-                const gApts = visibleAppointments.filter(a => Number(a.groomerId || 0) === Number(g.id) && isSameDay(new Date(String(a.date)), currentDate));
+                const gApts = visibleAppointments.filter(a => Number(a.groomerId || 0) === Number(g.id) && isSameBerlinDay(String(a.date), currentDate));
                 const gBreaks = breaks.filter(b => Number(b.groomerId || 0) === Number(g.id));
 
                 return (
@@ -1472,11 +1476,15 @@ export default function CalendarPage() {
                       const pet = apt.pet as Record<string, any>;
                       const petSize = String(pet?.size || 'm').toUpperCase();
                       
-                      const d = new Date(String(apt.date));
+                      const { hour, minute, timeStr } = getBerlinParts(String(apt.date));
                       const isResizing = resizeState?.aptId === String(apt.id);
                       const durationToUse = isResizing ? resizeState.currentDuration : Number(apt.duration);
-                      const endD = new Date(d.getTime() + durationToUse * 60000);
-                      const timeRange = `${format(d, 'H:mm')} - ${format(endD, 'H:mm')}`;
+                      const startMins = hour * 60 + minute;
+                      const endMins = startMins + durationToUse;
+                      const endH = Math.floor(endMins / 60);
+                      const endM = endMins % 60;
+                      const endHm = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+                      const timeRange = `${timeStr} - ${endHm}`;
 
                       const top = getTopPosition(String(apt.date));
                       const height = Math.max(getHeight(durationToUse), 40);
@@ -1573,7 +1581,7 @@ export default function CalendarPage() {
               })
             ) : (
               weekDays.map((d, i, arr) => {
-                const dayApts = visibleAppointments.filter(a => isSameDay(new Date(String(a.date)), d));
+                const dayApts = visibleAppointments.filter(a => isSameBerlinDay(String(a.date), d));
                 
                 return (
                   <div
@@ -1603,11 +1611,15 @@ export default function CalendarPage() {
                       const pet = apt.pet as Record<string, any>;
                       const petSize = String(pet?.size || 'm').toUpperCase();
                       
-                      const dStart = new Date(String(apt.date));
+                      const { hour, minute, timeStr } = getBerlinParts(String(apt.date));
                       const isResizing = resizeState?.aptId === String(apt.id);
                       const durationToUse = isResizing ? resizeState.currentDuration : Number(apt.duration);
-                      const endD = new Date(dStart.getTime() + durationToUse * 60000);
-                      const timeRange = `${format(dStart, 'H:mm')} - ${format(endD, 'H:mm')}`;
+                      const startMins = hour * 60 + minute;
+                      const endMins = startMins + durationToUse;
+                      const endH = Math.floor(endMins / 60);
+                      const endM = endMins % 60;
+                      const endHm = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+                      const timeRange = `${timeStr} - ${endHm}`;
 
                       const top = getTopPosition(String(apt.date));
                       const height = Math.max(getHeight(durationToUse), 40);
